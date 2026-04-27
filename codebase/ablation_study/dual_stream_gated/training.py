@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 
 import torch
 from torch.optim import Adam
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from dataset import Landslide4SenseDualStream
@@ -16,7 +16,12 @@ from model import DualStreamGateNet
 
 def parse_args():
     p = argparse.ArgumentParser(description="Train dual-stream gated landslide segmentation model.")
-    p.add_argument("--dataset_root", type=str, required=True, help="Path to dataset root containing TrainData/ValidData/TestData.")
+    p.add_argument(
+        "--dataset_root",
+        type=str,
+        default="/home/user/Desktop/Deep_learning_projects/4PI/dataset",
+        help="Path to dataset root containing TrainData/ValidData/TestData.",
+    )
     p.add_argument("--epochs", type=int, default=100)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=3e-4)
@@ -32,6 +37,18 @@ def parse_args():
     p.add_argument("--nir_index", type=int, default=7)
     p.add_argument("--slope_index", type=int, default=12)
     p.add_argument("--dem_index", type=int, default=13)
+    p.add_argument(
+        "--val_split_ratio",
+        type=float,
+        default=0.1,
+        help="Fraction of TrainData to reserve for validation if ValidData masks are unavailable.",
+    )
+    p.add_argument(
+        "--val_split_seed",
+        type=int,
+        default=42,
+        help="Seed for deterministic train/validation split when holding out from TrainData.",
+    )
     return p.parse_args()
 
 
@@ -160,9 +177,38 @@ def main():
         slope_index=args.slope_index,
         dem_index=args.dem_index,
     )
+    if valid_ds.has_mask:
+        print(f"Using labeled validation split at: {valid_ds.mask_dir}")
+        train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+        valid_loader = DataLoader(valid_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+    else:
+        val_ratio = float(args.val_split_ratio)
+        if not (0.0 < val_ratio < 1.0):
+            raise ValueError(f"--val_split_ratio must be in (0, 1), got {val_ratio}")
 
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
-    valid_loader = DataLoader(valid_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+        n_total = len(train_ds)
+        if n_total < 2:
+            raise ValueError("Need at least 2 training samples to create a holdout validation split.")
+
+        n_val = max(1, int(round(n_total * val_ratio)))
+        n_val = min(n_val, n_total - 1)
+        n_train = n_total - n_val
+
+        g = torch.Generator().manual_seed(args.val_split_seed)
+        perm = torch.randperm(n_total, generator=g).tolist()
+        val_indices = perm[:n_val]
+        train_indices = perm[n_val:]
+
+        train_subset = Subset(train_ds, train_indices)
+        valid_subset = Subset(train_ds, val_indices)
+
+        print(
+            "ValidData masks not found; using deterministic holdout from TrainData "
+            f"(train={n_train}, valid={n_val}, ratio={val_ratio}, seed={args.val_split_seed})."
+        )
+
+        train_loader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+        valid_loader = DataLoader(valid_subset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
 
     model = DualStreamGateNet(in_channels_a=3, in_channels_b=3, base_channels=args.base_channels).to(device)
     criterion = DualStreamLoss()
