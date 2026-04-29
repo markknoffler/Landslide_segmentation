@@ -1,3 +1,0 @@
-best_val_f1,epochs,batch_size,lr,weight_decay,dataset_root
-0.0,100,32,0.0003,0.0001,/home/user/Desktop/Deep_learning_projects/4PI/dataset
-0.2259138680167857,100,32,0.0003,0.0001,/home/user/Desktop/Deep_learning_projects/4PI/dataset

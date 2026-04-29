@@ -1,0 +1,32 @@
+# Checkpoint files and model outputs
+checkpoint/
+*.ckpt
+*.pth
+*.pt
+*.model
+*.bin
+*.h5
+*.pb
+
+# Temporary files
+*.tmp
+*.temp
+
+# Results and outputs
+results/
+outputs/
+*.csv
+*.json
+*.txt
+*.log
+*.out
+
+# Dataset files (if they're large)
+datasets/
+data/
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Cache files
+.cache/
