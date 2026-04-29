@@ -1,58 +1,60 @@
 import argparse
 import csv
+import random
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict
 
+import numpy as np
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
-from dataset import Landslide4SenseDualStream
+from dataset import DualStreamTransform, Landslide4SenseDualStream
 from losses import DualStreamLoss
-from metrics import image_level_detection_metrics, pixel_metrics_from_logits
+from metrics import pixel_metrics_from_logits
 from model import DualStreamGateNet
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Train dual-stream gated landslide segmentation model.")
-    p.add_argument(
-        "--dataset_root",
-        type=str,
-        default="/home/user/Desktop/Deep_learning_projects/4PI/dataset",
-        help="Path to dataset root containing TrainData/ValidData/TestData.",
-    )
-    p.add_argument("--epochs", type=int, default=100)
-    p.add_argument("--batch_size", type=int, default=32)
-    p.add_argument("--lr", type=float, default=3e-4)
-    p.add_argument("--weight_decay", type=float, default=1e-4)
-    p.add_argument("--num_workers", type=int, default=4)
-    p.add_argument("--device", type=str, default="cuda")
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--base_channels", type=int, default=32)
-    p.add_argument("--resume", action="store_true", help="Resume from latest checkpoint in checkpoint directory.")
-    p.add_argument("--output_dir", type=str, default=".", help="Directory where checkpoint/ and results/ will be created.")
-    p.add_argument("--save_every", type=int, default=5, help="Save checkpoint every N epochs.")
-    p.add_argument("--rgb_indices", type=int, nargs=3, default=[3, 2, 1])
-    p.add_argument("--nir_index", type=int, default=7)
-    p.add_argument("--slope_index", type=int, default=12)
-    p.add_argument("--dem_index", type=int, default=13)
-    p.add_argument(
-        "--val_split_ratio",
-        type=float,
-        default=0.1,
-        help="Fraction of TrainData to reserve for validation if ValidData masks are unavailable.",
-    )
-    p.add_argument(
-        "--val_split_seed",
-        type=int,
-        default=42,
-        help="Seed for deterministic train/validation split when holding out from TrainData.",
-    )
-    return p.parse_args()
+    parser = argparse.ArgumentParser(description="Train paper-aligned DiGATe-UNet on Landslide4Sense.")
+    parser.add_argument("--dataset_root", type=str, default="/home/user/Desktop/Deep_learning_projects/4PI/dataset")
+    parser.add_argument("--output_dir", type=str, default=".")
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--weight_decay", type=float, default=1e-4)
+    parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--resize_to", type=int, default=256)
+    parser.add_argument("--bands", type=str, default="RGB-NDVI-SLOPE-DEM")
+    parser.add_argument("--backbone", type=str, default="tf_efficientnet_b4")
+    parser.add_argument("--pretrained", action="store_true", default=True)
+    parser.add_argument("--no-pretrained", dest="pretrained", action="store_false")
+    parser.add_argument("--freeze_backbone", action="store_true", default=True)
+    parser.add_argument("--no-freeze_backbone", dest="freeze_backbone", action="store_false")
+    parser.add_argument("--share_backbone", action="store_true", default=False)
+    parser.add_argument("--no-share_backbone", dest="share_backbone", action="store_false")
+    parser.add_argument("--pretrained_path", type=str, default=None)
+    parser.add_argument("--use_input_adapter", action="store_true", default=False)
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--save_every", type=int, default=5)
+    parser.add_argument("--val_split_ratio", type=float, default=0.1)
+    parser.add_argument("--val_split_seed", type=int, default=42)
+    parser.add_argument("--tversky_alpha", type=float, default=0.6)
+    parser.add_argument("--tversky_beta", type=float, default=0.4)
+    parser.add_argument("--main_weight", type=float, default=1.0)
+    parser.add_argument("--aux2_weight", type=float, default=0.6)
+    parser.add_argument("--aux3_weight", type=float, default=0.4)
+    parser.add_argument("--reg_weight", type=float, default=1e-3)
+    parser.add_argument("--metric_threshold", type=float, default=0.6)
+    return parser.parse_args()
 
 
 def set_seed(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
@@ -70,84 +72,139 @@ def save_checkpoint(path: Path, state: Dict):
 def append_csv(path: Path, row: Dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     is_new = not path.exists()
-    with open(path, "a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+    with open(path, "a", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
         if is_new:
             writer.writeheader()
         writer.writerow(row)
 
 
-@torch.no_grad()
-def evaluate(model, loader, criterion, device: torch.device):
-    model.eval()
-    loss_meter = 0.0
-    n_batches = 0
+def prep_batch(batch, device: torch.device):
+    x1 = batch["stream_a"].float().to(device, non_blocking=True)
+    x2 = batch["stream_b"].float().to(device, non_blocking=True)
+    y = batch["mask"]
+    if y.dtype.is_floating_point:
+        y = y.round().long()
+    y = y.to(device, non_blocking=True)
+    return x1, x2, y
 
-    sum_tp = sum_fp = sum_fn = sum_tn = 0
-    image_scores = []
-    image_labels = []
 
-    for batch in tqdm(loader, desc="Valid", leave=False):
-        xa = batch["stream_a"].to(device)
-        xb = batch["stream_b"].to(device)
-        y = batch["mask"].to(device)
+def run_epoch(
+    loader,
+    model,
+    criterion,
+    device: torch.device,
+    threshold: float = 0.5,
+    optimizer=None,
+    training: bool = False,
+):
+    model.train() if training else model.eval()
+    prefix = "Train" if training else "Valid"
 
-        out = model(xa, xb)
-        loss_dict = criterion(out, y)
-        loss_meter += float(loss_dict["loss"].item())
-        n_batches += 1
+    losses = []
+    metrics = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
+    progress = tqdm(loader, desc=prefix, leave=False)
 
-        pix = pixel_metrics_from_logits(out["main"], y, threshold=0.5)
-        sum_tp += pix["tp"]
-        sum_fp += pix["fp"]
-        sum_fn += pix["fn"]
-        sum_tn += pix["tn"]
+    for batch in progress:
+        x1, x2, y = prep_batch(batch, device)
 
-        probs = torch.sigmoid(out["main"]).amax(dim=(-2, -1)).squeeze(1).detach().cpu().numpy()
-        labels = (y.amax(dim=(-2, -1)).squeeze(1) > 0.5).detach().cpu().numpy().astype(int)
-        image_scores.extend(probs.tolist())
-        image_labels.extend(labels.tolist())
+        with torch.set_grad_enabled(training):
+            main, aux2, aux3, reg_tuple = model(x1, x2)
+            loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
+            loss = loss_dict["loss"]
 
-    precision = (sum_tp / (sum_tp + sum_fp)) if (sum_tp + sum_fp) > 0 else 0.0
-    recall = (sum_tp / (sum_tp + sum_fn)) if (sum_tp + sum_fn) > 0 else 0.0
-    f1 = (2 * sum_tp / (2 * sum_tp + sum_fp + sum_fn)) if (2 * sum_tp + sum_fp + sum_fn) > 0 else 0.0
-    iou = (sum_tp / (sum_tp + sum_fp + sum_fn)) if (sum_tp + sum_fp + sum_fn) > 0 else 0.0
-    acc = ((sum_tp + sum_tn) / (sum_tp + sum_tn + sum_fp + sum_fn)) if (sum_tp + sum_tn + sum_fp + sum_fn) > 0 else 0.0
-    img_metrics = image_level_detection_metrics(image_scores, image_labels)
+            if training:
+                optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+
+        pix = pixel_metrics_from_logits(main, y, threshold=threshold)
+        losses.append(float(loss.item()))
+        for key in metrics:
+            metrics[key].append(float(pix[key]))
+
+        progress.set_postfix(
+            loss=f"{losses[-1]:.4f}",
+            f1=f"{metrics['f1'][-1]:.4f}",
+            iou=f"{metrics['iou'][-1]:.4f}",
+            reg=f"{float(loss_dict['loss_reg'].item()):.3e}",
+        )
 
     return {
-        "loss": loss_meter / max(n_batches, 1),
-        "acc": acc,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "iou": iou,
-        "auroc": img_metrics["auroc"],
-        "auprc": img_metrics["auprc"],
-        "best_f1": img_metrics["best_f1"],
-        "best_threshold": img_metrics["best_threshold"],
+        "loss": float(np.mean(losses)) if losses else 0.0,
+        **{key: float(np.mean(values)) if values else 0.0 for key, values in metrics.items()},
     }
 
 
-def train_one_epoch(model, loader, criterion, optimizer, device: torch.device):
-    model.train()
-    total_loss = 0.0
-    n_batches = 0
-    for batch in tqdm(loader, desc="Train", leave=False):
-        xa = batch["stream_a"].to(device)
-        xb = batch["stream_b"].to(device)
-        y = batch["mask"].to(device)
+def build_dataloaders(args):
+    train_ds = Landslide4SenseDualStream(
+        data_root=args.dataset_root,
+        split="train",
+        bands=args.bands,
+        resize_to=args.resize_to,
+        transform=DualStreamTransform(p=0.5),
+    )
+    valid_ds = Landslide4SenseDualStream(
+        data_root=args.dataset_root,
+        split="valid",
+        bands=args.bands,
+        resize_to=args.resize_to,
+        transform=None,
+    )
 
-        optimizer.zero_grad(set_to_none=True)
-        out = model(xa, xb)
-        loss_dict = criterion(out, y)
-        loss = loss_dict["loss"]
-        loss.backward()
-        optimizer.step()
+    if valid_ds.has_mask:
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=args.batch_size,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=args.num_workers,
+        )
+        valid_loader = DataLoader(
+            valid_ds,
+            batch_size=args.batch_size,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=args.num_workers,
+        )
+        return train_loader, valid_loader
 
-        total_loss += float(loss.item())
-        n_batches += 1
-    return total_loss / max(n_batches, 1)
+    val_ratio = float(args.val_split_ratio)
+    n_total = len(train_ds)
+    n_val = max(1, int(round(n_total * val_ratio)))
+    n_val = min(n_val, n_total - 1)
+    generator = torch.Generator().manual_seed(args.val_split_seed)
+    perm = torch.randperm(n_total, generator=generator).tolist()
+    val_indices = perm[:n_val]
+    train_indices = perm[n_val:]
+
+    train_subset = Subset(train_ds, train_indices)
+    valid_subset = Subset(
+        Landslide4SenseDualStream(
+            data_root=args.dataset_root,
+            split="train",
+            bands=args.bands,
+            resize_to=args.resize_to,
+            transform=None,
+        ),
+        val_indices,
+    )
+
+    train_loader = DataLoader(
+        train_subset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=args.num_workers,
+    )
+    valid_loader = DataLoader(
+        valid_subset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        pin_memory=True,
+        num_workers=args.num_workers,
+    )
+    return train_loader, valid_loader
 
 
 def main():
@@ -161,57 +218,27 @@ def main():
     epoch_csv = results_dir / "epoch_metrics.csv"
     final_csv = results_dir / "final_metrics.csv"
 
-    train_ds = Landslide4SenseDualStream(
-        data_root=args.dataset_root,
-        split="train",
-        rgb_indices=tuple(args.rgb_indices),
-        nir_index=args.nir_index,
-        slope_index=args.slope_index,
-        dem_index=args.dem_index,
+    train_loader, valid_loader = build_dataloaders(args)
+
+    model = DualStreamGateNet(
+        n_classes=1,
+        backbone=args.backbone,
+        n_channels=3,
+        n_channels_b=3,
+        pretrained=args.pretrained,
+        pretrained_path=args.pretrained_path,
+        use_input_adapter=args.use_input_adapter,
+        freeze_backbone=args.freeze_backbone,
+        share_backbone=args.share_backbone,
+    ).to(device)
+    criterion = DualStreamLoss(
+        alpha=args.tversky_alpha,
+        beta=args.tversky_beta,
+        main_weight=args.main_weight,
+        aux2_weight=args.aux2_weight,
+        aux3_weight=args.aux3_weight,
+        reg_weight=args.reg_weight,
     )
-    valid_ds = Landslide4SenseDualStream(
-        data_root=args.dataset_root,
-        split="valid",
-        rgb_indices=tuple(args.rgb_indices),
-        nir_index=args.nir_index,
-        slope_index=args.slope_index,
-        dem_index=args.dem_index,
-    )
-    if valid_ds.has_mask:
-        print(f"Using labeled validation split at: {valid_ds.mask_dir}")
-        train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
-        valid_loader = DataLoader(valid_ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
-    else:
-        val_ratio = float(args.val_split_ratio)
-        if not (0.0 < val_ratio < 1.0):
-            raise ValueError(f"--val_split_ratio must be in (0, 1), got {val_ratio}")
-
-        n_total = len(train_ds)
-        if n_total < 2:
-            raise ValueError("Need at least 2 training samples to create a holdout validation split.")
-
-        n_val = max(1, int(round(n_total * val_ratio)))
-        n_val = min(n_val, n_total - 1)
-        n_train = n_total - n_val
-
-        g = torch.Generator().manual_seed(args.val_split_seed)
-        perm = torch.randperm(n_total, generator=g).tolist()
-        val_indices = perm[:n_val]
-        train_indices = perm[n_val:]
-
-        train_subset = Subset(train_ds, train_indices)
-        valid_subset = Subset(train_ds, val_indices)
-
-        print(
-            "ValidData masks not found; using deterministic holdout from TrainData "
-            f"(train={n_train}, valid={n_val}, ratio={val_ratio}, seed={args.val_split_seed})."
-        )
-
-        train_loader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
-        valid_loader = DataLoader(valid_subset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
-
-    model = DualStreamGateNet(in_channels_a=3, in_channels_b=3, base_channels=args.base_channels).to(device)
-    criterion = DualStreamLoss()
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     start_epoch = 1
@@ -225,26 +252,41 @@ def main():
             optimizer.load_state_dict(state["optimizer"])
             start_epoch = int(state["epoch"]) + 1
             best_f1 = float(state.get("best_f1", 0.0))
-            print(f"Resumed from {ckpt} at epoch {start_epoch}.")
-        else:
-            print("Resume requested, but no checkpoint found. Starting from scratch.")
 
     for epoch in range(start_epoch, args.epochs + 1):
-        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val = evaluate(model, valid_loader, criterion, device)
+        train_metrics = run_epoch(
+            train_loader,
+            model,
+            criterion,
+            device,
+            threshold=args.metric_threshold,
+            optimizer=optimizer,
+            training=True,
+        )
+        val_metrics = run_epoch(
+            valid_loader,
+            model,
+            criterion,
+            device,
+            threshold=args.metric_threshold,
+            optimizer=None,
+            training=False,
+        )
+
         row = {
             "epoch": epoch,
-            "train_loss": train_loss,
-            "val_loss": val["loss"],
-            "val_acc": val["acc"],
-            "val_precision": val["precision"],
-            "val_recall": val["recall"],
-            "val_f1": val["f1"],
-            "val_iou": val["iou"],
-            "val_auroc": val["auroc"],
-            "val_auprc": val["auprc"],
-            "val_image_best_f1": val["best_f1"],
-            "val_image_best_threshold": val["best_threshold"],
+            "train_loss": train_metrics["loss"],
+            "train_acc": train_metrics["acc"],
+            "train_precision": train_metrics["precision"],
+            "train_recall": train_metrics["recall"],
+            "train_f1": train_metrics["f1"],
+            "train_iou": train_metrics["iou"],
+            "val_loss": val_metrics["loss"],
+            "val_acc": val_metrics["acc"],
+            "val_precision": val_metrics["precision"],
+            "val_recall": val_metrics["recall"],
+            "val_f1": val_metrics["f1"],
+            "val_iou": val_metrics["iou"],
         }
         append_csv(epoch_csv, row)
         print(row)
@@ -252,26 +294,14 @@ def main():
         if epoch % args.save_every == 0:
             save_checkpoint(
                 ckpt_dir / f"epoch_{epoch:04d}.pt",
-                {
-                    "epoch": epoch,
-                    "model": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "best_f1": best_f1,
-                    "args": vars(args),
-                },
+                {"epoch": epoch, "model": model.state_dict(), "optimizer": optimizer.state_dict(), "best_f1": best_f1},
             )
 
-        if val["f1"] > best_f1:
-            best_f1 = val["f1"]
+        if val_metrics["f1"] > best_f1:
+            best_f1 = val_metrics["f1"]
             save_checkpoint(
                 ckpt_dir / "best.pt",
-                {
-                    "epoch": epoch,
-                    "model": model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "best_f1": best_f1,
-                    "args": vars(args),
-                },
+                {"epoch": epoch, "model": model.state_dict(), "optimizer": optimizer.state_dict(), "best_f1": best_f1},
             )
 
     append_csv(
@@ -282,6 +312,18 @@ def main():
             "batch_size": args.batch_size,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
+            "backbone": args.backbone,
+            "pretrained": args.pretrained,
+            "freeze_backbone": args.freeze_backbone,
+            "resize_to": args.resize_to,
+            "bands": args.bands,
+            "tversky_alpha": args.tversky_alpha,
+            "tversky_beta": args.tversky_beta,
+            "main_weight": args.main_weight,
+            "aux2_weight": args.aux2_weight,
+            "aux3_weight": args.aux3_weight,
+            "reg_weight": args.reg_weight,
+            "metric_threshold": args.metric_threshold,
             "dataset_root": args.dataset_root,
         },
     )

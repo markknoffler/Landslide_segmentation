@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,60 +10,68 @@ class TverskyLoss(nn.Module):
         self.beta = beta
         self.smooth = smooth
 
-    def forward(self, logits: torch.Tensor, target: torch.Tensor):
-        probs = torch.sigmoid(logits)
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        probs = torch.clamp(torch.sigmoid(pred), min=1e-4, max=1.0 - 1e-4)
         target = target.float()
+        probs = probs.reshape(-1)
+        target = target.reshape(-1)
 
-        dims = (0, 2, 3)
-        tp = torch.sum(probs * target, dims)
-        fp = torch.sum(probs * (1.0 - target), dims)
-        fn = torch.sum((1.0 - probs) * target, dims)
-
+        tp = (probs * target).sum()
+        fp = ((1.0 - target) * probs).sum()
+        fn = (target * (1.0 - probs)).sum()
         tversky = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
-        return 1.0 - tversky.mean()
+        return 1.0 - tversky
 
 
 class DualStreamLoss(nn.Module):
-    """
-    L = lambda0 * T(main) + lambda1 * T(aux2) + lambda2 * T(aux3) + lambda_r * sum(gate_reg)
-    """
-
     def __init__(
         self,
-        lambda0: float = 1.0,
-        lambda1: float = 0.5,
-        lambda2: float = 0.5,
-        lambda_r: float = 1e-3,
         alpha: float = 0.3,
         beta: float = 0.7,
+        main_weight: float = 1.0,
+        aux2_weight: float = 0.6,
+        aux3_weight: float = 0.4,
+        reg_weight: float = 1e-3,
     ):
         super().__init__()
-        self.lambda0 = lambda0
-        self.lambda1 = lambda1
-        self.lambda2 = lambda2
-        self.lambda_r = lambda_r
-        self.tversky = TverskyLoss(alpha=alpha, beta=beta)
+        self.main_weight = main_weight
+        self.aux2_weight = aux2_weight
+        self.aux3_weight = aux3_weight
+        self.reg_weight = reg_weight
+        self.criterion = TverskyLoss(alpha=alpha, beta=beta)
 
-    def _resize_target(self, target: torch.Tensor, pred: torch.Tensor):
+    def _resize_target(self, target: torch.Tensor, pred: torch.Tensor) -> torch.Tensor:
         if target.shape[-2:] != pred.shape[-2:]:
             target = F.interpolate(target.float(), size=pred.shape[-2:], mode="nearest")
         return target
 
-    def forward(self, outputs: Dict[str, torch.Tensor], target: torch.Tensor):
-        target_main = self._resize_target(target, outputs["main"])
-        target_aux2 = self._resize_target(target, outputs["aux2"])
-        target_aux3 = self._resize_target(target, outputs["aux3"])
+    def forward(
+        self,
+        main: torch.Tensor,
+        aux2: torch.Tensor,
+        aux3: torch.Tensor,
+        reg_tuple,
+        target: torch.Tensor,
+    ):
+        target_main = self._resize_target(target, main)
+        target_aux2 = self._resize_target(target, aux2)
+        target_aux3 = self._resize_target(target, aux3)
 
-        l_main = self.tversky(outputs["main"], target_main)
-        l_aux2 = self.tversky(outputs["aux2"], target_aux2)
-        l_aux3 = self.tversky(outputs["aux3"], target_aux3)
-
-        reg = torch.stack(outputs.get("gate_regs", [torch.tensor(0.0, device=target.device)])).sum()
-        total = self.lambda0 * l_main + self.lambda1 * l_aux2 + self.lambda2 * l_aux3 + self.lambda_r * reg
+        loss_main = self.criterion(main, target_main)
+        loss_aux2 = self.criterion(aux2, target_aux2)
+        loss_aux3 = self.criterion(aux3, target_aux3)
+        reg = self.reg_weight * sum(reg_tuple) if reg_tuple is not None and len(reg_tuple) > 0 else 0.0
+        total = (
+            self.main_weight * loss_main
+            + self.aux2_weight * loss_aux2
+            + self.aux3_weight * loss_aux3
+            + reg
+        )
+        reg_value = reg if isinstance(reg, torch.Tensor) else torch.tensor(reg, device=target.device)
         return {
             "loss": total,
-            "loss_main": l_main.detach(),
-            "loss_aux2": l_aux2.detach(),
-            "loss_aux3": l_aux3.detach(),
-            "loss_reg": reg.detach(),
+            "loss_main": loss_main.detach(),
+            "loss_aux2": loss_aux2.detach(),
+            "loss_aux3": loss_aux3.detach(),
+            "loss_reg": reg_value.detach(),
         }

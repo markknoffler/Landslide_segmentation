@@ -1,193 +1,390 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+import warnings
+
+import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
 
-class ConvBNReLU(nn.Sequential):
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3):
-        padding = kernel_size // 2
-        super().__init__(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-        )
+def LN2d(channels: int) -> nn.GroupNorm:
+    return nn.GroupNorm(1, channels)
 
 
-class DoubleConv(nn.Sequential):
-    def __init__(self, in_channels: int, out_channels: int):
-        super().__init__(
-            ConvBNReLU(in_channels, out_channels, kernel_size=3),
-            ConvBNReLU(out_channels, out_channels, kernel_size=3),
-        )
+@dataclass
+class EncoderSpec:
+    name: str = "tf_efficientnet_b4"
+    n_channels: int = 3
+    out_indices: Tuple[int, ...] = (0, 1, 2, 3, 4)
+    pretrained: bool = True
+    pretrained_path: Optional[str] = None
+    use_input_adapter: bool = False
+    freeze: bool = False
 
 
-class GateFuse(nn.Module):
-    def __init__(self, channels: int):
+def _adapt_conv1_weight(state_dict: Dict[str, torch.Tensor], n_channels: int) -> Dict[str, torch.Tensor]:
+    conv1_keys = [k for k in state_dict.keys() if k.endswith("conv1.weight")]
+    if not conv1_keys:
+        return state_dict
+    key = conv1_keys[0]
+    weight = state_dict[key]
+    cin_src = weight.shape[1]
+    if cin_src == n_channels:
+        return state_dict
+    avg = weight.mean(1, keepdim=True)
+    state_dict[key] = avg.repeat(1, n_channels, 1, 1) * (cin_src / n_channels)
+    return state_dict
+
+
+class InputAdapter(nn.Module):
+    def __init__(self, in_ch: int, mid_norm: bool = True):
         super().__init__()
-        self.gate = nn.Conv2d(channels * 2, channels, kernel_size=1)
+        layers: List[nn.Module] = [nn.Conv2d(in_ch, 3, kernel_size=1, bias=False)]
+        if mid_norm:
+            layers.append(nn.BatchNorm2d(3, affine=True))
+        layers.append(nn.ReLU(inplace=True))
+        self.proj = nn.Sequential(*layers)
 
-    def forward(self, a: torch.Tensor, b: torch.Tensor):
-        alpha = torch.sigmoid(self.gate(torch.cat([a, b], dim=1)))
-        fused = alpha * a + (1.0 - alpha) * b
-        reg = torch.mean(alpha * (1.0 - alpha))
-        return fused, reg
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.proj(x)
+
+
+class TimmEncoder(nn.Module):
+    def __init__(self, spec: EncoderSpec):
+        super().__init__()
+        self.spec = spec
+
+        target_in = 3 if spec.use_input_adapter else spec.n_channels
+        self.input_adapter = (
+            InputAdapter(spec.n_channels) if (spec.use_input_adapter and spec.n_channels != 3) else nn.Identity()
+        )
+
+        net = timm.create_model(
+            spec.name,
+            pretrained=False,
+            features_only=True,
+            out_indices=spec.out_indices,
+            in_chans=target_in,
+        )
+
+        if spec.pretrained_path is not None:
+            state_dict = torch.load(spec.pretrained_path, map_location="cpu")
+            if isinstance(state_dict, dict) and "state_dict" in state_dict:
+                state_dict = state_dict["state_dict"]
+            state_dict = {k: v for k, v in state_dict.items() if not k.startswith(("fc.", "classifier.", "head."))}
+            if not spec.use_input_adapter and target_in != 3:
+                state_dict = _adapt_conv1_weight(state_dict, target_in)
+            missing, unexpected = net.load_state_dict(state_dict, strict=False)
+            if missing or unexpected:
+                warnings.warn(
+                    f"[TimmEncoder] Loaded with missing={len(missing)}, unexpected={len(unexpected)}",
+                    stacklevel=2,
+                )
+        elif spec.pretrained:
+            net = timm.create_model(
+                spec.name,
+                pretrained=True,
+                features_only=True,
+                out_indices=spec.out_indices,
+                in_chans=target_in,
+            )
+
+        self.net = net
+        self.feature_info = self.net.feature_info
+        self.channels = list(self.feature_info.channels())
+        try:
+            self.strides = list(self.feature_info.reduction())
+        except Exception:
+            self.strides = [
+                feature["reduction"] if "reduction" in feature else 2 ** (i + 1)
+                for i, feature in enumerate(self.feature_info)
+            ]
+
+        if spec.freeze:
+            for param in self.net.parameters():
+                param.requires_grad = False
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        x = self.input_adapter(x)
+        return tuple(self.net(x))
+
+
+def build_encoder(
+    name: str = "tf_efficientnet_b4",
+    n_channels: int = 3,
+    out_indices: Tuple[int, ...] = (0, 1, 2, 3, 4),
+    pretrained: bool = True,
+    pretrained_path: Optional[str] = None,
+    use_input_adapter: bool = False,
+    freeze: bool = False,
+) -> TimmEncoder:
+    spec = EncoderSpec(
+        name=name,
+        n_channels=n_channels,
+        out_indices=out_indices,
+        pretrained=pretrained,
+        pretrained_path=pretrained_path,
+        use_input_adapter=use_input_adapter,
+        freeze=freeze,
+    )
+    return TimmEncoder(spec)
 
 
 class SubPixelUp(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, scale: int = 2):
+    def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
-        self.expand = nn.Conv2d(in_channels, out_channels * (scale**2), kernel_size=1)
-        self.norm = nn.BatchNorm2d(out_channels * (scale**2))
+        self.conv = nn.Conv2d(in_ch, out_ch * 4, 1, bias=False)
+        self.norm = LN2d(out_ch * 4)
         self.act = nn.ReLU(inplace=True)
-        self.shuffle = nn.PixelShuffle(scale)
+        self.ps = nn.PixelShuffle(2)
 
-    def forward(self, x: torch.Tensor):
-        x = self.expand(x)
-        x = self.norm(x)
-        x = self.act(x)
-        return self.shuffle(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.ps(self.act(self.norm(self.conv(x))))
 
 
-class TransUp(nn.Module):
-    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, num_heads: int = 4):
+class DoubleConv(nn.Module):
+    def __init__(self, in_c: int, out_c: int, mid_c: Optional[int] = None):
         super().__init__()
-        self.up = SubPixelUp(in_channels, out_channels)
-        self.q_proj = nn.Conv2d(out_channels, out_channels, kernel_size=1)
-        self.k_proj = nn.Conv2d(skip_channels, out_channels, kernel_size=1)
-        self.v_proj = nn.Conv2d(skip_channels, out_channels, kernel_size=1)
-        self.attn = nn.MultiheadAttention(embed_dim=out_channels, num_heads=num_heads, batch_first=True)
-        self.ffn = nn.Sequential(
-            nn.LayerNorm(out_channels),
-            nn.Linear(out_channels, out_channels * 2),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels * 2, out_channels),
+        mid_c = out_c if mid_c is None else mid_c
+        self.block = nn.Sequential(
+            nn.Conv2d(in_c, mid_c, 3, 1, 1, bias=False),
+            LN2d(mid_c),
+            nn.ReLU(True),
+            nn.Conv2d(mid_c, out_c, 3, 1, 1, bias=False),
+            LN2d(out_c),
+            nn.ReLU(True),
         )
-        self.refine = DoubleConv(out_channels, out_channels)
 
-    def forward(self, d: torch.Tensor, s: torch.Tensor):
-        d_up = self.up(d)
-        q = self.q_proj(d_up)
-        k = self.k_proj(s)
-        v = self.v_proj(s)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.block(x)
 
-        b, c, h, w = q.shape
-        q_tokens = q.flatten(2).transpose(1, 2)
-        k_tokens = k.flatten(2).transpose(1, 2)
-        v_tokens = v.flatten(2).transpose(1, 2)
 
-        attn_out, _ = self.attn(q_tokens, k_tokens, v_tokens)
-        attn_out = attn_out + self.ffn(attn_out)
-        attn_out = attn_out.transpose(1, 2).reshape(b, c, h, w)
-        return self.refine(attn_out)
+class AttentionGate(nn.Module):
+    def __init__(self, g_ch: int, x_ch: int, inter: int):
+        super().__init__()
+        inter = max(1, inter)
+        self.Wg = nn.Sequential(nn.Conv2d(g_ch, inter, 1, bias=False), LN2d(inter))
+        self.Wx = nn.Sequential(nn.Conv2d(x_ch, inter, 1, bias=False), LN2d(inter))
+        self.psi = nn.Sequential(
+            nn.ReLU(True),
+            nn.Conv2d(inter, 1, 1, bias=False),
+            nn.BatchNorm2d(1, affine=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, g: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+        alpha = self.psi(self.Wg(g) + self.Wx(x))
+        return alpha * x
 
 
 class UpFlex(nn.Module):
-    def __init__(self, in_channels: int, skip_channels: int, out_channels: int):
+    def __init__(self, dec_ch: int, skip_ch: int, out_ch: int):
         super().__init__()
-        self.up = SubPixelUp(in_channels, out_channels)
-        self.gate_g = nn.Conv2d(out_channels, skip_channels, kernel_size=1)
-        self.gate_x = nn.Conv2d(skip_channels, skip_channels, kernel_size=1)
-        self.out = DoubleConv(out_channels + skip_channels, out_channels)
+        self.up = SubPixelUp(dec_ch, dec_ch // 2)
+        self.attn = AttentionGate(dec_ch // 2, skip_ch, inter=min(dec_ch // 2, skip_ch) // 4)
+        self.conv = DoubleConv(dec_ch // 2 + skip_ch, out_ch)
 
-    def forward(self, d: torch.Tensor, s: torch.Tensor):
-        d_up = self.up(d)
-        alpha = torch.sigmoid(self.gate_g(d_up) + self.gate_x(s))
-        s_gated = alpha * s
-        return self.out(torch.cat([s_gated, d_up], dim=1))
+    def forward(self, d: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
+        d = self.up(d)
+        dy, dx = s.size(2) - d.size(2), s.size(3) - d.size(3)
+        d = F.pad(d, [dx // 2, dx - dx // 2, dy // 2, dy - dy // 2])
+        s = self.attn(d, s)
+        return self.conv(torch.cat([s, d], 1))
 
 
-class SharedTinyEncoder(nn.Module):
-    """
-    Lightweight fallback encoder with 5 pyramid scales.
-    Uses shared weights for both streams in siamese setup.
-    """
-
-    def __init__(self, in_channels: int = 3, base_channels: int = 32):
+class XAttn(nn.Module):
+    def __init__(self, dim: int, heads: int = 2, mlp: float = 2.0):
         super().__init__()
-        c = base_channels
-        self.stage1 = DoubleConv(in_channels, c)          # 1x
-        self.stage2 = DoubleConv(c, c * 2)                # 1/2x
-        self.stage3 = DoubleConv(c * 2, c * 4)            # 1/4x
-        self.stage4 = DoubleConv(c * 4, c * 8)            # 1/8x
-        self.stage5 = DoubleConv(c * 8, c * 16)           # 1/16x
-        self.pool = nn.MaxPool2d(2, 2)
-        self.channels = [c, c * 2, c * 4, c * 8, c * 16]
+        self.ln1 = nn.LayerNorm(dim)
+        self.attn = nn.MultiheadAttention(dim, heads, batch_first=True)
+        self.ln2 = nn.LayerNorm(dim)
+        self.mlp = nn.Sequential(nn.Linear(dim, int(dim * mlp)), nn.GELU(), nn.Linear(int(dim * mlp), dim))
 
-    def forward(self, x: torch.Tensor):
-        f1 = self.stage1(x)
-        f2 = self.stage2(self.pool(f1))
-        f3 = self.stage3(self.pool(f2))
-        f4 = self.stage4(self.pool(f3))
-        f5 = self.stage5(self.pool(f4))
-        return [f1, f2, f3, f4, f5]
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+        hidden, _ = self.attn(self.ln1(q), self.ln1(k), self.ln1(v))
+        q = q + hidden
+        return q + self.mlp(self.ln2(q))
+
+
+class TransUp(nn.Module):
+    def __init__(self, dec_ch: int, skip_ch: int, out_ch: int):
+        super().__init__()
+        self.up = SubPixelUp(dec_ch, dec_ch // 2)
+        embed_dim = out_ch
+        self.proj_q = nn.Conv2d(dec_ch // 2, embed_dim, 1, bias=False)
+        self.proj_k = nn.Conv2d(skip_ch, embed_dim, 1, bias=False)
+        self.proj_v = nn.Conv2d(skip_ch, embed_dim, 1, bias=False)
+        self.xattn = XAttn(embed_dim)
+        self.post = nn.Sequential(nn.Conv2d(embed_dim, out_ch, 3, 1, 1, bias=False), LN2d(out_ch), nn.ReLU(True))
+
+    def forward(self, d: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
+        d = self.up(d)
+        dy, dx = s.size(2) - d.size(2), s.size(3) - d.size(3)
+        d = F.pad(d, [dx // 2, dx - dx // 2, dy // 2, dy - dy // 2])
+        batch, _, height, width = d.shape
+        q = self.proj_q(d).flatten(2).transpose(1, 2)
+        k = self.proj_k(s).flatten(2).transpose(1, 2)
+        v = self.proj_v(s).flatten(2).transpose(1, 2)
+        q = checkpoint(self.xattn, q, k, v) if q.requires_grad else self.xattn(q, k, v)
+        q = q.transpose(1, 2).reshape(batch, -1, height, width)
+        return self.post(q)
+
+
+class OutConv(nn.Module):
+    def __init__(self, in_c: int, out_c: int):
+        super().__init__()
+        self.conv = nn.Conv2d(in_c, out_c, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.conv(x)
+
+
+class AdaptiveDecoder(nn.Module):
+    def __init__(self, ch_list: List[int]):
+        super().__init__()
+        c1, c2, c3, c4, c5 = ch_list
+        self.up1 = TransUp(c5, c4, c4 // 2)
+        self.up2 = UpFlex(c4 // 2, c3, c3 // 2)
+        self.up3 = UpFlex(c3 // 2, c2, c2 // 2)
+        self.up4 = UpFlex(c2 // 2, c1, c1 // 2)
+
+        self.ch_x1 = c4 // 2
+        self.ch_x2 = c3 // 2
+        self.ch_x3 = c2 // 2
+        self.ch_x4 = c1 // 2
+        self.final_ch = self.ch_x4
+
+    def forward(
+        self,
+        f1: torch.Tensor,
+        f2: torch.Tensor,
+        f3: torch.Tensor,
+        f4: torch.Tensor,
+        f5: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        x1 = self.up1(f5, f4)
+        x2 = self.up2(x1, f3)
+        x3 = self.up3(x2, f2)
+        x4 = self.up4(x3, f1)
+        return x1, x2, x3, x4
+
+
+class GateFuse(nn.Module):
+    def __init__(self, ch: int):
+        super().__init__()
+        self.g = nn.Sequential(nn.Conv2d(ch * 2, 1, 1), nn.Sigmoid())
+
+    def forward(self, a: torch.Tensor, b: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        alpha = self.g(torch.cat([a, b], dim=1))
+        out = alpha * a + (1 - alpha) * b
+        reg = torch.mean(alpha * (1 - alpha))
+        return out, reg
 
 
 class DualStreamGateNet(nn.Module):
-    def __init__(self, in_channels_a: int = 3, in_channels_b: int = 3, base_channels: int = 32):
+    def __init__(
+        self,
+        n_classes: int = 1,
+        backbone: str = "tf_efficientnet_b4",
+        n_channels: int = 3,
+        n_channels_b: Optional[int] = None,
+        pretrained: bool = True,
+        pretrained_path: Optional[str] = None,
+        use_input_adapter: bool = False,
+        freeze_backbone: bool = True,
+        share_backbone: bool = False,
+        out_indices: Tuple[int, ...] = (0, 1, 2, 3, 4),
+    ):
         super().__init__()
-        self.adapter_a = nn.Conv2d(in_channels_a, 3, kernel_size=1)
-        self.adapter_b = nn.Conv2d(in_channels_b, 3, kernel_size=1)
 
-        self.shared_encoder = SharedTinyEncoder(in_channels=3, base_channels=base_channels)
-        c1, c2, c3, c4, c5 = self.shared_encoder.channels
+        if share_backbone and (n_channels_b is not None) and (n_channels_b != n_channels):
+            raise ValueError("When share_backbone=True, n_channels_b must equal n_channels (or be None).")
+        n_channels_b = n_channels if n_channels_b is None else n_channels_b
 
-        self.early_fuse3 = GateFuse(c3)
-        self.early_fuse4 = GateFuse(c4)
+        if share_backbone:
+            self.encoder = build_encoder(
+                name=backbone,
+                n_channels=n_channels,
+                out_indices=out_indices,
+                pretrained=pretrained if pretrained_path is None else False,
+                pretrained_path=pretrained_path,
+                use_input_adapter=use_input_adapter,
+                freeze=freeze_backbone,
+            )
+            ch_list = self.encoder.channels
+        else:
+            self.encoderA = build_encoder(
+                name=backbone,
+                n_channels=n_channels,
+                out_indices=out_indices,
+                pretrained=pretrained if pretrained_path is None else False,
+                pretrained_path=pretrained_path,
+                use_input_adapter=use_input_adapter,
+                freeze=freeze_backbone,
+            )
+            self.encoderB = build_encoder(
+                name=backbone,
+                n_channels=n_channels_b,
+                out_indices=out_indices,
+                pretrained=pretrained if pretrained_path is None else False,
+                pretrained_path=pretrained_path,
+                use_input_adapter=use_input_adapter,
+                freeze=freeze_backbone,
+            )
+            if tuple(self.encoderA.channels) != tuple(self.encoderB.channels):
+                raise ValueError(
+                    f"EncoderA/B channel lists differ: {self.encoderA.channels} vs {self.encoderB.channels}"
+                )
+            ch_list = self.encoderA.channels
 
-        self.decA4 = TransUp(c5, c4, c4)
-        self.decA3 = UpFlex(c4, c3, c3)
-        self.decA2 = UpFlex(c3, c2, c2)
-        self.decA1 = UpFlex(c2, c1, c1)
+        c1, c2, c3, c4, c5 = ch_list
+        self.efuse_c4 = GateFuse(c4)
+        self.efuse_c3 = GateFuse(c3)
+        self.decoderA = AdaptiveDecoder(ch_list)
+        self.decoderB = AdaptiveDecoder(ch_list)
+        self.fuse_x3 = GateFuse(self.decoderA.ch_x3)
+        self.fuse_x4 = GateFuse(self.decoderA.ch_x4)
+        final_ch = self.decoderA.final_ch
+        self.up_final = SubPixelUp(final_ch, final_ch // 2)
+        self.head = OutConv(final_ch // 2, n_classes)
+        self.aux2 = OutConv(self.decoderA.ch_x3, n_classes)
+        self.aux3 = OutConv(self.decoderA.ch_x4, n_classes)
+        self.share_backbone = share_backbone
 
-        self.decB4 = TransUp(c5, c4, c4)
-        self.decB3 = UpFlex(c4, c3, c3)
-        self.decB2 = UpFlex(c3, c2, c2)
-        self.decB1 = UpFlex(c2, c1, c1)
+    def _encode(
+        self, x1: torch.Tensor, x2: torch.Tensor
+    ) -> Tuple[Tuple[torch.Tensor, ...], Tuple[torch.Tensor, ...]]:
+        if self.share_backbone:
+            a_feats = self.encoder(x1)
+            b_feats = self.encoder(x2)
+        else:
+            a_feats = self.encoderA(x1)
+            b_feats = self.encoderB(x2)
+        return a_feats, b_feats
 
-        self.late_fuse4 = GateFuse(c4)
-        self.late_fuse3 = GateFuse(c3)
+    def forward(
+        self, x1: torch.Tensor, x2: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
+        (a1, a2, a3, a4, a5), (b1, b2, b3, b4, b5) = self._encode(x1, x2)
 
-        self.merge = DoubleConv(c1 + c3 + c4, c1)
-        self.main_head = nn.Conv2d(c1, 1, kernel_size=1)
-        self.aux2_head = nn.Conv2d(c3, 1, kernel_size=1)
-        self.aux3_head = nn.Conv2d(c4, 1, kernel_size=1)
+        f4, reg_c4 = self.efuse_c4(a4, b4)
+        f3, reg_c3 = self.efuse_c3(a3, b3)
 
-    def forward(self, xa: torch.Tensor, xb: torch.Tensor):
-        xa = self.adapter_a(xa)
-        xb = self.adapter_b(xb)
+        _, _, x3a, x4a = self.decoderA(a1, a2, f3, f4, a5)
+        _, _, x3b, x4b = self.decoderB(b1, b2, b3, b4, b5)
 
-        fa = self.shared_encoder(xa)
-        fb = self.shared_encoder(xb)
-        a1, a2, a3, a4, a5 = fa
-        b1, b2, b3, b4, b5 = fb
+        x3, reg_x3 = self.fuse_x3(x3a, x3b)
+        x4, reg_x4 = self.fuse_x4(x4a, x4b)
 
-        f3, reg3 = self.early_fuse3(a3, b3)
-        f4, reg4 = self.early_fuse4(a4, b4)
+        main = self.head(self.up_final(x4))
+        aux2 = F.interpolate(self.aux2(x3), size=main.shape[2:], mode="bilinear", align_corners=True)
+        aux3 = F.interpolate(self.aux3(x4), size=main.shape[2:], mode="bilinear", align_corners=True)
+        reg = (reg_c4, reg_c3, reg_x3, reg_x4)
+        return main, aux2, aux3, reg
 
-        x4a = self.decA4(a5, f4)
-        x3a = self.decA3(x4a, f3)
-        x2a = self.decA2(x3a, a2)
-        x1a = self.decA1(x2a, a1)
 
-        x4b = self.decB4(b5, b4)
-        x3b = self.decB3(x4b, b3)
-        x2b = self.decB2(x3b, b2)
-        x1b = self.decB1(x2b, b1)
-
-        lf4, reg_l4 = self.late_fuse4(x4a, x4b)
-        lf3, reg_l3 = self.late_fuse3(x3a, x3b)
-
-        lf4_up = F.interpolate(lf4, size=x1a.shape[-2:], mode="bilinear", align_corners=False)
-        lf3_up = F.interpolate(lf3, size=x1a.shape[-2:], mode="bilinear", align_corners=False)
-        x = self.merge(torch.cat([x1a, lf3_up, lf4_up], dim=1))
-
-        main = self.main_head(x)
-        aux2 = self.aux2_head(lf3)
-        aux3 = self.aux3_head(lf4)
-
-        return {
-            "main": main,
-            "aux2": aux2,
-            "aux3": aux3,
-            "gate_regs": [reg3, reg4, reg_l4, reg_l3],
-        }
+DiGATe_Unet = DualStreamGateNet
