@@ -15,11 +15,6 @@ checkpoint/
 # Results and outputs
 results/
 outputs/
-*.csv
-*.json
-*.txt
-*.log
-*.out
 
 # Dataset files (if they're large)
 datasets/
