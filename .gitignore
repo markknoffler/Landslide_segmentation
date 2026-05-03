@@ -13,8 +13,6 @@ checkpoint/
 *.temp
 
 # Results and outputs
-results/
-outputs/
 
 # Dataset files (if they're large)
 datasets/
