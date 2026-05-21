@@ -5,10 +5,6 @@ import torch.nn as nn
 
 
 class ReconstructionLoss(nn.Module):
-    """
-    L1 loss between predicted RGB and real RGB.
-    """
-
     def __init__(self):
         super().__init__()
         self.l1 = nn.L1Loss()
@@ -23,11 +19,6 @@ def gradient_penalty(
     real_rgb: torch.Tensor,
     fake_rgb: torch.Tensor,
 ) -> torch.Tensor:
-    """
-    WGAN-GP gradient penalty.
-    Interpolates between real and fake samples, computes the norm of
-    gradients w.r.t. the interpolated, and penalizes deviation from 1.
-    """
     b = real_rgb.size(0)
     epsilon = torch.rand(b, 1, 1, 1, device=real_rgb.device)
     interpolated = epsilon * real_rgb + (1.0 - epsilon) * fake_rgb.detach()
@@ -57,9 +48,6 @@ def critic_loss(
     fake_rgb: torch.Tensor,
     lambda_gp: float = 10.0,
 ) -> torch.Tensor:
-    """
-    WGAN critic loss: D(fake) - D(real) + lambda * gradient_penalty.
-    """
     d_real = critic(dem, real_rgb)
     d_fake = critic(dem, fake_rgb.detach())
     gp = gradient_penalty(critic, dem, real_rgb, fake_rgb)
@@ -71,9 +59,5 @@ def generator_loss(
     dem: torch.Tensor,
     fake_rgb: torch.Tensor,
 ) -> torch.Tensor:
-    """
-    WGAN generator loss: -D(fake).
-    The generator wants the critic to give high scores to its fakes.
-    """
     d_fake = critic(dem, fake_rgb)
     return -d_fake.mean()

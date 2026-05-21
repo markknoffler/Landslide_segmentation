@@ -2,7 +2,7 @@ from typing import Optional
 
 import torch
 
-from .wgan import ConvBlock, UpBlock, Scout, Critic
+from .wgan import ConvBlock, PCBlock, Scout, Critic
 
 
 def compute_surprise_factor(
@@ -10,12 +10,6 @@ def compute_surprise_factor(
     pred_rgb: torch.Tensor,
     keep_channel: bool = False,
 ) -> torch.Tensor:
-    """
-    Per-pixel surprise = |real_rgb - pred_rgb|.
-    If keep_channel=False (default), averages over RGB channels
-    returning a 1-channel map. If True, returns the 3-channel
-    per-channel absolute difference.
-    """
     diff = (real_rgb - pred_rgb).abs()
     if keep_channel:
         return diff
@@ -24,7 +18,7 @@ def compute_surprise_factor(
 
 __all__ = [
     "ConvBlock",
-    "UpBlock",
+    "PCBlock",
     "Scout",
     "Critic",
     "compute_surprise_factor",
