@@ -13,12 +13,7 @@ class ReconstructionLoss(nn.Module):
         return self.l1(pred_rgb, real_rgb)
 
 
-def gradient_penalty(
-    critic: nn.Module,
-    dem: torch.Tensor,
-    real_rgb: torch.Tensor,
-    fake_rgb: torch.Tensor,
-) -> torch.Tensor:
+def gradient_penalty(critic: nn.Module, dem: torch.Tensor, real_rgb: torch.Tensor, fake_rgb: torch.Tensor) -> torch.Tensor:
     b = real_rgb.size(0)
     epsilon = torch.rand(b, 1, 1, 1, device=real_rgb.device)
     interpolated = epsilon * real_rgb + (1.0 - epsilon) * fake_rgb.detach()
@@ -41,23 +36,13 @@ def gradient_penalty(
     return penalty
 
 
-def critic_loss(
-    critic: nn.Module,
-    dem: torch.Tensor,
-    real_rgb: torch.Tensor,
-    fake_rgb: torch.Tensor,
-    lambda_gp: float = 10.0,
-) -> torch.Tensor:
+def critic_loss(critic: nn.Module, dem: torch.Tensor, real_rgb: torch.Tensor, fake_rgb: torch.Tensor, lambda_gp: float = 10.0) -> torch.Tensor:
     d_real = critic(dem, real_rgb)
     d_fake = critic(dem, fake_rgb.detach())
     gp = gradient_penalty(critic, dem, real_rgb, fake_rgb)
     return d_fake.mean() - d_real.mean() + lambda_gp * gp
 
 
-def generator_loss(
-    critic: nn.Module,
-    dem: torch.Tensor,
-    fake_rgb: torch.Tensor,
-) -> torch.Tensor:
+def generator_loss(critic: nn.Module, dem: torch.Tensor, fake_rgb: torch.Tensor) -> torch.Tensor:
     d_fake = critic(dem, fake_rgb)
     return -d_fake.mean()
