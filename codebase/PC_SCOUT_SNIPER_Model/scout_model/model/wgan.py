@@ -100,17 +100,14 @@ class Scout(nn.Module):
 class Critic(nn.Module):
     def __init__(self, base_ch: int = 64):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(4, base_ch, 4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(base_ch, base_ch * 2, 4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(base_ch * 2, base_ch * 4, 4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(base_ch * 4, base_ch * 8, 4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(base_ch * 8, 1, 4, stride=1, padding=0),
-        )
+        layers = []
+        in_ch = 4
+        for out_ch in [base_ch, base_ch * 2, base_ch * 4, base_ch * 8]:
+            layers.append(nn.utils.spectral_norm(nn.Conv2d(in_ch, out_ch, 4, stride=2, padding=1)))
+            layers.append(nn.LeakyReLU(0.2, inplace=True))
+            in_ch = out_ch
+        layers.append(nn.Conv2d(base_ch * 8, 1, 4, stride=1, padding=0))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, dem: torch.Tensor, rgb: torch.Tensor) -> torch.Tensor:
         x = torch.cat([dem, rgb], dim=1)

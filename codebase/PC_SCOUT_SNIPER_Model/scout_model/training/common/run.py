@@ -106,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n_critic", type=int, default=5, help="critic steps per generator step")
     parser.add_argument("--recon_weight", type=float, default=100.0)
     parser.add_argument("--adv_weight", type=float, default=1.0)
-    parser.add_argument("--lambda_gp", type=float, default=10.0)
+    parser.add_argument("--lambda_gp", type=float, default=20.0)
     parser.add_argument("--metric_threshold", type=float, default=0.5)
     parser.add_argument("--save_every", type=int, default=5)
     parser.add_argument("--resume", type=str, default=None, help="checkpoint path or auto-detect")
