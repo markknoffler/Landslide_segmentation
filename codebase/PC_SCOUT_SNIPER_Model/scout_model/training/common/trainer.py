@@ -201,7 +201,6 @@ def train_scout_model(
             generator,
             val_loader,
             device,
-            metric_threshold,
         )
         append_csv(val_csv_path, {"epoch": epoch, **val_metrics})
         tqdm.write(
@@ -239,6 +238,17 @@ def train_scout_model(
                     },
                     best_path,
                 )
+
+        # Save sample predictions every save_every epochs --------------------
+        if epoch % save_every == 0:
+            sample_dir = ckpt_dir / f"epoch_{epoch:04d}" / "test_data"
+            _save_epoch_predictions(
+                generator,
+                val_loader,
+                device,
+                sample_dir,
+                num_samples=5,
+            )
 
     # Final metrics ------------------------------------------------------------
     final = {"val_recon_loss": best_val_loss, "val_surprise": best_metrics.get("val_surprise_mean", 0.0)}
@@ -373,3 +383,41 @@ def _save_predictions(
             break
 
     tqdm.write(f"Saved {saved} prediction images to {save_dir}")
+
+
+@torch.no_grad()
+def _save_epoch_predictions(
+    generator: nn.Module,
+    val_loader: DataLoader,
+    device: torch.device,
+    save_dir: str | Path,
+    num_samples: int = 5,
+) -> None:
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+    generator.eval()
+    saved = 0
+
+    for batch in val_loader:
+        dem = batch["dem"].to(device)          # B×1×H×W
+        real_rgb = batch["rgb"].to(device)     # B×3×H×W
+        fake_rgb = generator(dem)              # B×3×H×W
+
+        b = min(fake_rgb.size(0), num_samples - saved)
+        for i in range(b):
+            dem_single = dem[i]                # 1×H×W
+            real_single = real_rgb[i]          # 3×H×W
+            fake_single = fake_rgb[i]          # 3×H×W
+            grid = torchvision.utils.make_grid(
+                [dem_single.repeat(3, 1, 1), real_single, fake_single],
+                nrow=3,
+            )
+            torchvision.utils.save_image(
+                grid,
+                save_dir / f"sample_{saved:04d}.png",
+            )
+            saved += 1
+        if saved >= num_samples:
+            break
+
+    tqdm.write(f"Saved {saved} epoch-sample grids to {save_dir}")
