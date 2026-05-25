@@ -168,7 +168,7 @@ def train_scout_model(
                 c_optimizer.zero_grad()
                 c_loss.backward()
                 c_optimizer.step()
-                epoch_c_loss.append(float(c_loss))
+                epoch_c_loss.append(float(c_loss.detach()))
 
             # ---- Generator update --------------------------------------------
             fake_rgb = generator(dem)
@@ -180,8 +180,8 @@ def train_scout_model(
             g_loss.backward()
             g_optimizer.step()
 
-            epoch_g_loss.append(float(g_loss))
-            epoch_recon_loss.append(float(recon_loss))
+            epoch_g_loss.append(float(g_loss.detach()))
+            epoch_recon_loss.append(float(recon_loss.detach()))
 
             pbar.set_postfix(
                 g_loss=float(g_loss), c_loss=float(c_loss), recon=float(recon_loss)
