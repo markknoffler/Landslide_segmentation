@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import random
-from collections import defaultdict
+
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchvision.utils
 from tqdm import tqdm
@@ -70,43 +71,6 @@ def append_csv(path: str | Path, row: dict[str, float]) -> None:
         f.write(",".join(str(row[k]) for k in keys) + "\n")
 
 
-# ---------------------------------------------------------------------------
-# Scout pixel metrics  –  surprise factor  S = |real − pred|.mean(dim=1)
-# Already in [0, 1]; threshold to get binary prediction.
-# ---------------------------------------------------------------------------
-
-EPS = 1e-7
-
-
-def scout_pixel_metrics(
-    pred: torch.Tensor,          # B×1×H×W  surprise factor [0,1]
-    target: torch.Tensor,        # B×1×H×W  binary mask {0,1}
-    threshold: float = 0.5,
-) -> dict[str, float]:
-    pred_bin = (pred > threshold).float()
-    target_bin = target.float()
-
-    tp = (pred_bin * target_bin).sum().item()
-    fp = (pred_bin * (1 - target_bin)).sum().item()
-    fn = ((1 - pred_bin) * target_bin).sum().item()
-    tn = ((1 - pred_bin) * (1 - target_bin)).sum().item()
-
-    acc = (tp + tn) / (tp + fp + fn + tn + EPS)
-    prec = tp / (tp + fp + EPS)
-    recall = tp / (tp + fn + EPS)
-    f1 = 2 * prec * recall / (prec + recall + EPS)
-    iou = tp / (tp + fp + fn + EPS)
-
-    return {"acc": acc, "prec": prec, "rec": recall, "f1": f1, "iou": iou}
-
-
-def _average_metrics(metrics_list: list[dict[str, float]]) -> dict[str, float]:
-    acc = defaultdict(list)
-    for m in metrics_list:
-        for k, v in m.items():
-            acc[k].append(v)
-    return {k: float(np.mean(v)) for k, v in acc.items()}
-
 
 # ---------------------------------------------------------------------------
 # Main training loop
@@ -142,7 +106,7 @@ def train_scout_model(
     results_dir.mkdir(parents=True, exist_ok=True)
 
     start_epoch = 1
-    best_f1: float = 0.0
+    best_val_loss: float = float("inf")
     best_metrics: dict[str, float] = {}
 
     # Resume from checkpoint ---------------------------------------------------
@@ -159,7 +123,7 @@ def train_scout_model(
             g_optimizer.load_state_dict(ckpt["g_optimizer_state_dict"])
             c_optimizer.load_state_dict(ckpt["c_optimizer_state_dict"])
             start_epoch = ckpt["epoch"] + 1
-            best_f1 = ckpt.get("metrics", {}).get("val/f1", 0.0)
+            best_val_loss = ckpt.get("metrics", {}).get("val/recon_loss", float("inf"))
             tqdm.write(f"Resumed from epoch {start_epoch - 1}")
 
     # CSV headers ---------------------------------------------------------------
@@ -178,11 +142,7 @@ def train_scout_model(
         val_csv_path,
         {
             "epoch": 0,
-            "val_acc": 0,
-            "val_prec": 0,
-            "val_rec": 0,
-            "val_f1": 0,
-            "val_iou": 0,
+            "val_recon_loss": 0,
             "val_surprise_mean": 0,
         },
     )
@@ -246,14 +206,14 @@ def train_scout_model(
         append_csv(val_csv_path, {"epoch": epoch, **val_metrics})
         tqdm.write(
             f"Epoch {epoch}: g_loss={avg['g_loss']:.4f}  c_loss={avg['c_loss']:.4f}  "
-            f"val_f1={val_metrics['val_f1']:.4f}  val_iou={val_metrics['val_iou']:.4f}"
+            f"val_recon_loss={val_metrics['val_recon_loss']:.4f}  val_surprise={val_metrics['val_surprise_mean']:.4f}"
         )
 
         # Best checkpoint tracking ---------------------------------------------
-        current_f1 = val_metrics.get("val_f1", 0.0)
-        is_best = current_f1 > best_f1
+        current_val_loss = val_metrics.get("val_recon_loss", float("inf"))
+        is_best = current_val_loss < best_val_loss
         if is_best:
-            best_f1 = current_f1
+            best_val_loss = current_val_loss
             best_metrics = val_metrics
 
         # Save checkpoint ------------------------------------------------------
@@ -266,7 +226,7 @@ def train_scout_model(
                 g_optimizer,
                 c_optimizer,
                 epoch,
-                {"val/f1": current_f1, **val_metrics},
+                {"val/recon_loss": current_val_loss, **val_metrics},
             )
             if is_best:
                 best_path = ckpt_dir / "best.pt"
@@ -281,7 +241,7 @@ def train_scout_model(
                 )
 
     # Final metrics ------------------------------------------------------------
-    final = {"val_f1": best_f1, "val_iou": best_metrics.get("val_iou", 0.0)}
+    final = {"val_recon_loss": best_val_loss, "val_surprise": best_metrics.get("val_surprise_mean", 0.0)}
     append_csv(results_dir / "final_metrics.csv", final)
 
     # Save 5 predicted images from validation set ------------------------------
@@ -304,28 +264,82 @@ def _validate(
     generator: nn.Module,
     val_loader: DataLoader,
     device: torch.device,
-    metric_threshold: float = 0.5,
 ) -> dict[str, float]:
     generator.eval()
-    all_metrics: list[dict[str, float]] = []
+    recon_losses: list[float] = []
     surprise_vals: list[float] = []
 
     for batch in val_loader:
         dem = batch["dem"].to(device)
         real_rgb = batch["rgb"].to(device)
-        mask = batch["mask"].to(device)
 
         fake_rgb = generator(dem)
+        recon_loss = F.mse_loss(fake_rgb, real_rgb)
+        recon_losses.append(float(recon_loss.item()))
+
         surprise = ((real_rgb - fake_rgb).abs()).mean(dim=1, keepdim=True)
         surprise_vals.append(float(surprise.mean().item()))
 
-        metrics = scout_pixel_metrics(surprise, mask, threshold=metric_threshold)
-        all_metrics.append(metrics)
+    return {
+        "val_recon_loss": float(np.mean(recon_losses)),
+        "val_surprise_mean": float(np.mean(surprise_vals)),
+    }
 
-    avg = _average_metrics(all_metrics)
-    avg["surprise_mean"] = float(np.mean(surprise_vals))
-    # prefix keys
-    return {f"val_{k}": v for k, v in avg.items()}
+
+# ---------------------------------------------------------------------------
+# Landslide test evaluation  –  surprise + segmentation metrics
+# ---------------------------------------------------------------------------
+
+EPS = 1e-7
+
+
+@torch.no_grad()
+def evaluate_on_landslide(
+    generator: nn.Module,
+    test_loader: DataLoader,
+    device: torch.device,
+    threshold: float = 0.5,
+) -> dict[str, float]:
+    generator.eval()
+    recon_losses: list[float] = []
+    surprise_vals: list[float] = []
+    tp = fp = fn = tn = 0.0
+
+    for batch in test_loader:
+        dem = batch["dem"].to(device)
+        real_rgb = batch["rgb"].to(device)
+        mask = batch["mask"].to(device)
+
+        fake_rgb = generator(dem)
+        recon_losses.append(float(F.mse_loss(fake_rgb, real_rgb).item()))
+
+        # surprise factor  S = |real - pred|.mean(dim=1)   →  B×1×H×W
+        surprise = (real_rgb - fake_rgb).abs().mean(dim=1, keepdim=True)
+        surprise_vals.append(float(surprise.mean().item()))
+
+        # binarise surprise at threshold vs ground-truth mask
+        pred_bin = (surprise > threshold).float()
+        mask_bin = mask.float()
+        tp += (pred_bin * mask_bin).sum().item()
+        fp += (pred_bin * (1 - mask_bin)).sum().item()
+        fn += ((1 - pred_bin) * mask_bin).sum().item()
+        tn += ((1 - pred_bin) * (1 - mask_bin)).sum().item()
+
+    acc = (tp + tn) / (tp + fp + fn + tn + EPS)
+    prec = tp / (tp + fp + EPS)
+    recall = tp / (tp + fn + EPS)
+    f1 = 2 * prec * recall / (prec + recall + EPS)
+    iou = tp / (tp + fp + fn + EPS)
+
+    return {
+        "test_recon_loss": float(np.mean(recon_losses)),
+        "test_surprise_mean": float(np.mean(surprise_vals)),
+        "test_acc": acc,
+        "test_prec": prec,
+        "test_recall": recall,
+        "test_f1": f1,
+        "test_iou": iou,
+    }
 
 
 # ---------------------------------------------------------------------------

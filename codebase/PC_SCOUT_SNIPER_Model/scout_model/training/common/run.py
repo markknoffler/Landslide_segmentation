@@ -52,12 +52,12 @@ def _import_baseline_splits():
     return mod.build_bijie_split, mod.build_l4s_split
 
 
-def _build_bijie_scout_split(dataset_root: str | Path, seed: int = 42, val_ratio: float = 0.8):
+def _build_bijie_scout_split(dataset_root: str | Path, seed: int = 42, val_ratio: float = 0.2):
     """
     SCOUT+ split for Bijie:
       - Train on non-landslide only (normal-mountain reconstruction).
-      - Validate on landslide only (meaningful F1/IoU between surprise and mask).
-      - Test on remaining landslide (final evaluation).
+      - Validate on non-landslide only (reconstruction quality on normal terrain).
+      - Test on all landslide (surprise factor vs ground-truth masks during forward pass).
     """
     spec = importlib.util.spec_from_file_location("baseline_datasets", BASELINE_DATASETS)
     mod = importlib.util.module_from_spec(spec)
@@ -74,15 +74,15 @@ def _build_bijie_scout_split(dataset_root: str | Path, seed: int = 42, val_ratio
         raise ValueError(f"Empty Bijie dataset at {root}")
 
     g = torch.Generator().manual_seed(seed)
-    n = len(landslide)
+    n = len(nonlandslide)
     n_val = max(1, int(round(n * val_ratio)))
     n_val = min(n_val, n - 1)
     perm = torch.randperm(n, generator=g).tolist()
 
-    val_raw = torch.utils.data.Subset(landslide, perm[:n_val])
-    test_raw = torch.utils.data.Subset(landslide, perm[n_val:])
+    train_raw = torch.utils.data.Subset(nonlandslide, perm[n_val:])
+    val_raw = torch.utils.data.Subset(nonlandslide, perm[:n_val])
 
-    return nonlandslide, val_raw, test_raw
+    return train_raw, val_raw, landslide
 
 
 # ---------------------------------------------------------------------------
@@ -200,5 +200,24 @@ def train_scout(args: argparse.Namespace) -> dict[str, float]:
         resume=args.resume,
     )
 
+    # ---- Landslide evaluation (only for bijie) -----------------------------
+    landslide_metrics: dict[str, float] = {}
+    if args.dataset == "bijie":
+        _, _, landslide_ds = _build_bijie_scout_split(args.dataset_root, seed=args.seed)
+        test_loader = torch.utils.data.DataLoader(
+            ScoutBijieDataset(landslide_ds, resize_to=args.resize_to, transform=None),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            pin_memory=True,
+        )
+        from common.trainer import evaluate_on_landslide
+
+        landslide_metrics = evaluate_on_landslide(
+            generator, test_loader, device, threshold=args.metric_threshold
+        )
+        for k, v in landslide_metrics.items():
+            tqdm.write(f"  {k}: {v:.4f}")
+
     tqdm.write(f"Training complete. Best val F1: {final['val_f1']:.4f}")
-    return final
+    return {**final, **landslide_metrics}
