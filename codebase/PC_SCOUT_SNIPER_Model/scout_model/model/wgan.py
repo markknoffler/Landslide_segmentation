@@ -106,7 +106,7 @@ class Critic(nn.Module):
             layers.append(nn.utils.spectral_norm(nn.Conv2d(in_ch, out_ch, 4, stride=2, padding=1)))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             in_ch = out_ch
-        layers.append(nn.Conv2d(base_ch * 8, 1, 4, stride=1, padding=0))
+        layers.append(nn.utils.spectral_norm(nn.Conv2d(base_ch * 8, 1, 4, stride=1, padding=0)))
         self.net = nn.Sequential(*layers)
 
     def forward(self, dem: torch.Tensor, rgb: torch.Tensor) -> torch.Tensor:
