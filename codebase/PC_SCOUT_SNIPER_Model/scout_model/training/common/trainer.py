@@ -129,31 +129,18 @@ def train_scout_model(
     # CSV headers ---------------------------------------------------------------
     csv_path = results_dir / "epoch_metrics.csv"
     val_csv_path = results_dir / "val_epoch_metrics.csv"
-    append_csv(
-        csv_path,
-        {
-            "epoch": 0,
-            "g_loss": 0,
-            "c_loss": 0,
-            "recon_loss": 0,
-        },
-    )
-    append_csv(
-        val_csv_path,
-        {
-            "epoch": 0,
-            "val_recon_loss": 0,
-            "val_surprise_mean": 0,
-        },
-    )
 
     # Train loop ----------------------------------------------------------------
     for epoch in range(start_epoch, num_epochs + 1):
         generator.train()
         critic.train()
-        epoch_g_loss: list[float] = []
-        epoch_c_loss: list[float] = []
-        epoch_recon_loss: list[float] = []
+        epoch_g_total: list[float] = []
+        epoch_g_recon: list[float] = []
+        epoch_g_adv: list[float] = []
+        epoch_g_critic_score: list[float] = []
+        epoch_c_total: list[float] = []
+        epoch_c_wd: list[float] = []
+        epoch_c_gp: list[float] = []
 
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{num_epochs}")
 
@@ -164,15 +151,22 @@ def train_scout_model(
             # ---- Critic updates (n_critic per generator step) ----------------
             for _ in range(n_critic):
                 fake_rgb = generator(dem).detach()
-                c_loss = critic_loss_fn(critic, dem, real_rgb, fake_rgb, lambda_gp)
+                c_loss, c_metrics = critic_loss_fn(
+                    critic, dem, real_rgb, fake_rgb, lambda_gp, return_metrics=True
+                )
                 c_optimizer.zero_grad()
                 c_loss.backward()
                 c_optimizer.step()
-                epoch_c_loss.append(float(c_loss.detach()))
+                epoch_c_total.append(c_loss.detach().item())
+                epoch_c_wd.append(c_metrics["c_wd"].item())
+                epoch_c_gp.append(c_metrics["c_gp"].item())
 
             # ---- Generator update --------------------------------------------
             fake_rgb = generator(dem)
-            adv_loss = generator_loss_fn(critic, dem, fake_rgb) * adv_weight
+            adv_loss, g_metrics = generator_loss_fn(
+                critic, dem, fake_rgb, return_metrics=True
+            )
+            adv_loss = adv_loss * adv_weight
             recon_loss = recon_loss_fn(fake_rgb, real_rgb) * recon_weight
             g_loss = adv_loss + recon_loss
 
@@ -180,19 +174,28 @@ def train_scout_model(
             g_loss.backward()
             g_optimizer.step()
 
-            epoch_g_loss.append(float(g_loss.detach()))
-            epoch_recon_loss.append(float(recon_loss.detach()))
+            epoch_g_total.append(g_loss.detach().item())
+            epoch_g_recon.append(recon_loss.detach().item())
+            epoch_g_adv.append(adv_loss.detach().item())
+            epoch_g_critic_score.append(g_metrics["g_critic_score"].item())
 
             pbar.set_postfix(
-                g_loss=float(g_loss), c_loss=float(c_loss), recon=float(recon_loss)
+                recon=f"{recon_loss.detach().item():.3f}",
+                g_score=f"{g_metrics['g_critic_score'].item():.3f}",
+                c_wd=f"{c_metrics['c_wd'].item():.3f}",
+                c_gp=f"{c_metrics['c_gp'].item():.3f}",
             )
 
-        # Log train metrics ----------------------------------------------------
+        # Log train metrics (positive monitoring + raw WGAN totals for debugging)
         avg = {
             "epoch": epoch,
-            "g_loss": float(np.mean(epoch_g_loss)),
-            "c_loss": float(np.mean(epoch_c_loss)),
-            "recon_loss": float(np.mean(epoch_recon_loss)),
+            "g_total": float(np.mean(epoch_g_total)),
+            "g_recon": float(np.mean(epoch_g_recon)),
+            "g_adv": float(np.mean(epoch_g_adv)),
+            "g_critic_score": float(np.mean(epoch_g_critic_score)),
+            "c_total": float(np.mean(epoch_c_total)),
+            "c_wd": float(np.mean(epoch_c_wd)),
+            "c_gp": float(np.mean(epoch_c_gp)),
         }
         append_csv(csv_path, avg)
 
@@ -204,8 +207,9 @@ def train_scout_model(
         )
         append_csv(val_csv_path, {"epoch": epoch, **val_metrics})
         tqdm.write(
-            f"Epoch {epoch}: g_loss={avg['g_loss']:.4f}  c_loss={avg['c_loss']:.4f}  "
-            f"val_recon_loss={val_metrics['val_recon_loss']:.4f}  val_surprise={val_metrics['val_surprise_mean']:.4f}"
+            f"Epoch {epoch}: g_recon={avg['g_recon']:.4f}  g_critic_score={avg['g_critic_score']:.4f}  "
+            f"c_wd={avg['c_wd']:.4f}  c_gp={avg['c_gp']:.4f}  "
+            f"val_recon={val_metrics['val_recon_loss']:.4f}  val_surprise={val_metrics['val_surprise_mean']:.4f}"
         )
 
         # Best checkpoint tracking ---------------------------------------------

@@ -1,0 +1,2 @@
+epoch,val_acc,val_prec,val_rec,val_f1,val_iou,val_surprise_mean
+0,0,0,0,0,0,0

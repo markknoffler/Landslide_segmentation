@@ -36,13 +36,41 @@ def gradient_penalty(critic: nn.Module, dem: torch.Tensor, real_rgb: torch.Tenso
     return penalty
 
 
-def critic_loss(critic: nn.Module, dem: torch.Tensor, real_rgb: torch.Tensor, fake_rgb: torch.Tensor, lambda_gp: float = 10.0) -> torch.Tensor:
+def critic_loss(
+    critic: nn.Module,
+    dem: torch.Tensor,
+    real_rgb: torch.Tensor,
+    fake_rgb: torch.Tensor,
+    lambda_gp: float = 10.0,
+    return_metrics: bool = False,
+):
+    """WGAN-GP critic objective: minimize E[D(fake)] - E[D(real)] + λ·GP."""
     d_real = critic(dem, real_rgb)
     d_fake = critic(dem, fake_rgb.detach())
     gp = gradient_penalty(critic, dem, real_rgb, fake_rgb)
-    return d_fake.mean() - d_real.mean() + lambda_gp * gp
+    loss = d_fake.mean() - d_real.mean() + lambda_gp * gp
+    if return_metrics:
+        # Positive monitoring metrics (optimization loss above may be negative).
+        metrics = {
+            "c_wd": (d_real.mean() - d_fake.mean()).detach(),
+            "c_gp": gp.detach(),
+        }
+        return loss, metrics
+    return loss
 
 
-def generator_loss(critic: nn.Module, dem: torch.Tensor, fake_rgb: torch.Tensor) -> torch.Tensor:
+def generator_loss(
+    critic: nn.Module,
+    dem: torch.Tensor,
+    fake_rgb: torch.Tensor,
+    return_metrics: bool = False,
+):
+    """WGAN generator adversarial term: minimize -E[D(fake)]."""
     d_fake = critic(dem, fake_rgb)
-    return -d_fake.mean()
+    loss = -d_fake.mean()
+    if return_metrics:
+        metrics = {
+            "g_critic_score": d_fake.mean().detach(),
+        }
+        return loss, metrics
+    return loss

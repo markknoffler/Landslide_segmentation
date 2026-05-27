@@ -13,8 +13,39 @@ from .datasets import (
     L4SDualStreamDataset,
     build_bijie_split,
     build_l4s_split,
+    resolve_bijie_root,
 )
 from .trainer import set_seed, train_model
+
+
+def _assert_nonempty_splits(train_ds, val_ds, dataset_name: str):
+    if len(train_ds) == 0 or len(val_ds) == 0:
+        raise ValueError(
+            f"Empty dataset split for {dataset_name}: train={len(train_ds)}, val={len(val_ds)}. "
+            "Check --dataset_root path (e.g. .../dataset not .../datase)."
+        )
+
+
+def _print_run_config(
+    *,
+    model_name: str,
+    dataset: str,
+    dataset_root: str,
+    model_out: Path,
+    train_n: int,
+    val_n: int,
+    in_channels: int,
+    input_mode: str,
+    dual_stream: bool,
+):
+    print("=== Baseline training config ===")
+    print(f"model={model_name}  dataset={dataset}  dual_stream={dual_stream}")
+    print(f"dataset_root={dataset_root}")
+    print(f"input_mode={input_mode}  in_channels={in_channels}")
+    print(f"train_samples={train_n}  val_samples={val_n}")
+    print(f"checkpoints={model_out / 'checkpoint'}")
+    print(f"results={model_out / 'results'}")
+    print("================================")
 
 
 def build_parser(default_model_name: str, dual_stream: bool = False):
@@ -83,28 +114,47 @@ def run_single_stream(args):
     output_dir = Path(args.output_dir).resolve()
     model_out = output_dir / args.dataset / args.model_name
 
+    l4s_root = Path(args.dataset_root).expanduser().resolve()
+    bijie_root = resolve_bijie_root(args.dataset_root) if args.dataset == "bijie" else None
+    input_mode = args.input_mode_l4s if args.dataset == "landslide4sense" else args.input_mode_bijie
+
     if args.dataset == "landslide4sense":
-        train_ids, val_ids = build_l4s_split(args.dataset_root, val_ratio=args.val_split_ratio_l4s, seed=args.seed)
+        train_ids, val_ids = build_l4s_split(l4s_root, val_ratio=args.val_split_ratio_l4s, seed=args.seed)
         train_ds = L4SBinaryDataset(
-            args.dataset_root,
+            l4s_root,
             ids=train_ids,
             resize_to=args.resize_to,
             input_mode=args.input_mode_l4s,
             transform=Augment2D(p=0.5),
         )
         val_ds = L4SBinaryDataset(
-            args.dataset_root,
+            l4s_root,
             ids=val_ids,
             resize_to=args.resize_to,
             input_mode=args.input_mode_l4s,
             transform=None,
         )
+        dataset_root_display = str(l4s_root)
     else:
         train_raw, val_raw, _ = build_bijie_split(args.dataset_root, seed=args.seed)
         train_ds = BijieSingleStreamDataset(
             train_raw, resize_to=args.resize_to, input_mode=args.input_mode_bijie, transform=Augment2D(p=0.5)
         )
         val_ds = BijieSingleStreamDataset(val_raw, resize_to=args.resize_to, input_mode=args.input_mode_bijie, transform=None)
+        dataset_root_display = str(bijie_root)
+
+    _assert_nonempty_splits(train_ds, val_ds, args.dataset)
+    _print_run_config(
+        model_name=args.model_name,
+        dataset=args.dataset,
+        dataset_root=dataset_root_display,
+        model_out=model_out,
+        train_n=len(train_ds),
+        val_n=len(val_ds),
+        in_channels=inferred_in_channels,
+        input_mode=input_mode,
+        dual_stream=False,
+    )
 
     train_model(
         model=model,
@@ -142,16 +192,35 @@ def run_dual_stream(args):
     output_dir = Path(args.output_dir).resolve()
     model_out = output_dir / args.dataset / args.model_name
 
+    l4s_root = Path(args.dataset_root).expanduser().resolve()
+    bijie_root = resolve_bijie_root(args.dataset_root) if args.dataset == "bijie" else None
+    input_mode = "rgb+ndvi+slope+dem (dual-stream)" if args.dataset == "landslide4sense" else "rgb+dem×3 (dual-stream)"
+
     if args.dataset == "landslide4sense":
-        train_ids, val_ids = build_l4s_split(args.dataset_root, val_ratio=args.val_split_ratio_l4s, seed=args.seed)
+        train_ids, val_ids = build_l4s_split(l4s_root, val_ratio=args.val_split_ratio_l4s, seed=args.seed)
         train_ds = L4SDualStreamDataset(
-            args.dataset_root, ids=train_ids, resize_to=args.resize_to, transform=AugmentDual2D(p=0.5)
+            l4s_root, ids=train_ids, resize_to=args.resize_to, transform=AugmentDual2D(p=0.5)
         )
-        val_ds = L4SDualStreamDataset(args.dataset_root, ids=val_ids, resize_to=args.resize_to, transform=None)
+        val_ds = L4SDualStreamDataset(l4s_root, ids=val_ids, resize_to=args.resize_to, transform=None)
+        dataset_root_display = str(l4s_root)
     else:
         train_raw, val_raw, _ = build_bijie_split(args.dataset_root, seed=args.seed)
         train_ds = BijieTwoComposites(train_raw, resize_to=args.resize_to, transform=None)
         val_ds = BijieTwoComposites(val_raw, resize_to=args.resize_to, transform=None)
+        dataset_root_display = str(bijie_root)
+
+    _assert_nonempty_splits(train_ds, val_ds, args.dataset)
+    _print_run_config(
+        model_name=args.model_name,
+        dataset=args.dataset,
+        dataset_root=dataset_root_display,
+        model_out=model_out,
+        train_n=len(train_ds),
+        val_n=len(val_ds),
+        in_channels=6,
+        input_mode=input_mode,
+        dual_stream=True,
+    )
 
     train_model(
         model=model,

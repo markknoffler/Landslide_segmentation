@@ -395,14 +395,16 @@ def build_l4s_split(dataset_root: str | Path, val_ratio: float = 0.1, seed: int 
     return train_ids, val_ids
 
 
-def build_bijie_split(dataset_root: str | Path, seed: int = 42):
-    root = Path(dataset_root)
-    # Accept either:
-    #   .../Bijie-landslide-dataset
-    # or parent dir:
-    #   .../dataset_bijie_landslide (containing Bijie-landslide-dataset/)
+def resolve_bijie_root(dataset_root: str | Path) -> Path:
+    """Resolve Bijie root whether user passes parent or inner dataset folder."""
+    root = Path(dataset_root).expanduser().resolve()
     if not (root / "landslide").exists() and (root / "Bijie-landslide-dataset").exists():
-        root = root / "Bijie-landslide-dataset"
+        root = (root / "Bijie-landslide-dataset").resolve()
+    return root
+
+
+def build_bijie_split(dataset_root: str | Path, seed: int = 42):
+    root = resolve_bijie_root(dataset_root)
 
     landslide = BijieRawDataset(root / "landslide", phase="landslide")
     nonlandslide = BijieRawDataset(root / "non-landslide", phase="non-landslide")

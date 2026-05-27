@@ -97,16 +97,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run_id", type=str, default="scout")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=1e-4, help="Generator learning rate")
+    parser.add_argument(
+        "--critic_lr",
+        type=float,
+        default=None,
+        help="Critic learning rate (default: 0.5 * lr for WGAN-GP stability)",
+    )
     parser.add_argument("--resize_to", type=int, default=256)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--base_ch", type=int, default=64)
-    parser.add_argument("--n_critic", type=int, default=5, help="critic steps per generator step")
+    parser.add_argument("--n_critic", type=int, default=1, help="critic steps per generator step")
     parser.add_argument("--recon_weight", type=float, default=100.0)
     parser.add_argument("--adv_weight", type=float, default=1.0)
-    parser.add_argument("--lambda_gp", type=float, default=20.0)
+    parser.add_argument("--lambda_gp", type=float, default=10.0)
     parser.add_argument("--metric_threshold", type=float, default=0.5)
     parser.add_argument("--save_every", type=int, default=5)
     parser.add_argument("--resume", type=str, default=None, help="checkpoint path or auto-detect")
@@ -165,14 +171,16 @@ def train_scout(args: argparse.Namespace) -> dict[str, float]:
     generator = Scout(base_ch=args.base_ch).to(device)
     critic = Critic(base_ch=args.base_ch).to(device)
 
+    critic_lr = args.critic_lr if args.critic_lr is not None else args.lr * 0.5
     g_optimizer = torch.optim.Adam(generator.parameters(), lr=args.lr, betas=(0.5, 0.999))
-    c_optimizer = torch.optim.Adam(critic.parameters(), lr=args.lr, betas=(0.5, 0.999))
+    c_optimizer = torch.optim.Adam(critic.parameters(), lr=critic_lr, betas=(0.5, 0.999))
 
     recon_loss_fn = ReconstructionLoss()
 
     tqdm.write(
         f"Generator: {sum(p.numel() for p in generator.parameters()):,} params\n"
-        f"Critic:    {sum(p.numel() for p in critic.parameters()):,} params"
+        f"Critic:    {sum(p.numel() for p in critic.parameters()):,} params\n"
+        f"LR: g={args.lr}  critic={critic_lr}  n_critic={args.n_critic}  lambda_gp={args.lambda_gp}"
     )
 
     # ---- Train -------------------------------------------------------------
@@ -219,5 +227,5 @@ def train_scout(args: argparse.Namespace) -> dict[str, float]:
         for k, v in landslide_metrics.items():
             tqdm.write(f"  {k}: {v:.4f}")
 
-    tqdm.write(f"Training complete. Best val F1: {final['val_f1']:.4f}")
+    tqdm.write(f"Training complete. Best val recon: {final['val_recon_loss']:.4f}")
     return {**final, **landslide_metrics}

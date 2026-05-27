@@ -39,13 +39,31 @@ Shared components are implemented in `common/`:
 
 ## Example commands
 
-UNet on Landslide4Sense:
+**Important:** `--dataset_root` must be the full path. A typo like `.../datase` (missing `t`) gives `num_samples=0`.
+
+At startup you should see `train_samples` / `val_samples` > 0 in the printed config block.
+
+UNet on Landslide4Sense (GPU 1):
 
 ```bash
-python codebase/ablation_study/baseline_models/unet/training.py \
+cd codebase/ablation_study/baseline_models/unet
+CUDA_VISIBLE_DEVICES=1 python training.py \
   --dataset landslide4sense \
   --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset \
-  --output_dir codebase/ablation_study/baseline_models
+  --output_dir /home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/ablation_study/baseline_models \
+  --device cuda
+```
+
+EMR-HRNet resume (GPU 1):
+
+```bash
+cd codebase/ablation_study/baseline_models/emr_hrnet
+CUDA_VISIBLE_DEVICES=1 python training.py \
+  --dataset landslide4sense \
+  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset \
+  --output_dir /home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/ablation_study/baseline_models \
+  --device cuda \
+  --resume
 ```
 
 Dual-stream UNet on Bijie:
