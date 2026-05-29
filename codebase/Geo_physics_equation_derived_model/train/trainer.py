@@ -18,6 +18,23 @@ from .losses import GeoPhysicsLoss
 from .metrics import image_level_metrics_from_logits, pixel_metrics_from_logits
 
 
+def _fmt(v: float) -> str:
+    return f"{v:.4f}"
+
+
+def _epoch_metrics_line(row: dict) -> str:
+    # Match ablation-study style: one compact line with key segmentation metrics.
+    return (
+        f"epoch={row['epoch']:03d} | "
+        f"train loss={_fmt(row['train_loss'])} acc={_fmt(row['train_acc'])} "
+        f"prec={_fmt(row['train_precision'])} rec={_fmt(row['train_recall'])} "
+        f"f1={_fmt(row['train_f1'])} iou={_fmt(row['train_iou'])} | "
+        f"val loss={_fmt(row['val_loss'])} acc={_fmt(row['val_acc'])} "
+        f"prec={_fmt(row['val_precision'])} rec={_fmt(row['val_recall'])} "
+        f"f1={_fmt(row['val_f1'])} iou={_fmt(row['val_iou'])}"
+    )
+
+
 def latest_checkpoint(ckpt_dir: Path):
     ckpts = sorted(ckpt_dir.glob("epoch_*.pt"))
     return ckpts[-1] if ckpts else None
@@ -329,6 +346,8 @@ def train_model(
         }
         if is_main_process(rank):
             append_csv(epoch_csv, row)
+            # Print a single metrics line after CSV append (easy to copy/paste in logs).
+            log_main(rank, _epoch_metrics_line(row))
             epoch_pbar.set_postfix(
                 train_loss=f"{train_m['loss']:.3f}",
                 val_f1=f"{val_m['f1']:.3f}",
