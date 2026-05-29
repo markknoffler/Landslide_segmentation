@@ -7,8 +7,6 @@ from typing import Dict, Optional
 
 import numpy as np
 import torch
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 from torch.optim import Adam
 from tqdm import tqdm
 
@@ -23,7 +21,6 @@ def _fmt(v: float) -> str:
 
 
 def _epoch_metrics_line(row: dict) -> str:
-    # Match ablation-study style: one compact line with key segmentation metrics.
     return (
         f"epoch={row['epoch']:03d} | "
         f"train loss={_fmt(row['train_loss'])} acc={_fmt(row['train_acc'])} "
@@ -35,16 +32,6 @@ def _epoch_metrics_line(row: dict) -> str:
     )
 
 
-def latest_checkpoint(ckpt_dir: Path):
-    ckpts = sorted(ckpt_dir.glob("epoch_*.pt"))
-    return ckpts[-1] if ckpts else None
-
-
-def save_checkpoint(path: Path, state: Dict):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(state, path)
-
-
 def append_csv(path: Path, row: Dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     is_new = not path.exists()
@@ -53,23 +40,6 @@ def append_csv(path: Path, row: Dict):
         if is_new:
             writer.writeheader()
         writer.writerow(row)
-
-
-def _gather_model_state(model) -> Dict[str, torch.Tensor]:
-    if isinstance(model, FSDP):
-        cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-        with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, cfg):
-            return model.state_dict()
-    return model.state_dict()
-
-
-def _load_model_state(model, state_dict: Dict[str, torch.Tensor]) -> None:
-    if isinstance(model, FSDP):
-        cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=False)
-        with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, cfg):
-            model.load_state_dict(state_dict)
-    else:
-        model.load_state_dict(state_dict)
 
 
 def run_epoch(
@@ -120,7 +90,7 @@ def run_epoch(
         bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}",
     )
 
-    for batch_idx, batch in enumerate(pbar):
+    for batch in pbar:
         for k in batch:
             if isinstance(batch[k], torch.Tensor):
                 batch[k] = batch[k].to(device, non_blocking=True)
@@ -185,8 +155,6 @@ def train_model(
     weight_decay: float = 1e-4,
     device_str: str = "cuda",
     metric_threshold: float = 0.5,
-    save_every: int = 5,
-    resume: bool = False,
     alpha: float = 0.3,
     beta: float = 0.7,
     main_weight: float = 1.0,
@@ -224,31 +192,18 @@ def train_model(
         weight_decay=weight_decay,
     )
 
-    ckpt_dir = output_dir / "checkpoint"
     results_dir = output_dir / "results"
     epoch_csv = results_dir / "epoch_metrics.csv"
     final_csv = results_dir / "final_metrics.csv"
 
-    start_epoch = 1
     best_f1 = 0.0
-    if resume:
-        ckpt = latest_checkpoint(ckpt_dir)
-        if ckpt is not None:
-            if is_main_process(rank):
-                log_main(rank, f"Loading checkpoint {ckpt} ...")
-            state = torch.load(ckpt, map_location="cpu", weights_only=False)
-            _load_model_state(model, state["model"])
-            optimizer.load_state_dict(state["optimizer"])
-            start_epoch = int(state["epoch"]) + 1
-            best_f1 = float(state.get("best_f1", 0.0))
-            log_main(rank, f"Resumed from epoch {start_epoch - 1}, best_val_f1={best_f1:.4f}")
 
     log_dict(
         rank,
         "Training setup",
         {
             "output_dir": str(output_dir),
-            "epochs": f"{start_epoch}..{epochs}",
+            "epochs": f"1..{epochs}",
             "train_batches_per_epoch": len(train_loader),
             "val_batches_per_epoch": len(val_loader),
             "per_gpu_batch": batch_size,
@@ -257,15 +212,15 @@ def train_model(
             "fsdp": use_fsdp,
             "device": str(device),
             "metrics_csv": str(epoch_csv),
-            "log_interval": log_interval,
+            "model_checkpoints": "disabled (metrics-only to avoid GlusterFS stalls)",
         },
     )
-    log_main(rank, "Epoch progress bars print below (rank 0 only). Metrics append to results/epoch_metrics.csv")
+    log_main(rank, "Metrics append to results/epoch_metrics.csv (no .pt checkpoints written).")
 
     if distributed:
         barrier()
 
-    for epoch in range(start_epoch, epochs + 1):
+    for epoch in range(1, epochs + 1):
         if is_main_process(rank):
             log_main(rank, f"\n===== Epoch {epoch}/{epochs} =====")
         train_m = run_epoch(
@@ -323,36 +278,11 @@ def train_model(
         }
         if is_main_process(rank):
             append_csv(epoch_csv, row)
-            # Print a single metrics line after CSV append (easy to copy/paste in logs).
             log_main(rank, _epoch_metrics_line(row))
-            log_dict(rank, f"Epoch {epoch} summary", row)
 
-        improved = val_m["f1"] > best_f1
-        if improved:
+        if val_m["f1"] > best_f1:
             best_f1 = val_m["f1"]
-            log_main(rank, f"New best val F1={best_f1:.4f} — saving best.pt")
-
-        if epoch % save_every == 0 or improved:
-            barrier()
-            if is_main_process(rank):
-                log_main(rank, f"Saving checkpoint(s) for epoch {epoch}...")
-                payload = {
-                    "epoch": epoch,
-                    "model": _gather_model_state(model),
-                    "optimizer": optimizer.state_dict(),
-                    "best_f1": best_f1,
-                    "world_size": world_size,
-                    "use_fsdp": use_fsdp,
-                }
-                if epoch % save_every == 0:
-                    path = ckpt_dir / f"epoch_{epoch:04d}.pt"
-                    save_checkpoint(path, payload)
-                    log_main(rank, f"  wrote {path}")
-                if improved:
-                    path = ckpt_dir / "best.pt"
-                    save_checkpoint(path, payload)
-                    log_main(rank, f"  wrote {path}")
-            barrier()
+            log_main(rank, f"New best val F1={best_f1:.4f} (metrics only; no checkpoint saved)")
 
     log_main(rank, f"Training finished. Best val F1={best_f1:.4f}")
 

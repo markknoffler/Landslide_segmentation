@@ -32,8 +32,6 @@ def parse_args():
     p.add_argument("--device", type=str, default="cuda")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--resize_to", type=int, default=256)
-    p.add_argument("--save_every", type=int, default=5)
-    p.add_argument("--resume", action="store_true")
     p.add_argument("--metric_threshold", type=float, default=0.5)
     p.add_argument("--tversky_alpha", type=float, default=0.3)
     p.add_argument("--tversky_beta", type=float, default=0.7)
@@ -134,8 +132,6 @@ def main():
             weight_decay=args.weight_decay,
             device_str=args.device,
             metric_threshold=args.metric_threshold,
-            save_every=args.save_every,
-            resume=args.resume,
             alpha=args.tversky_alpha,
             beta=args.tversky_beta,
             main_weight=args.main_weight,

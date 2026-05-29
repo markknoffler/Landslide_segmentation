@@ -51,11 +51,11 @@ bash codebase/Geo_physics_equation_derived_model/scripts/run_train_bijie_fsdp.sh
 
 - `--batch_size` is **per GPU** (global batch = `batch_size × num_gpus`).
 - FSDP shards weights across GPUs; TTEB uses **chunked attention** so 256×256 training fits in memory.
-- Checkpoints (rank 0 only) are full state dicts under `checkpoint/`.
+- **No model checkpoints** (`.pt`) are written during training — only small CSV metrics — to avoid GlusterFS stalls and NCCL timeouts on multi-GPU jobs.
 
 Landslide4Sense: same pattern with `train_landslide4sense`.
 
-Use `--resume` to continue from the latest checkpoint. Metrics CSVs are written under `results/`.
+Metrics CSVs are written under `results/` (`epoch_metrics.csv`, `final_metrics.csv`).
 
 ## Layout
 
