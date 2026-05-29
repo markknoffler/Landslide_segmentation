@@ -121,9 +121,6 @@ def run_epoch(
     )
 
     for batch_idx, batch in enumerate(pbar):
-        if batch_idx == 0 and show_pbar and epoch == 1 and training:
-            log_main(rank, f"{desc}: starting first batch (cold start can take several minutes)...")
-
         for k in batch:
             if isinstance(batch[k], torch.Tensor):
                 batch[k] = batch[k].to(device, non_blocking=True)
@@ -139,9 +136,6 @@ def run_epoch(
                 loss.backward()
                 optimizer.step()
 
-        if batch_idx == 0 and show_pbar and epoch == 1 and training:
-            log_main(rank, f"{desc}: first batch done in {time.time() - t0:.1f}s")
-
         losses.append(float(loss.item()))
         pix = pixel_metrics_from_logits(main, y, threshold=threshold)
         for k in pix_hist:
@@ -156,15 +150,6 @@ def run_epoch(
                 f1=f"{pix_hist['f1'][-1]:.4f}",
                 iou=f"{pix_hist['iou'][-1]:.4f}",
                 refresh=False,
-            )
-
-        if show_pbar and log_interval > 0 and (batch_idx + 1) % log_interval == 0:
-            elapsed = time.time() - t0
-            log_main(
-                rank,
-                f"  {desc} step {batch_idx + 1}/{num_batches} "
-                f"loss={losses[-1]:.4f} f1={pix_hist['f1'][-1]:.4f} "
-                f"elapsed={elapsed:.0f}s",
             )
 
     def _mean(vals: list[float]) -> float:
@@ -280,17 +265,9 @@ def train_model(
     if distributed:
         barrier()
 
-    epoch_pbar = tqdm(
-        range(start_epoch, epochs + 1),
-        desc="Epochs",
-        total=epochs - start_epoch + 1,
-        disable=not is_main_process(rank),
-        file=tqdm_file(),
-        dynamic_ncols=True,
-        initial=0,
-    )
-
-    for epoch in epoch_pbar:
+    for epoch in range(start_epoch, epochs + 1):
+        if is_main_process(rank):
+            log_main(rank, f"\n===== Epoch {epoch}/{epochs} =====")
         train_m = run_epoch(
             model,
             train_loader,
@@ -348,12 +325,6 @@ def train_model(
             append_csv(epoch_csv, row)
             # Print a single metrics line after CSV append (easy to copy/paste in logs).
             log_main(rank, _epoch_metrics_line(row))
-            epoch_pbar.set_postfix(
-                train_loss=f"{train_m['loss']:.3f}",
-                val_f1=f"{val_m['f1']:.3f}",
-                best_f1=f"{max(best_f1, val_m['f1']):.3f}",
-                refresh=True,
-            )
             log_dict(rank, f"Epoch {epoch} summary", row)
 
         improved = val_m["f1"] > best_f1
@@ -383,7 +354,6 @@ def train_model(
                     log_main(rank, f"  wrote {path}")
             barrier()
 
-    epoch_pbar.close()
     log_main(rank, f"Training finished. Best val F1={best_f1:.4f}")
 
     if is_main_process(rank):
