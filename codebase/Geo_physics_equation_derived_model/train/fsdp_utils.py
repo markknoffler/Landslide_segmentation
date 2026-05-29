@@ -32,6 +32,12 @@ def wrap_geo_physics_fsdp(
     use_bf16: bool = True,
     activation_checkpointing: bool = True,
 ) -> FSDP:
+    import torch.distributed as dist
+
+    rank = dist.get_rank() if dist.is_initialized() else 0
+    if rank == 0:
+        print("[FSDP] Sharding model across GPUs (may take 1–3 min)...", flush=True)
+
     auto_wrap_policy = ModuleWrapPolicy(
         {
             TriTemporalTriStreamBridge,
@@ -60,9 +66,13 @@ def wrap_geo_physics_fsdp(
     )
 
     if activation_checkpointing:
+        if rank == 0:
+            print("[FSDP] Applying activation checkpointing on heavy blocks...", flush=True)
         apply_activation_checkpointing(
             fsdp_model,
             checkpoint_wrapper_fn=lambda m, _: checkpoint_wrapper(m, checkpoint_impl=CheckpointImpl.NO_REENTRANT),
             check_fn=_checkpoint_policy,
         )
+    if rank == 0:
+        print("[FSDP] Model ready.", flush=True)
     return fsdp_model

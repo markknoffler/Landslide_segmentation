@@ -12,6 +12,7 @@ from ..data import build_bijie_dataloaders
 from ..model import GeoPhysicsLandslideNet
 from .distributed import cleanup_distributed, init_distributed, is_main_process
 from .fsdp_utils import wrap_geo_physics_fsdp
+from .logging_utils import log_main
 from .trainer import train_model
 
 
@@ -56,6 +57,12 @@ def parse_args():
         action="store_true",
         help="Disable activation checkpointing on heavy blocks.",
     )
+    p.add_argument(
+        "--log_interval",
+        type=int,
+        default=10,
+        help="Print a plain-text line every N train/val steps on rank 0 (0=disable).",
+    )
     return p.parse_args()
 
 
@@ -78,6 +85,7 @@ def main():
 
     set_seed(args.seed + rank)
 
+    log_main(rank, f"Rank {rank}/{world_size} local_rank={local_rank} — building dataloaders...")
     train_loader, val_loader, train_sampler, val_sampler = build_bijie_dataloaders(
         args.dataset_root,
         batch_size=args.batch_size,
@@ -87,12 +95,14 @@ def main():
         distributed=distributed,
     )
 
+    log_main(rank, "Building GeoPhysicsLandslideNet (loads Prithvi weights on each rank)...")
     model = GeoPhysicsLandslideNet(
         channels=64,
         n_classes=1,
         lora_rank=args.lora_rank,
         prithvi_snapshot=args.prithvi_snapshot,
     )
+    log_main(rank, "Base model constructed.")
 
     if use_fsdp:
         if not distributed:
@@ -104,12 +114,13 @@ def main():
             activation_checkpointing=not args.no_activation_checkpointing,
         )
 
-    if is_main_process(rank):
-        print(
-            f"Distributed={distributed} world_size={world_size} "
-            f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
-            f"fsdp={use_fsdp} resize_to={args.resize_to}"
-        )
+    log_main(
+        rank,
+        f"Ready: distributed={distributed} world_size={world_size} "
+        f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
+        f"fsdp={use_fsdp} resize_to={args.resize_to} "
+        f"train_steps={len(train_loader)} val_steps={len(val_loader)}",
+    )
 
     try:
         train_model(
@@ -138,6 +149,7 @@ def main():
             use_fsdp=use_fsdp,
             train_sampler=train_sampler,
             val_sampler=val_sampler,
+            log_interval=args.log_interval,
         )
     finally:
         cleanup_distributed()

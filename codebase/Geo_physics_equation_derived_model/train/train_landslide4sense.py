@@ -12,6 +12,7 @@ from ..data import build_l4s_dataloaders
 from ..model import GeoPhysicsLandslideNet
 from .distributed import cleanup_distributed, init_distributed, is_main_process
 from .fsdp_utils import wrap_geo_physics_fsdp
+from .logging_utils import log_main
 from .trainer import train_model
 
 
@@ -45,6 +46,7 @@ def parse_args():
     p.add_argument("--fsdp", action="store_true")
     p.add_argument("--no_bf16", action="store_true")
     p.add_argument("--no_activation_checkpointing", action="store_true")
+    p.add_argument("--log_interval", type=int, default=10)
     return p.parse_args()
 
 
@@ -66,6 +68,7 @@ def main():
 
     set_seed(args.seed + rank)
 
+    log_main(rank, f"Rank {rank}/{world_size} — building dataloaders...")
     train_loader, val_loader, train_sampler, val_sampler = build_l4s_dataloaders(
         args.dataset_root,
         batch_size=args.batch_size,
@@ -76,6 +79,7 @@ def main():
         distributed=distributed,
     )
 
+    log_main(rank, "Building GeoPhysicsLandslideNet...")
     model = GeoPhysicsLandslideNet(
         channels=64,
         n_classes=1,
@@ -93,12 +97,10 @@ def main():
             activation_checkpointing=not args.no_activation_checkpointing,
         )
 
-    if is_main_process(rank):
-        print(
-            f"Distributed={distributed} world_size={world_size} "
-            f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
-            f"fsdp={use_fsdp} resize_to={args.resize_to}"
-        )
+    log_main(
+        rank,
+        f"Ready: world_size={world_size} train_steps={len(train_loader)} val_steps={len(val_loader)}",
+    )
 
     try:
         train_model(
@@ -127,6 +129,7 @@ def main():
             use_fsdp=use_fsdp,
             train_sampler=train_sampler,
             val_sampler=val_sampler,
+            log_interval=args.log_interval,
         )
     finally:
         cleanup_distributed()
