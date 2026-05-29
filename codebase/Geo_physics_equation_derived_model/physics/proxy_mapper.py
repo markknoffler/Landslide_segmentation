@@ -10,12 +10,13 @@ class PhysicsProxyMapper(nn.Module):
     def __init__(self, alpha_max: float = math.pi / 2):
         super().__init__()
         self.alpha_max = alpha_max
-        self.w_alpha = nn.Parameter(torch.tensor(1.0))
-        self.b_alpha = nn.Parameter(torch.tensor(0.0))
-        self.w_h = nn.Parameter(torch.tensor(1.0))
-        self.b_h = nn.Parameter(torch.tensor(0.0))
-        self.w_m = nn.Parameter(torch.tensor(1.0))
-        self.b_m = nn.Parameter(torch.tensor(0.0))
+        # FSDP requires rank >= 1 parameters (no 0-d scalars).
+        self.w_alpha = nn.Parameter(torch.ones(1))
+        self.b_alpha = nn.Parameter(torch.zeros(1))
+        self.w_h = nn.Parameter(torch.ones(1))
+        self.b_h = nn.Parameter(torch.zeros(1))
+        self.w_m = nn.Parameter(torch.ones(1))
+        self.b_m = nn.Parameter(torch.zeros(1))
 
     def forward(
         self,
