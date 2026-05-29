@@ -1,0 +1,68 @@
+"""FSDP wrapping for GeoPhysicsLandslideNet."""
+
+from __future__ import annotations
+
+import torch
+import torch.nn as nn
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointImpl,
+    apply_activation_checkpointing,
+    checkpoint_wrapper,
+)
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import MixedPrecision, ShardingStrategy
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+
+from ..bridge.tteb import TriTemporalTriStreamBridge
+from ..decoder.physics_decoder import PhysicsDecoder
+from ..encoders.physics_encoder import PhysicsEncoder
+from ..encoders.prithvi_lora import PrithviFoundationEncoder
+from ..fusion.mao_geo_egca import MAOGeoEGCA
+from ..model import GeoPhysicsLandslideNet
+
+
+def _checkpoint_policy(module: nn.Module) -> bool:
+    return isinstance(module, (TriTemporalTriStreamBridge, MAOGeoEGCA, PrithviFoundationEncoder))
+
+
+def wrap_geo_physics_fsdp(
+    model: GeoPhysicsLandslideNet,
+    device_id: int,
+    *,
+    use_bf16: bool = True,
+    activation_checkpointing: bool = True,
+) -> FSDP:
+    auto_wrap_policy = ModuleWrapPolicy(
+        {
+            TriTemporalTriStreamBridge,
+            MAOGeoEGCA,
+            PhysicsEncoder,
+            PrithviFoundationEncoder,
+            PhysicsDecoder,
+        }
+    )
+    mixed_precision = None
+    if use_bf16:
+        mixed_precision = MixedPrecision(
+            param_dtype=torch.bfloat16,
+            reduce_dtype=torch.bfloat16,
+            buffer_dtype=torch.bfloat16,
+        )
+
+    fsdp_model = FSDP(
+        model,
+        device_id=device_id,
+        auto_wrap_policy=auto_wrap_policy,
+        sharding_strategy=ShardingStrategy.FULL_SHARD,
+        mixed_precision=mixed_precision,
+        use_orig_params=True,
+        sync_module_states=True,
+    )
+
+    if activation_checkpointing:
+        apply_activation_checkpointing(
+            fsdp_model,
+            checkpoint_wrapper_fn=lambda m, _: checkpoint_wrapper(m, checkpoint_impl=CheckpointImpl.NO_REENTRANT),
+            check_fn=_checkpoint_policy,
+        )
+    return fsdp_model

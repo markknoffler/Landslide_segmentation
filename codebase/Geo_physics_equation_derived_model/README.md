@@ -14,17 +14,46 @@ bash scripts/download_prithvi.sh
 
 ## Training
 
-From repository root:
+From repository root (single GPU):
 
 ```bash
 conda run -n deeplearning python -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
   --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset_bijie_landslide \
-  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie
-
-conda run -n deeplearning python -m codebase.Geo_physics_equation_derived_model.train.train_landslide4sense \
-  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset \
-  --output_dir codebase/Geo_physics_equation_derived_model/outputs_l4s
+  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie \
+  --prithvi_snapshot /path/to/prithvi/snapshots/<hash> \
+  --batch_size 2
 ```
+
+### Multi-GPU (FSDP + NCCL, e.g. 4× A100 80GB on one node)
+
+Launch with `torchrun` (not plain `python`). NCCL is used automatically as the process-group backend; you still write normal CUDA PyTorch code.
+
+```bash
+cd /path/to/Landslide_segmentation
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+torchrun --standalone --nproc_per_node=4 \
+  -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
+  --dataset_root /scratch/.../dataset_bijie_landslide \
+  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie \
+  --prithvi_snapshot /scratch/.../snapshots/<hash> \
+  --resize_to 256 \
+  --batch_size 2 \
+  --num_workers 4 \
+  --fsdp
+```
+
+Or use the helper script (edit paths inside or via env vars):
+
+```bash
+bash codebase/Geo_physics_equation_derived_model/scripts/run_train_bijie_fsdp.sh
+```
+
+- `--batch_size` is **per GPU** (global batch = `batch_size × num_gpus`).
+- FSDP shards weights across GPUs; TTEB uses **chunked attention** so 256×256 training fits in memory.
+- Checkpoints (rank 0 only) are full state dicts under `checkpoint/`.
+
+Landslide4Sense: same pattern with `train_landslide4sense`.
 
 Use `--resume` to continue from the latest checkpoint. Metrics CSVs are written under `results/`.
 

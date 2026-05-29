@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 
 from .terrain import minmax_per_channel, sobel_slope_norm
 
@@ -117,19 +118,33 @@ def build_l4s_dataloaders(
     val_ratio: float = 0.1,
     seed: int = 42,
     resize_to: int = 256,
+    distributed: bool = False,
 ):
     train_ids, val_ids = build_l4s_split(dataset_root, val_ratio=val_ratio, seed=seed)
     train_base = L4SDualStreamDataset(dataset_root, ids=train_ids, resize_to=resize_to, transform=None)
     val_base = L4SDualStreamDataset(dataset_root, ids=val_ids, resize_to=resize_to, transform=None)
     train_ds = _AugmentWrapper(GeoPhysicsDataset(train_base, "landslide4sense"), AugmentDual2D(p=0.5))
     val_ds = GeoPhysicsDataset(val_base, "landslide4sense")
+    train_sampler = DistributedSampler(train_ds, shuffle=True) if distributed else None
+    val_sampler = DistributedSampler(val_ds, shuffle=False) if distributed else None
     train_loader = DataLoader(
-        train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True
+        train_ds,
+        batch_size=batch_size,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=True,
+        drop_last=distributed,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        sampler=val_sampler,
+        num_workers=num_workers,
+        pin_memory=True,
     )
-    return train_loader, val_loader
+    return train_loader, val_loader, train_sampler, val_sampler
 
 
 def build_bijie_dataloaders(
@@ -138,16 +153,30 @@ def build_bijie_dataloaders(
     num_workers: int = 8,
     seed: int = 42,
     resize_to: int = 256,
+    distributed: bool = False,
 ):
     train_raw, val_raw, _ = build_bijie_split(dataset_root, seed=seed)
     train_base = BijieTwoComposites(train_raw, resize_to=resize_to, transform=None)
     val_base = BijieTwoComposites(val_raw, resize_to=resize_to, transform=None)
     train_ds = _AugmentWrapper(GeoPhysicsDataset(train_base, "bijie"), AugmentDual2D(p=0.5))
     val_ds = GeoPhysicsDataset(val_base, "bijie")
+    train_sampler = DistributedSampler(train_ds, shuffle=True) if distributed else None
+    val_sampler = DistributedSampler(val_ds, shuffle=False) if distributed else None
     train_loader = DataLoader(
-        train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True
+        train_ds,
+        batch_size=batch_size,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
+        num_workers=num_workers,
+        pin_memory=True,
+        drop_last=distributed,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        sampler=val_sampler,
+        num_workers=num_workers,
+        pin_memory=True,
     )
-    return train_loader, val_loader
+    return train_loader, val_loader, train_sampler, val_sampler

@@ -26,6 +26,30 @@ class TriTemporalTriStreamBridge(nn.Module):
         self.stability_d = nn.Conv2d(channels, channels, kernel_size=1, bias=True)
         self.psi = nn.Parameter(torch.ones(1, channels, 1, 1))
         self.out = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        # Chunked attention avoids materializing full (H*W)^2 scores at 256x256 (~64 GiB per sample).
+        self.attn_chunk_size = 4096
+
+    def _spatial_attention(
+        self,
+        q_h: torch.Tensor,
+        k_h: torch.Tensor,
+        v_h: torch.Tensor,
+    ) -> torch.Tensor:
+        scale = self.head_dim**-0.5
+        _, _, n, _ = q_h.shape
+        chunk = self.attn_chunk_size
+        if n <= chunk:
+            scores = torch.matmul(q_h, k_h.transpose(-2, -1)) * scale
+            attn = F.softmax(scores, dim=-1)
+            return torch.matmul(attn, v_h)
+
+        out_chunks = []
+        for start in range(0, n, chunk):
+            q_chunk = q_h[:, :, start : start + chunk, :]
+            scores = torch.matmul(q_chunk, k_h.transpose(-2, -1)) * scale
+            attn = F.softmax(scores, dim=-1)
+            out_chunks.append(torch.matmul(attn, v_h))
+        return torch.cat(out_chunks, dim=2)
 
     @staticmethod
     def _gather_level(pyramid: list[torch.Tensor], level: int) -> torch.Tensor:
@@ -74,9 +98,7 @@ class TriTemporalTriStreamBridge(nn.Module):
         q_h = q.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
         k_h = k.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
         v_h = v.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
-        scores = torch.matmul(q_h, k_h.transpose(-2, -1)) / (self.head_dim**0.5)
-        attn = F.softmax(scores, dim=-1)
-        out = torch.matmul(attn, v_h).transpose(1, 2).contiguous().view(b, c, h, w)
+        out = self._spatial_attention(q_h, k_h, v_h).transpose(1, 2).contiguous().view(b, c, h, w)
 
         tau_w = torch.softmax(self.temporal_router(delta), dim=1).mean(dim=(2, 3), keepdim=True)
         out = out * (1.0 + tau_w[:, 1:2])
