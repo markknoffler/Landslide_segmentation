@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import partial
+
 import torch
 import torch.nn as nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
@@ -70,7 +72,10 @@ def wrap_geo_physics_fsdp(
             print("[FSDP] Applying activation checkpointing on heavy blocks...", flush=True)
         apply_activation_checkpointing(
             fsdp_model,
-            checkpoint_wrapper_fn=lambda m, _: checkpoint_wrapper(m, checkpoint_impl=CheckpointImpl.NO_REENTRANT),
+            checkpoint_wrapper_fn=partial(
+                checkpoint_wrapper,
+                checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+            ),
             check_fn=_checkpoint_policy,
         )
     if rank == 0:
