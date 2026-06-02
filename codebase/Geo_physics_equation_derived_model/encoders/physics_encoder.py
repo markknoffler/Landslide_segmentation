@@ -23,7 +23,15 @@ class PhysicsEncoder(nn.Module):
 
     def __init__(self, in_channels: int, width: int = 64, unified_channels: int = 64):
         super().__init__()
-        c0, c1, c2, c3, c4 = 32, 48, 64, 64, 64
+        if unified_channels % 8 != 0:
+            raise ValueError(f"unified_channels must be divisible by 8, got {unified_channels}")
+        # Scale internal encoder width with the unified feature width so the
+        # high-dimensional mode (e.g. 256) is carried across the full model.
+        c0 = max(8, unified_channels // 4)
+        c1 = max(8, unified_channels // 2)
+        c2 = unified_channels
+        c3 = unified_channels
+        c4 = unified_channels
         self.pixel = PixelMechanisticCell(in_channels, c0)
         self.stem = nn.Sequential(
             nn.Conv2d(c0, c0, kernel_size=3, padding=1, bias=False),

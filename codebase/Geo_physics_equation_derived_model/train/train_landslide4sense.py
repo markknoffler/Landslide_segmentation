@@ -41,6 +41,16 @@ def parse_args():
     p.add_argument("--aux3_weight", type=float, default=0.4)
     p.add_argument("--lora_rank", type=int, default=8)
     p.add_argument("--prithvi_snapshot", type=str, default=None)
+    p.add_argument(
+        "--high_dim_256",
+        action="store_true",
+        help="Use unified feature width C=256 across the full model.",
+    )
+    p.add_argument(
+        "--full_precision",
+        action="store_true",
+        help="Force full-float (FP32) training (disables FSDP bf16 mixed precision).",
+    )
     p.add_argument("--fsdp", action="store_true")
     p.add_argument("--no_bf16", action="store_true")
     p.add_argument("--no_activation_checkpointing", action="store_true")
@@ -60,6 +70,7 @@ def main():
     args = parse_args()
     distributed, rank, world_size, local_rank = init_distributed()
     use_fsdp = args.fsdp or distributed
+    channels = 256 if args.high_dim_256 else 64
     if distributed and not use_fsdp and is_main_process(rank):
         print("Warning: multi-GPU job without --fsdp; enabling FSDP automatically.")
         use_fsdp = True
@@ -79,7 +90,7 @@ def main():
 
     log_main(rank, "Building GeoPhysicsLandslideNet...")
     model = GeoPhysicsLandslideNet(
-        channels=64,
+        channels=channels,
         n_classes=1,
         lora_rank=args.lora_rank,
         prithvi_snapshot=args.prithvi_snapshot,
@@ -91,13 +102,14 @@ def main():
         model = wrap_geo_physics_fsdp(
             model,
             device_id=local_rank,
-            use_bf16=not args.no_bf16,
+            use_bf16=not (args.no_bf16 or args.full_precision),
             activation_checkpointing=not args.no_activation_checkpointing,
         )
 
     log_main(
         rank,
-        f"Ready: world_size={world_size} train_steps={len(train_loader)} val_steps={len(val_loader)}",
+        f"Ready: world_size={world_size} channels={channels} full_precision={args.full_precision} "
+        f"train_steps={len(train_loader)} val_steps={len(val_loader)}",
     )
 
     try:
@@ -126,6 +138,7 @@ def main():
             train_sampler=train_sampler,
             val_sampler=val_sampler,
             log_interval=args.log_interval,
+            metrics_suffix="_w256" if args.high_dim_256 else "",
         )
     finally:
         cleanup_distributed()

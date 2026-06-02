@@ -170,6 +170,7 @@ def train_model(
     train_sampler=None,
     val_sampler=None,
     log_interval: int = 10,
+    metrics_suffix: str = "",
 ):
     if distributed and torch.cuda.is_available():
         device = torch.device("cuda", local_rank)
@@ -193,8 +194,11 @@ def train_model(
     )
 
     results_dir = output_dir / "results"
-    epoch_csv = results_dir / "epoch_metrics.csv"
-    final_csv = results_dir / "final_metrics.csv"
+    suffix = metrics_suffix.strip()
+    epoch_csv_name = f"epoch_metrics{suffix}.csv" if suffix else "epoch_metrics.csv"
+    final_csv_name = f"final_metrics{suffix}.csv" if suffix else "final_metrics.csv"
+    epoch_csv = results_dir / epoch_csv_name
+    final_csv = results_dir / final_csv_name
 
     best_f1 = 0.0
 
