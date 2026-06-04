@@ -23,11 +23,13 @@ def _fmt(v: float) -> str:
 def _epoch_metrics_line(row: dict) -> str:
     return (
         f"epoch={row['epoch']:03d} | "
-        f"train loss={_fmt(row['train_loss'])} micro_f1={_fmt(row['train_f1'])} "
-        f"micro_iou={_fmt(row['train_iou'])} prec={_fmt(row['train_precision'])} rec={_fmt(row['train_recall'])} | "
-        f"val loss={_fmt(row['val_loss'])} micro_f1={_fmt(row['val_f1'])} "
-        f"micro_iou={_fmt(row['val_iou'])} ls_f1={_fmt(row['val_landslide_f1'])} "
-        f"ls_iou={_fmt(row['val_landslide_iou'])} prec={_fmt(row['val_precision'])} rec={_fmt(row['val_recall'])}"
+        f"train loss={_fmt(row['train_loss'])} acc={_fmt(row['train_acc'])} "
+        f"f1={_fmt(row['train_f1'])} iou={_fmt(row['train_iou'])} "
+        f"prec={_fmt(row['train_precision'])} rec={_fmt(row['train_recall'])} | "
+        f"val loss={_fmt(row['val_loss'])} acc={_fmt(row['val_acc'])} "
+        f"f1={_fmt(row['val_f1'])} iou={_fmt(row['val_iou'])} "
+        f"prec={_fmt(row['val_precision'])} rec={_fmt(row['val_recall'])} | "
+        f"ls_f1={_fmt(row['val_landslide_f1'])} ls_iou={_fmt(row['val_landslide_iou'])}"
     )
 
 
@@ -120,8 +122,8 @@ def run_epoch(
         if show_pbar:
             pbar.set_postfix(
                 loss=f"{losses[-1]:.4f}",
+                acc=f"{batch_pix['acc']:.4f}",
                 f1=f"{batch_pix['f1']:.4f}",
-                iou=f"{batch_pix['iou']:.4f}",
                 refresh=False,
             )
 
@@ -152,7 +154,9 @@ def run_epoch(
         log_main(
             rank,
             f"{desc} done in {time.time() - t0:.0f}s | "
-            f"loss={metrics['loss']:.4f} f1={metrics['f1']:.4f} iou={metrics['iou']:.4f}",
+            f"loss={metrics['loss']:.4f} acc={metrics['acc']:.4f} "
+            f"f1={metrics['f1']:.4f} iou={metrics['iou']:.4f} "
+            f"prec={metrics['precision']:.4f} rec={metrics['recall']:.4f}",
         )
 
     return metrics
