@@ -1,15 +1,29 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class TriTemporalTriStreamBridge(nn.Module):
     """Combine prev/present/next features across rgb, dem, and fm pyramids."""
 
-    def __init__(self, channels: int, num_heads: int = 4):
+    def __init__(
+        self,
+        channels: int,
+        num_heads: int = 4,
+        attn_chunk_size: int = 1024,
+        attn_low_res_max: int = 4096,
+        attn_score_budget_mb: int = 256,
+    ):
         super().__init__()
         self.channels = channels
         self.num_heads = num_heads
         self.head_dim = channels // num_heads
+        self.attn_chunk_size = attn_chunk_size
+        # When H*W exceeds this token count, attention runs on a downsampled grid then upsamples.
+        self.attn_low_res_max = attn_low_res_max
+        self.attn_score_budget_mb = attn_score_budget_mb
 
         self.anchor = nn.Conv2d(channels * 3, channels, kernel_size=1, bias=False)
         self.context_mix = nn.Sequential(
@@ -26,18 +40,23 @@ class TriTemporalTriStreamBridge(nn.Module):
         self.stability_d = nn.Conv2d(channels, channels, kernel_size=1, bias=True)
         self.psi = nn.Parameter(torch.ones(1, channels, 1, 1))
         self.out = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
-        # Chunked attention avoids materializing full (H*W)^2 scores at 256x256 (~64 GiB per sample).
-        self.attn_chunk_size = 4096
+
+    def _effective_chunk(self, batch_size: int, n_tokens: int) -> int:
+        """Cap chunk size so (B, heads, chunk, N) scores stay within memory budget."""
+        budget_floats = max(1, self.attn_score_budget_mb) * 1024 * 1024 // 4
+        denom = max(1, batch_size * self.num_heads * n_tokens)
+        chunk = min(self.attn_chunk_size, max(64, budget_floats // denom))
+        return int(chunk)
 
     def _spatial_attention(
         self,
         q_h: torch.Tensor,
         k_h: torch.Tensor,
         v_h: torch.Tensor,
+        chunk: int,
     ) -> torch.Tensor:
         scale = self.head_dim**-0.5
         _, _, n, _ = q_h.shape
-        chunk = self.attn_chunk_size
         if n <= chunk:
             scores = torch.matmul(q_h, k_h.transpose(-2, -1)) * scale
             attn = F.softmax(scores, dim=-1)
@@ -50,6 +69,46 @@ class TriTemporalTriStreamBridge(nn.Module):
             attn = F.softmax(scores, dim=-1)
             out_chunks.append(torch.matmul(attn, v_h))
         return torch.cat(out_chunks, dim=2)
+
+    def _attention_on_maps(
+        self,
+        anchor: torch.Tensor,
+        context: torch.Tensor,
+    ) -> torch.Tensor:
+        b, c, h, w = anchor.shape
+        n = h * w
+        chunk = self._effective_chunk(b, n)
+
+        q = self.q_proj(anchor).view(b, c, -1).transpose(1, 2)
+        k = self.k_proj(context).view(b, c, -1).transpose(1, 2)
+        v = self.v_proj(context).view(b, c, -1).transpose(1, 2)
+
+        phase = self.stream_phase.mean(dim=0).view(1, 1, c)
+        k = k + phase
+
+        q_h = q.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
+        k_h = k.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
+        v_h = v.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
+        out = self._spatial_attention(q_h, k_h, v_h, chunk).transpose(1, 2).contiguous().view(b, c, h, w)
+        return out
+
+    def _attention_with_optional_downsample(
+        self,
+        anchor: torch.Tensor,
+        context: torch.Tensor,
+    ) -> torch.Tensor:
+        _, _, h, w = anchor.shape
+        n = h * w
+        if n <= self.attn_low_res_max:
+            return self._attention_on_maps(anchor, context)
+
+        side = int(math.sqrt(self.attn_low_res_max))
+        side = max(8, side)
+        small = (side, side)
+        anchor_s = F.interpolate(anchor, size=small, mode="bilinear", align_corners=False)
+        context_s = F.interpolate(context, size=small, mode="bilinear", align_corners=False)
+        out_s = self._attention_on_maps(anchor_s, context_s)
+        return F.interpolate(out_s, size=(h, w), mode="bilinear", align_corners=False)
 
     @staticmethod
     def _gather_level(pyramid: list[torch.Tensor], level: int) -> torch.Tensor:
@@ -78,7 +137,6 @@ class TriTemporalTriStreamBridge(nn.Module):
 
         anchor = self.anchor(torch.cat(present, dim=1))
 
-        # Eight off-diagonal nodes: prev/next for each stream (6) + two cross-stream present refs
         off_diag = prev + nxt + [present[0], present[2]]
         context = self.context_mix(torch.cat(off_diag, dim=1))
 
@@ -86,19 +144,7 @@ class TriTemporalTriStreamBridge(nn.Module):
         d = F.softplus(self.stability_d(anchor))
         delta = torch.abs(self.psi - r / (d + 1e-6))
 
-        b, c, h, w = anchor.shape
-        n = h * w
-        q = self.q_proj(anchor).view(b, c, -1).transpose(1, 2)
-        k = self.k_proj(context).view(b, c, -1).transpose(1, 2)
-        v = self.v_proj(context).view(b, c, -1).transpose(1, 2)
-
-        phase = self.stream_phase.mean(dim=0).view(1, 1, c)
-        k = k + phase
-
-        q_h = q.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
-        k_h = k.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
-        v_h = v.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
-        out = self._spatial_attention(q_h, k_h, v_h).transpose(1, 2).contiguous().view(b, c, h, w)
+        out = self._attention_with_optional_downsample(anchor, context)
 
         tau_w = torch.softmax(self.temporal_router(delta), dim=1).mean(dim=(2, 3), keepdim=True)
         out = out * (1.0 + tau_w[:, 1:2])

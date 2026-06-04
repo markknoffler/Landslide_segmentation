@@ -98,7 +98,9 @@ torchrun --standalone --nproc_per_node=3 \
 
 **Notes:**
 
-- `--batch_size` is per GPU. EfficientNet FM uses much less VRAM than Prithvi+TTEB at 256-d; try `batch_size 4–8` per GPU before `--high_dim_256`.
+- **`--batch_size 1`** per GPU is the safe default at `resize_to 256` (TTEB attention dominates VRAM, not EfficientNet).
+- Do **not** use `--high_dim_256` until C=64 runs stably. At 256×256, TTEB auto-downsamples attention to 64×64 (`--tteb_attn_low_res_max 4096`).
+- If OOM persists: `--tteb_attn_chunk 256`, `--no_activation_checkpointing` (sometimes helps recompute OOM), or `--resize_to 128`.
 - First run downloads ImageNet weights for EfficientNet via `timm` (needs network once per node/cache).
 - Metrics: `outputs_*/results/epoch_metrics.csv` — use **`val_landslide_f1`** / **`val_landslide_iou`** (micro metrics over full val set).
 - No `.pt` checkpoints are saved (GlusterFS-safe); metrics-only CSV.

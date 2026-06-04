@@ -27,6 +27,8 @@ class GeoPhysicsLandslideNet(nn.Module):
         efficientnet_name: str = "tf_efficientnet_b4",
         efficientnet_pretrained: bool = True,
         freeze_efficientnet: bool = True,
+        tteb_attn_chunk: int = 1024,
+        tteb_attn_low_res_max: int = 4096,
     ):
         super().__init__()
         self.channels = channels
@@ -58,7 +60,16 @@ class GeoPhysicsLandslideNet(nn.Module):
 
         self.mao3 = MAOGeoEGCA(channels)
         self.mao4 = MAOGeoEGCA(channels)
-        self.tteb = nn.ModuleList([TriTemporalTriStreamBridge(channels) for _ in range(4)])
+        self.tteb = nn.ModuleList(
+            [
+                TriTemporalTriStreamBridge(
+                    channels,
+                    attn_chunk_size=tteb_attn_chunk,
+                    attn_low_res_max=tteb_attn_low_res_max,
+                )
+                for _ in range(4)
+            ]
+        )
         self.fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
         self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
 

@@ -31,7 +31,9 @@ torchrun \
   --fm_backbone "${FM_BACKBONE}" \
   --prithvi_snapshot "${PRITHVI_SNAPSHOT}" \
   --resize_to 256 \
-  --batch_size 2 \
+  --batch_size 1 \
+  --tteb_attn_chunk 512 \
+  --tteb_attn_low_res_max 4096 \
   --num_workers 4 \
   --fsdp \
   "$@"

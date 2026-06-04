@@ -109,6 +109,18 @@ def parse_args():
         default=10,
         help="Print a plain-text line every N train/val steps on rank 0 (0=disable).",
     )
+    p.add_argument(
+        "--tteb_attn_chunk",
+        type=int,
+        default=1024,
+        help="Max query tokens per TTEB attention chunk (lower = less VRAM).",
+    )
+    p.add_argument(
+        "--tteb_attn_low_res_max",
+        type=int,
+        default=4096,
+        help="If H*W exceeds this, TTEB attention runs at 64x64 then upsamples (4096=64^2).",
+    )
     return p.parse_args()
 
 
@@ -156,6 +168,8 @@ def main():
         efficientnet_name=args.efficientnet_name,
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
+        tteb_attn_chunk=args.tteb_attn_chunk,
+        tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )
     log_main(rank, "Base model constructed.")
 

@@ -25,9 +25,10 @@ from ..model import GeoPhysicsLandslideNet
 
 
 def _checkpoint_policy(module: nn.Module) -> bool:
+    # TTEB is excluded: activation checkpoint recompute peaks during large attention mats.
     return isinstance(
         module,
-        (TriTemporalTriStreamBridge, MAOGeoEGCA, PrithviFoundationEncoder, EfficientNetFoundationEncoder),
+        (MAOGeoEGCA, PrithviFoundationEncoder, EfficientNetFoundationEncoder),
     )
 
 

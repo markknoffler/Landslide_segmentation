@@ -64,6 +64,8 @@ def parse_args():
     p.add_argument("--no_bf16", action="store_true")
     p.add_argument("--no_activation_checkpointing", action="store_true")
     p.add_argument("--log_interval", type=int, default=10)
+    p.add_argument("--tteb_attn_chunk", type=int, default=1024)
+    p.add_argument("--tteb_attn_low_res_max", type=int, default=4096)
     return p.parse_args()
 
 
@@ -108,6 +110,8 @@ def main():
         efficientnet_name=args.efficientnet_name,
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
+        tteb_attn_chunk=args.tteb_attn_chunk,
+        tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )
 
     if use_fsdp:
