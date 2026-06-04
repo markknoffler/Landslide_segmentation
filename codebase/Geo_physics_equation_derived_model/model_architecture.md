@@ -30,7 +30,7 @@
 | 3 | 32×32 |
 | 4 | 16×16 |
 
-Streams: **rgb** (physics RGB encoder), **dem** (physics DEM encoder), **fm** (Prithvi-EO-2.0-100M-TL + LoRA).
+Streams: **rgb** (physics RGB encoder), **dem** (physics DEM encoder), **fm** (EfficientNet-B4 via `timm` **or** Prithvi-EO-2.0 + LoRA; select with `--fm_backbone`).
 
 ---
 
@@ -243,7 +243,8 @@ Input: P_rgb, P_dem, T_fm at scale L
 |--------|-------|
 | stream_a | 2×3×256×256 |
 | stream_b | 2×3×256×256 |
-| prithvi_input | 2×6×256×256 |
+| fm_input (efficientnet) | 2×3×256×256 RGB |
+| fm_input (prithvi) | 2×6×256×256 observed stack |
 | P_rgb^0, P_dem^0 | 2×64×256×256 |
 | P_rgb^4, T_fm^4 | 2×64×16×16 |
 | F^4 (fused) | 2×64×16×16 |

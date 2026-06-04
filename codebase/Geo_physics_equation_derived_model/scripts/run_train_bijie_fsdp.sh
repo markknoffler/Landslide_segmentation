@@ -14,6 +14,7 @@ MASTER_PORT="${MASTER_PORT:-29500}"
 
 DATASET_ROOT="${DATASET_ROOT:-/scratch/earnest/samreedh/landslide_segmentation/dataset_bijie_landslide}"
 OUTPUT_DIR="${OUTPUT_DIR:-codebase/Geo_physics_equation_derived_model/outputs_bijie}"
+FM_BACKBONE="${FM_BACKBONE:-efficientnet}"
 PRITHVI_SNAPSHOT="${PRITHVI_SNAPSHOT:-/scratch/earnest/samreedh/landslide_segmentation/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL/snapshots/2c84e383194986040f883cc43d7869002c425e1b}"
 
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
@@ -27,6 +28,7 @@ torchrun \
   -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
   --dataset_root "${DATASET_ROOT}" \
   --output_dir "${OUTPUT_DIR}" \
+  --fm_backbone "${FM_BACKBONE}" \
   --prithvi_snapshot "${PRITHVI_SNAPSHOT}" \
   --resize_to 256 \
   --batch_size 2 \

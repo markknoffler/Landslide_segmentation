@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from .bridge import TriTemporalTriStreamBridge
 from .decoder import PhysicsDecoder
-from .encoders import PhysicsEncoder, PrithviFoundationEncoder
+from .encoders import EfficientNetFoundationEncoder, PhysicsEncoder, PrithviFoundationEncoder
 from .fusion import MAOGeoEGCA
 from .physics import PhysicsProxyMapper
+
+FmBackbone = Literal["efficientnet", "prithvi"]
 
 
 class GeoPhysicsLandslideNet(nn.Module):
@@ -19,29 +23,56 @@ class GeoPhysicsLandslideNet(nn.Module):
         lora_rank: int = 8,
         prithvi_snapshot: str | None = None,
         prithvi_input_normalization: str = "observed_rasters",
+        fm_backbone: FmBackbone | str = "efficientnet",
+        efficientnet_name: str = "tf_efficientnet_b4",
+        efficientnet_pretrained: bool = True,
+        freeze_efficientnet: bool = True,
     ):
         super().__init__()
         self.channels = channels
+        self.fm_backbone = str(fm_backbone).lower()
+
         self.proxy_rgb = PhysicsProxyMapper()
         self.proxy_dem = PhysicsProxyMapper()
         self.enc_rgb = PhysicsEncoder(in_channels=3, unified_channels=channels)
         self.enc_dem = PhysicsEncoder(in_channels=1, unified_channels=channels)
-        self.enc_fm = PrithviFoundationEncoder(
-            unified_channels=channels,
-            lora_rank=lora_rank,
-            snapshot_dir=prithvi_snapshot,
-            input_normalization=prithvi_input_normalization,
-        )
+
+        if self.fm_backbone == "prithvi":
+            self.enc_fm = PrithviFoundationEncoder(
+                unified_channels=channels,
+                lora_rank=lora_rank,
+                snapshot_dir=prithvi_snapshot,
+                input_normalization=prithvi_input_normalization,
+            )
+        elif self.fm_backbone == "efficientnet":
+            self.enc_fm = EfficientNetFoundationEncoder(
+                unified_channels=channels,
+                backbone=efficientnet_name,
+                pretrained=efficientnet_pretrained,
+                freeze_backbone=freeze_efficientnet,
+            )
+        else:
+            raise ValueError(
+                f"Unknown fm_backbone={fm_backbone!r}. Choose 'efficientnet' or 'prithvi'."
+            )
+
         self.mao3 = MAOGeoEGCA(channels)
         self.mao4 = MAOGeoEGCA(channels)
         self.tteb = nn.ModuleList([TriTemporalTriStreamBridge(channels) for _ in range(4)])
         self.fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
         self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
 
+    def _fm_input(self, batch: dict) -> torch.Tensor:
+        if "fm_input" in batch:
+            return batch["fm_input"]
+        if "prithvi_input" in batch:
+            return batch["prithvi_input"]
+        raise KeyError("Batch must contain 'fm_input' (or legacy 'prithvi_input').")
+
     def forward(self, batch: dict) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         rgb = batch["stream_a"]
         dem = batch["dem"]
-        prithvi = batch["prithvi_input"]
+        fm_in = self._fm_input(batch)
         slope = batch["slope_norm"]
         dem_norm = batch["dem_norm"]
         ndvi = batch["ndvi_norm"]
@@ -51,7 +82,7 @@ class GeoPhysicsLandslideNet(nn.Module):
 
         p_rgb = self.enc_rgb(rgb, alpha_r, h_r, m_r)
         p_dem = self.enc_dem(dem, alpha_d, h_d, m_d)
-        t_fm = self.enc_fm(prithvi)
+        t_fm = self.enc_fm(fm_in)
 
         f3 = self.mao3(t_fm[3], p_rgb[3], p_dem[3])
         f4 = self.mao4(t_fm[4], p_rgb[4], p_dem[4])

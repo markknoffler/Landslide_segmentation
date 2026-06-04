@@ -40,7 +40,16 @@ def parse_args():
     p.add_argument("--aux2_weight", type=float, default=0.6)
     p.add_argument("--aux3_weight", type=float, default=0.4)
     p.add_argument("--lora_rank", type=int, default=8)
+    p.add_argument(
+        "--fm_backbone",
+        type=str,
+        choices=("efficientnet", "prithvi"),
+        default="efficientnet",
+    )
     p.add_argument("--prithvi_snapshot", type=str, default=None)
+    p.add_argument("--efficientnet_name", type=str, default="tf_efficientnet_b4")
+    p.add_argument("--no_efficientnet_pretrained", action="store_true")
+    p.add_argument("--unfreeze_efficientnet", action="store_true")
     p.add_argument(
         "--high_dim_256",
         action="store_true",
@@ -86,14 +95,19 @@ def main():
         seed=args.seed,
         resize_to=args.resize_to,
         distributed=distributed,
+        fm_backbone=args.fm_backbone,
     )
 
-    log_main(rank, "Building GeoPhysicsLandslideNet...")
+    log_main(rank, f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone})...")
     model = GeoPhysicsLandslideNet(
         channels=channels,
         n_classes=1,
         lora_rank=args.lora_rank,
         prithvi_snapshot=args.prithvi_snapshot,
+        fm_backbone=args.fm_backbone,
+        efficientnet_name=args.efficientnet_name,
+        efficientnet_pretrained=not args.no_efficientnet_pretrained,
+        freeze_efficientnet=not args.unfreeze_efficientnet,
     )
 
     if use_fsdp:
@@ -129,7 +143,11 @@ def main():
             main_weight=args.main_weight,
             aux2_weight=args.aux2_weight,
             aux3_weight=args.aux3_weight,
-            extra_final={"dataset": "landslide4sense", "dataset_root": args.dataset_root},
+            extra_final={
+                "dataset": "landslide4sense",
+                "dataset_root": args.dataset_root,
+                "fm_backbone": args.fm_backbone,
+            },
             distributed=distributed,
             rank=rank,
             local_rank=local_rank,

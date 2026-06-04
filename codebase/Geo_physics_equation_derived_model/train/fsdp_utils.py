@@ -18,13 +18,17 @@ from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from ..bridge.tteb import TriTemporalTriStreamBridge
 from ..decoder.physics_decoder import PhysicsDecoder
 from ..encoders.physics_encoder import PhysicsEncoder
+from ..encoders.efficientnet_fm import EfficientNetFoundationEncoder
 from ..encoders.prithvi_lora import PrithviFoundationEncoder
 from ..fusion.mao_geo_egca import MAOGeoEGCA
 from ..model import GeoPhysicsLandslideNet
 
 
 def _checkpoint_policy(module: nn.Module) -> bool:
-    return isinstance(module, (TriTemporalTriStreamBridge, MAOGeoEGCA, PrithviFoundationEncoder))
+    return isinstance(
+        module,
+        (TriTemporalTriStreamBridge, MAOGeoEGCA, PrithviFoundationEncoder, EfficientNetFoundationEncoder),
+    )
 
 
 def wrap_geo_physics_fsdp(
@@ -46,6 +50,7 @@ def wrap_geo_physics_fsdp(
             MAOGeoEGCA,
             PhysicsEncoder,
             PrithviFoundationEncoder,
+            EfficientNetFoundationEncoder,
             PhysicsDecoder,
         }
     )

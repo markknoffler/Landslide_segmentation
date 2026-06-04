@@ -11,7 +11,6 @@ from torch.utils.data.distributed import DistributedSampler
 from .terrain import (
     build_bijie_observed_stack,
     build_l4s_observed_stack,
-    minmax_per_channel,
     sobel_slope_norm,
     vegetation_index_from_rgb,
 )
@@ -33,15 +32,27 @@ from common.datasets import (  # noqa: E402
 )
 
 
-def _bijie_physics_and_fm(stream_a: torch.Tensor, dem: torch.Tensor) -> dict[str, torch.Tensor]:
-    """All tensors derived from measured Bijie RGB + DEM (no zero-filled proxies)."""
+def _fm_rgb(stream_a: torch.Tensor) -> torch.Tensor:
+    """Measured RGB (3, H, W) for EfficientNet FM — same tensor as stream_a."""
+    return stream_a[:3].contiguous()
+
+
+def _bijie_physics_and_fm(stream_a: torch.Tensor, dem: torch.Tensor, fm_backbone: str) -> dict[str, torch.Tensor]:
+    """Physics proxies from measured RGB + DEM; FM input depends on backbone flag."""
     rgb = stream_a[:3]
     dem_ch = dem if dem.dim() == 3 else dem.unsqueeze(0)
     slope = torch.from_numpy(sobel_slope_norm(dem_ch[0].numpy())).unsqueeze(0)
     ndvi = torch.from_numpy(vegetation_index_from_rgb(rgb.numpy())).unsqueeze(0)
-    prithvi = build_bijie_observed_stack(rgb.numpy(), dem_ch.numpy())
+
+    if fm_backbone == "efficientnet":
+        fm_input = _fm_rgb(stream_a)
+    elif fm_backbone == "prithvi":
+        fm_input = build_bijie_observed_stack(rgb.numpy(), dem_ch.numpy())
+    else:
+        raise ValueError(f"Unknown fm_backbone={fm_backbone!r}")
+
     return {
-        "prithvi_input": prithvi,
+        "fm_input": fm_input,
         "slope_norm": slope,
         "dem_norm": dem_ch,
         "ndvi_norm": ndvi,
@@ -49,9 +60,10 @@ def _bijie_physics_and_fm(stream_a: torch.Tensor, dem: torch.Tensor) -> dict[str
 
 
 class GeoPhysicsDataset(Dataset):
-    def __init__(self, base: Dataset, dataset_name: str):
+    def __init__(self, base: Dataset, dataset_name: str, fm_backbone: str = "efficientnet"):
         self.base = base
         self.dataset_name = dataset_name
+        self.fm_backbone = fm_backbone.lower()
 
     def __len__(self):
         return len(self.base)
@@ -66,20 +78,23 @@ class GeoPhysicsDataset(Dataset):
             dem = stream_b[2:3]
             slope = stream_b[1:2]
             ndvi = stream_b[0:1]
-            prithvi = build_l4s_observed_stack(stream_a, stream_b)
+            if self.fm_backbone == "efficientnet":
+                fm_input = _fm_rgb(stream_a)
+            else:
+                fm_input = build_l4s_observed_stack(stream_a, stream_b)
         else:
             dem = stream_b[0:1]
-            derived = _bijie_physics_and_fm(stream_a, dem)
+            derived = _bijie_physics_and_fm(stream_a, dem, self.fm_backbone)
             slope = derived["slope_norm"]
             ndvi = derived["ndvi_norm"]
-            prithvi = derived["prithvi_input"]
+            fm_input = derived["fm_input"]
 
         return {
             "stream_a": stream_a,
             "stream_b": stream_b,
             "dem": dem,
             "mask": mask,
-            "prithvi_input": prithvi,
+            "fm_input": fm_input,
             "slope_norm": slope,
             "dem_norm": dem,
             "ndvi_norm": ndvi,
@@ -107,15 +122,18 @@ class _AugmentWrapper(Dataset):
             item["dem_norm"] = xb[2:3]
             item["slope_norm"] = xb[1:2]
             item["ndvi_norm"] = xb[0:1]
-            item["prithvi_input"] = build_l4s_observed_stack(xa, xb)
+            if self.base.fm_backbone == "efficientnet":
+                item["fm_input"] = _fm_rgb(xa)
+            else:
+                item["fm_input"] = build_l4s_observed_stack(xa, xb)
         else:
             dem = xb[0:1]
-            derived = _bijie_physics_and_fm(xa, dem)
+            derived = _bijie_physics_and_fm(xa, dem, self.base.fm_backbone)
             item["dem"] = dem
             item["dem_norm"] = derived["dem_norm"]
             item["slope_norm"] = derived["slope_norm"]
             item["ndvi_norm"] = derived["ndvi_norm"]
-            item["prithvi_input"] = derived["prithvi_input"]
+            item["fm_input"] = derived["fm_input"]
         return item
 
 
@@ -127,12 +145,16 @@ def build_l4s_dataloaders(
     seed: int = 42,
     resize_to: int = 256,
     distributed: bool = False,
+    fm_backbone: str = "efficientnet",
 ):
     train_ids, val_ids = build_l4s_split(dataset_root, val_ratio=val_ratio, seed=seed)
     train_base = L4SDualStreamDataset(dataset_root, ids=train_ids, resize_to=resize_to, transform=None)
     val_base = L4SDualStreamDataset(dataset_root, ids=val_ids, resize_to=resize_to, transform=None)
-    train_ds = _AugmentWrapper(GeoPhysicsDataset(train_base, "landslide4sense"), AugmentDual2D(p=0.5))
-    val_ds = GeoPhysicsDataset(val_base, "landslide4sense")
+    train_ds = _AugmentWrapper(
+        GeoPhysicsDataset(train_base, "landslide4sense", fm_backbone=fm_backbone),
+        AugmentDual2D(p=0.5),
+    )
+    val_ds = GeoPhysicsDataset(val_base, "landslide4sense", fm_backbone=fm_backbone)
     train_sampler = DistributedSampler(train_ds, shuffle=True) if distributed else None
     val_sampler = DistributedSampler(val_ds, shuffle=False) if distributed else None
     train_loader = DataLoader(
@@ -162,12 +184,16 @@ def build_bijie_dataloaders(
     seed: int = 42,
     resize_to: int = 256,
     distributed: bool = False,
+    fm_backbone: str = "efficientnet",
 ):
     train_raw, val_raw, _ = build_bijie_split(dataset_root, seed=seed)
     train_base = BijieTwoComposites(train_raw, resize_to=resize_to, transform=None)
     val_base = BijieTwoComposites(val_raw, resize_to=resize_to, transform=None)
-    train_ds = _AugmentWrapper(GeoPhysicsDataset(train_base, "bijie"), AugmentDual2D(p=0.5))
-    val_ds = GeoPhysicsDataset(val_base, "bijie")
+    train_ds = _AugmentWrapper(
+        GeoPhysicsDataset(train_base, "bijie", fm_backbone=fm_backbone),
+        AugmentDual2D(p=0.5),
+    )
+    val_ds = GeoPhysicsDataset(val_base, "bijie", fm_backbone=fm_backbone)
     train_sampler = DistributedSampler(train_ds, shuffle=True) if distributed else None
     val_sampler = DistributedSampler(val_ds, shuffle=False) if distributed else None
     train_loader = DataLoader(

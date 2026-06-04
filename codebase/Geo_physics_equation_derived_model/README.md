@@ -1,84 +1,154 @@
 # Geo-Physics Equation-Derived Landslide Segmentation
 
-Novel three-stream architecture: physics-encoded RGB/DEM encoders, Prithvi-EO-2.0-100M-TL (LoRA), MAO-GeoEGCA fusion, TTEB skip bridge, and physics-gated decoder.
+Three-stream architecture: physics-encoded RGB/DEM, foundation-model stream (EfficientNet-B4 or Prithvi), MAO-GeoEGCA fusion, TTEB skip bridge, and physics-gated decoder.
 
 See [model_architecture.md](model_architecture.md) for full specification.
 
 ## Data contract (no synthetic bands)
 
-**Bijie** on disk is RGB PNG + DEM PNG + mask only. There is no NIR/SWIR multispectral stack.
+**Bijie** on disk is RGB PNG + DEM PNG + mask only.
 
-| Channel | Source |
-|---------|--------|
+| Field | Source |
+|-------|--------|
 | stream_a | Measured RGB |
 | dem / dem_norm | Measured DEM |
-| slope_norm | Sobel gradient on measured DEM |
-| ndvi_norm | Green–red vegetation index from measured RGB (surrogate; no NIR in dataset) |
-| prithvi_input (6ch) | B, G, R, DEM, slope(DEM), vegetation_index(RGB) — all from real rasters |
+| slope_norm | Sobel on measured DEM |
+| ndvi_norm | Green–red index from measured RGB (no zero-filled NDVI) |
+| fm_input (`efficientnet`) | **Same measured RGB** as stream_a (3 channels) |
+| fm_input (`prithvi`) | B, G, R, DEM, slope(DEM), veg_index(RGB) — 6 observed/derived channels |
 
-Prithvi uses `observed_rasters` normalization (not satellite EO mean/std) because inputs are terrain/observed stacks, not literal NIR/SWIR.
+Physics RGB/DEM encoders, MAO, TTEB, and decoder are **unchanged** regardless of `--fm_backbone`.
 
-**Landslide4Sense:** `prithvi_input` = RGB + measured NDVI + slope + DEM from H5 (same observed normalization).
+## Foundation-model backbone (`--fm_backbone`)
 
-## Setup
+| Value | FM encoder | Batch `fm_input` | Extra setup on HPC |
+|-------|------------|------------------|---------------------|
+| **`efficientnet`** (default) | `timm` **tf_efficientnet_b4** (ImageNet), frozen by default | RGB `[0,1]` | `pip install timm` if missing |
+| **`prithvi`** | Prithvi-EO ViT + LoRA | 6-channel stack | Prithvi snapshot + `download_prithvi.sh` |
 
-Download Prithvi weights (outside git repo):
+## HPC: sync code and environment
 
-```bash
-bash scripts/download_prithvi.sh
-```
-
-## Training
-
-From repository root (single GPU):
+On the cluster (from repo root):
 
 ```bash
-conda run -n deeplearning python -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
-  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset_bijie_landslide \
-  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie \
-  --prithvi_snapshot /path/to/prithvi/snapshots/<hash> \
-  --batch_size 2
+cd /path/to/Landslide_segmentation
+git pull   # or rsync your updated tree
+
+conda activate deeplearning   # or your env name
+
+# Required for default EfficientNet FM (same as dual_stream_gated)
+pip install timm
+
+# Optional: only if you use --fm_backbone prithvi
+pip install huggingface_hub
+bash codebase/Geo_physics_equation_derived_model/scripts/download_prithvi.sh
 ```
 
-### Multi-GPU (FSDP + NCCL, e.g. 4× A100 80GB on one node)
+Ensure the gitignored `data/` package exists on the server (copy from local or use the same layout as dual-stream baselines).
 
-Launch with `torchrun` (not plain `python`). NCCL is used automatically as the process-group backend; you still write normal CUDA PyTorch code.
+## HPC: Bijie training (EfficientNet — recommended)
+
+Single GPU:
 
 ```bash
 cd /path/to/Landslide_segmentation
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-torchrun --standalone --nproc_per_node=4 \
-  -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
-  --dataset_root /scratch/.../dataset_bijie_landslide \
-  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie \
-  --prithvi_snapshot /scratch/.../snapshots/<hash> \
+python -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
+  --dataset_root /scratch/earnest/samreedh/landslide_segmentation/dataset_bijie_landslide \
+  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie_effnet \
+  --fm_backbone efficientnet \
   --resize_to 256 \
-  --batch_size 2 \
+  --batch_size 4 \
   --num_workers 4 \
-  --fsdp
+  --metric_threshold 0.6 \
+  --tversky_alpha 0.7 \
+  --tversky_beta 0.3
 ```
 
-Or use the helper script (edit paths inside or via env vars):
+Multi-GPU FSDP (3–4× A100 example):
 
 ```bash
+cd /path/to/Landslide_segmentation
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+export NCCL_DEBUG=WARN
+
+export NUM_GPUS=3
+export DATASET_ROOT=/scratch/earnest/samreedh/landslide_segmentation/dataset_bijie_landslide
+export OUTPUT_DIR=codebase/Geo_physics_equation_derived_model/outputs_bijie_effnet
+export FM_BACKBONE=efficientnet
+
 bash codebase/Geo_physics_equation_derived_model/scripts/run_train_bijie_fsdp.sh
 ```
 
-- `--batch_size` is **per GPU** (global batch = `batch_size × num_gpus`).
-- FSDP shards weights across GPUs; TTEB uses **chunked attention** so 256×256 training fits in memory.
-- **No model checkpoints** (`.pt`) are written during training — only small CSV metrics — to avoid GlusterFS stalls and NCCL timeouts on multi-GPU jobs.
+Or explicit `torchrun`:
 
-Landslide4Sense: same pattern with `train_landslide4sense`.
+```bash
+torchrun --standalone --nproc_per_node=3 \
+  -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
+  --dataset_root "${DATASET_ROOT}" \
+  --output_dir "${OUTPUT_DIR}" \
+  --fm_backbone efficientnet \
+  --resize_to 256 \
+  --batch_size 2 \
+  --num_workers 2 \
+  --fsdp \
+  --high_dim_256
+```
 
-Metrics CSVs are written under `results/` (`epoch_metrics.csv`, `final_metrics.csv`).
+**Notes:**
+
+- `--batch_size` is per GPU. EfficientNet FM uses much less VRAM than Prithvi+TTEB at 256-d; try `batch_size 4–8` per GPU before `--high_dim_256`.
+- First run downloads ImageNet weights for EfficientNet via `timm` (needs network once per node/cache).
+- Metrics: `outputs_*/results/epoch_metrics.csv` — use **`val_landslide_f1`** / **`val_landslide_iou`** (micro metrics over full val set).
+- No `.pt` checkpoints are saved (GlusterFS-safe); metrics-only CSV.
+
+## HPC: Bijie with Prithvi (legacy path)
+
+```bash
+torchrun --standalone --nproc_per_node=3 \
+  -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
+  --dataset_root /scratch/.../dataset_bijie_landslide \
+  --output_dir codebase/Geo_physics_equation_derived_model/outputs_bijie_prithvi \
+  --fm_backbone prithvi \
+  --prithvi_snapshot /scratch/.../snapshots/2c84e383194986040f883cc43d7869002c425e1b \
+  --resize_to 256 \
+  --batch_size 1 \
+  --num_workers 2 \
+  --fsdp
+```
+
+## Useful flags
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--fm_backbone` | `efficientnet` | `efficientnet` or `prithvi` |
+| `--efficientnet_name` | `tf_efficientnet_b4` | Any `timm` features-only model |
+| `--unfreeze_efficientnet` | off | Train full EfficientNet (not only 1×1 projectors) |
+| `--no_efficientnet_pretrained` | off | Random-init EfficientNet |
+| `--high_dim_256` | off | C=256 everywhere (heavier) |
+| `--fsdp` | auto on multi-GPU | Shard model across GPUs |
+| `--metric_threshold` | `0.6` | Aligned with dual-stream Bijie |
+| `--tversky_alpha` / `--tversky_beta` | `0.7` / `0.3` | Penalize false positives |
+
+## Landslide4Sense
+
+Same `--fm_backbone` flag:
+
+```bash
+python -m codebase.Geo_physics_equation_derived_model.train.train_landslide4sense \
+  --dataset_root /path/to/Landslide4Sense \
+  --fm_backbone efficientnet \
+  --output_dir codebase/Geo_physics_equation_derived_model/outputs_l4s_effnet
+```
 
 ## Layout
 
-- `physics/` — pixel & latent mechanistic cells, proxy mapper
-- `encoders/` — physics encoders, Prithvi+LoRA
+- `encoders/efficientnet_fm.py` — EfficientNet FM pyramid (L0–L4)
+- `encoders/prithvi_lora.py` — Prithvi FM (optional)
+- `physics/` — mechanistic cells, proxy mapper
 - `fusion/` — MAO-GeoEGCA
 - `bridge/` — TTEB
-- `decoder/` — physics decoder + PGDI
-- `data/` — datasets aligned with ablation study splits
-- `train/` — trainer, losses, metrics
+- `decoder/` — physics decoder
+- `data/` — Bijie/L4S loaders + real proxies
+- `train/` — trainer, fixed micro metrics, FSDP helpers

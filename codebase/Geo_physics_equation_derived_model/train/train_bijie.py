@@ -54,7 +54,30 @@ def parse_args():
     p.add_argument("--aux2_weight", type=float, default=0.6)
     p.add_argument("--aux3_weight", type=float, default=0.4)
     p.add_argument("--lora_rank", type=int, default=8)
+    p.add_argument(
+        "--fm_backbone",
+        type=str,
+        choices=("efficientnet", "prithvi"),
+        default="efficientnet",
+        help="Foundation stream: timm EfficientNet-B4 (RGB) or Prithvi-EO ViT (6-ch stack).",
+    )
     p.add_argument("--prithvi_snapshot", type=str, default=None)
+    p.add_argument(
+        "--efficientnet_name",
+        type=str,
+        default="tf_efficientnet_b4",
+        help="timm model name when --fm_backbone=efficientnet.",
+    )
+    p.add_argument(
+        "--no_efficientnet_pretrained",
+        action="store_true",
+        help="Disable ImageNet pretrained weights for EfficientNet.",
+    )
+    p.add_argument(
+        "--unfreeze_efficientnet",
+        action="store_true",
+        help="Fine-tune EfficientNet backbone (default: frozen, train projectors only).",
+    )
     p.add_argument(
         "--high_dim_256",
         action="store_true",
@@ -117,14 +140,22 @@ def main():
         seed=args.seed,
         resize_to=args.resize_to,
         distributed=distributed,
+        fm_backbone=args.fm_backbone,
     )
 
-    log_main(rank, "Building GeoPhysicsLandslideNet (loads Prithvi weights on each rank)...")
+    log_main(
+        rank,
+        f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone})...",
+    )
     model = GeoPhysicsLandslideNet(
         channels=channels,
         n_classes=1,
         lora_rank=args.lora_rank,
         prithvi_snapshot=args.prithvi_snapshot,
+        fm_backbone=args.fm_backbone,
+        efficientnet_name=args.efficientnet_name,
+        efficientnet_pretrained=not args.no_efficientnet_pretrained,
+        freeze_efficientnet=not args.unfreeze_efficientnet,
     )
     log_main(rank, "Base model constructed.")
 
@@ -142,7 +173,8 @@ def main():
         rank,
         f"Ready: distributed={distributed} world_size={world_size} "
         f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
-        f"fsdp={use_fsdp} resize_to={args.resize_to} channels={channels} "
+        f"fm_backbone={args.fm_backbone} fsdp={use_fsdp} resize_to={args.resize_to} "
+        f"channels={channels} "
         f"full_precision={args.full_precision} "
         f"train_steps={len(train_loader)} val_steps={len(val_loader)}",
     )
@@ -164,7 +196,12 @@ def main():
             main_weight=args.main_weight,
             aux2_weight=args.aux2_weight,
             aux3_weight=args.aux3_weight,
-            extra_final={"dataset": "bijie", "dataset_root": args.dataset_root},
+            extra_final={
+                "dataset": "bijie",
+                "dataset_root": args.dataset_root,
+                "fm_backbone": args.fm_backbone,
+                "efficientnet_name": args.efficientnet_name,
+            },
             distributed=distributed,
             rank=rank,
             local_rank=local_rank,
