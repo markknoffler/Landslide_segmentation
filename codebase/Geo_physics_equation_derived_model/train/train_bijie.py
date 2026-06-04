@@ -32,9 +32,24 @@ def parse_args():
     p.add_argument("--device", type=str, default="cuda")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--resize_to", type=int, default=256)
-    p.add_argument("--metric_threshold", type=float, default=0.5)
-    p.add_argument("--tversky_alpha", type=float, default=0.3)
-    p.add_argument("--tversky_beta", type=float, default=0.7)
+    p.add_argument(
+        "--metric_threshold",
+        type=float,
+        default=0.6,
+        help="Probability threshold for pixel metrics (dual-stream Bijie uses 0.6).",
+    )
+    p.add_argument(
+        "--tversky_alpha",
+        type=float,
+        default=0.7,
+        help="Tversky FP weight (higher penalizes false positives / over-segmentation).",
+    )
+    p.add_argument(
+        "--tversky_beta",
+        type=float,
+        default=0.3,
+        help="Tversky FN weight (lower than alpha to avoid predicting the whole tile).",
+    )
     p.add_argument("--main_weight", type=float, default=1.0)
     p.add_argument("--aux2_weight", type=float, default=0.6)
     p.add_argument("--aux3_weight", type=float, default=0.4)

@@ -8,7 +8,13 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 
-from .terrain import minmax_per_channel, sobel_slope_norm
+from .terrain import (
+    build_bijie_observed_stack,
+    build_l4s_observed_stack,
+    minmax_per_channel,
+    sobel_slope_norm,
+    vegetation_index_from_rgb,
+)
 
 _ABLATION_COMMON = (
     Path(__file__).resolve().parents[2]
@@ -27,21 +33,19 @@ from common.datasets import (  # noqa: E402
 )
 
 
-def _prithvi_from_rgb(rgb_chw: np.ndarray) -> torch.Tensor:
-    r, g, b = rgb_chw[0], rgb_chw[1], rgb_chw[2]
-    nir = (r + g) / 2.0
-    swir1 = (r + b) / 2.0
-    swir2 = g
-    stack = np.stack([b, g, r, nir, swir1, swir2], axis=0).astype(np.float32)
-    return minmax_per_channel(torch.from_numpy(stack).float())
-
-
-def _prithvi_l4s(stream_a: torch.Tensor, stream_b: torch.Tensor) -> torch.Tensor:
-    prithvi = _prithvi_from_rgb(stream_a.numpy())
-    prithvi[3] = stream_b[0]
-    prithvi[4] = stream_b[1]
-    prithvi[5] = stream_b[2] if stream_b.shape[0] > 2 else stream_b[1]
-    return minmax_per_channel(prithvi)
+def _bijie_physics_and_fm(stream_a: torch.Tensor, dem: torch.Tensor) -> dict[str, torch.Tensor]:
+    """All tensors derived from measured Bijie RGB + DEM (no zero-filled proxies)."""
+    rgb = stream_a[:3]
+    dem_ch = dem if dem.dim() == 3 else dem.unsqueeze(0)
+    slope = torch.from_numpy(sobel_slope_norm(dem_ch[0].numpy())).unsqueeze(0)
+    ndvi = torch.from_numpy(vegetation_index_from_rgb(rgb.numpy())).unsqueeze(0)
+    prithvi = build_bijie_observed_stack(rgb.numpy(), dem_ch.numpy())
+    return {
+        "prithvi_input": prithvi,
+        "slope_norm": slope,
+        "dem_norm": dem_ch,
+        "ndvi_norm": ndvi,
+    }
 
 
 class GeoPhysicsDataset(Dataset):
@@ -59,15 +63,16 @@ class GeoPhysicsDataset(Dataset):
         mask = sample["mask"]
 
         if self.dataset_name == "landslide4sense":
-            ndvi = stream_b[0:1]
-            slope = stream_b[1:2]
             dem = stream_b[2:3]
-            prithvi = _prithvi_l4s(stream_a, stream_b)
+            slope = stream_b[1:2]
+            ndvi = stream_b[0:1]
+            prithvi = build_l4s_observed_stack(stream_a, stream_b)
         else:
             dem = stream_b[0:1]
-            slope = torch.from_numpy(sobel_slope_norm(dem[0].numpy())).unsqueeze(0)
-            ndvi = torch.zeros_like(dem)
-            prithvi = _prithvi_from_rgb(stream_a.numpy())
+            derived = _bijie_physics_and_fm(stream_a, dem)
+            slope = derived["slope_norm"]
+            ndvi = derived["ndvi_norm"]
+            prithvi = derived["prithvi_input"]
 
         return {
             "stream_a": stream_a,
@@ -96,18 +101,21 @@ class _AugmentWrapper(Dataset):
         item["stream_a"] = xa
         item["stream_b"] = xb
         item["mask"] = y
+
         if self.base.dataset_name == "landslide4sense":
             item["dem"] = xb[2:3]
             item["dem_norm"] = xb[2:3]
             item["slope_norm"] = xb[1:2]
             item["ndvi_norm"] = xb[0:1]
-            item["prithvi_input"] = _prithvi_l4s(xa, xb)
+            item["prithvi_input"] = build_l4s_observed_stack(xa, xb)
         else:
-            item["dem"] = xb[0:1]
-            item["dem_norm"] = xb[0:1]
-            item["slope_norm"] = torch.from_numpy(sobel_slope_norm(xb[0].numpy())).unsqueeze(0)
-            item["ndvi_norm"] = torch.zeros_like(item["dem_norm"])
-            item["prithvi_input"] = _prithvi_from_rgb(xa.numpy())
+            dem = xb[0:1]
+            derived = _bijie_physics_and_fm(xa, dem)
+            item["dem"] = dem
+            item["dem_norm"] = derived["dem_norm"]
+            item["slope_norm"] = derived["slope_norm"]
+            item["ndvi_norm"] = derived["ndvi_norm"]
+            item["prithvi_input"] = derived["prithvi_input"]
         return item
 
 

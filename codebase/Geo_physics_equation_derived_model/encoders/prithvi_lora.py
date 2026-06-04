@@ -4,7 +4,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import torch
 import torch.nn as nn
@@ -72,6 +72,7 @@ class PrithviFoundationEncoder(nn.Module):
         lora_rank: int = 8,
         snapshot_dir: Optional[str | Path] = None,
         block_indices: Optional[List[int]] = None,
+        input_normalization: Literal["eo_multispectral", "observed_rasters"] = "observed_rasters",
     ):
         super().__init__()
         snapshot_dir = Path(snapshot_dir or DEFAULT_SNAPSHOT)
@@ -121,15 +122,24 @@ class PrithviFoundationEncoder(nn.Module):
         self.proj3 = StreamProjector(unified_channels, unified_channels)
         self.proj4 = StreamProjector(unified_channels, unified_channels)
 
+        self.input_normalization = input_normalization
         self.register_buffer("band_mean", PRITHVI_MEAN.clone())
         self.register_buffer("band_std", PRITHVI_STD.clone())
 
     def normalize_input(self, x: torch.Tensor) -> torch.Tensor:
-        """x: B×6×H×W in [0,1] reflectance-like; scale to Prithvi units."""
-        x = x * 10000.0
-        mean = self.band_mean.to(dtype=x.dtype, device=x.device)
-        std = self.band_std.to(dtype=x.dtype, device=x.device)
-        return (x - mean) / std
+        """
+        Normalize 6-channel input before the ViT backbone.
+
+        observed_rasters: channels are measured/derived rasters in [0, 1] (Bijie RGB+DEM,
+          L4S RGB+NDVI+slope+DEM). Do not apply satellite EO band mean/std.
+        eo_multispectral: true Prithvi EO stack (B, G, R, NIR, SWIR1, SWIR2 reflectance).
+        """
+        if self.input_normalization == "eo_multispectral":
+            x = x * 10000.0
+            mean = self.band_mean.to(dtype=x.dtype, device=x.device)
+            std = self.band_std.to(dtype=x.dtype, device=x.device)
+            return (x - mean) / std
+        return (x - 0.5) / 0.25
 
     def _tokens_to_map(self, tokens: torch.Tensor) -> torch.Tensor:
         prepared = self.model.encoder.prepare_features_for_image_model([tokens])[0]

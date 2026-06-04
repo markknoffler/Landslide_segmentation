@@ -18,6 +18,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         n_classes: int = 1,
         lora_rank: int = 8,
         prithvi_snapshot: str | None = None,
+        prithvi_input_normalization: str = "observed_rasters",
     ):
         super().__init__()
         self.channels = channels
@@ -29,6 +30,7 @@ class GeoPhysicsLandslideNet(nn.Module):
             unified_channels=channels,
             lora_rank=lora_rank,
             snapshot_dir=prithvi_snapshot,
+            input_normalization=prithvi_input_normalization,
         )
         self.mao3 = MAOGeoEGCA(channels)
         self.mao4 = MAOGeoEGCA(channels)

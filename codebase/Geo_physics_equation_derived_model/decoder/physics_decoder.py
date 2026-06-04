@@ -38,6 +38,10 @@ class PhysicsDecoder(nn.Module):
         self.aux3_head = nn.Conv2d(channels, n_classes, kernel_size=1)
         self.pixel_out = PixelMechanisticCell(channels, channels)
         self.head = nn.Conv2d(channels, n_classes, kernel_size=1)
+        # Bias toward background at init — reduces early false positives (high recall / low precision).
+        for head in (self.head, self.aux2_head, self.aux3_head):
+            if head.bias is not None:
+                nn.init.constant_(head.bias, -2.0)
 
     def forward(
         self,

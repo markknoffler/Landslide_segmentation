@@ -4,6 +4,22 @@ Novel three-stream architecture: physics-encoded RGB/DEM encoders, Prithvi-EO-2.
 
 See [model_architecture.md](model_architecture.md) for full specification.
 
+## Data contract (no synthetic bands)
+
+**Bijie** on disk is RGB PNG + DEM PNG + mask only. There is no NIR/SWIR multispectral stack.
+
+| Channel | Source |
+|---------|--------|
+| stream_a | Measured RGB |
+| dem / dem_norm | Measured DEM |
+| slope_norm | Sobel gradient on measured DEM |
+| ndvi_norm | Green–red vegetation index from measured RGB (surrogate; no NIR in dataset) |
+| prithvi_input (6ch) | B, G, R, DEM, slope(DEM), vegetation_index(RGB) — all from real rasters |
+
+Prithvi uses `observed_rasters` normalization (not satellite EO mean/std) because inputs are terrain/observed stacks, not literal NIR/SWIR.
+
+**Landslide4Sense:** `prithvi_input` = RGB + measured NDVI + slope + DEM from H5 (same observed normalization).
+
 ## Setup
 
 Download Prithvi weights (outside git repo):
