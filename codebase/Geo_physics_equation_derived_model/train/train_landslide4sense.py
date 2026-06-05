@@ -33,9 +33,9 @@ def parse_args():
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--resize_to", type=int, default=256)
     p.add_argument("--val_split_ratio", type=float, default=0.1)
-    p.add_argument("--metric_threshold", type=float, default=0.6)
-    p.add_argument("--tversky_alpha", type=float, default=0.7)
-    p.add_argument("--tversky_beta", type=float, default=0.3)
+    p.add_argument("--metric_threshold", type=float, default=0.5)
+    p.add_argument("--tversky_alpha", type=float, default=0.3)
+    p.add_argument("--tversky_beta", type=float, default=0.7)
     p.add_argument("--main_weight", type=float, default=1.0)
     p.add_argument("--aux2_weight", type=float, default=0.6)
     p.add_argument("--aux3_weight", type=float, default=0.4)
@@ -49,7 +49,18 @@ def parse_args():
     p.add_argument("--prithvi_snapshot", type=str, default=None)
     p.add_argument("--efficientnet_name", type=str, default="tf_efficientnet_b4")
     p.add_argument("--no_efficientnet_pretrained", action="store_true")
-    p.add_argument("--unfreeze_efficientnet", action="store_true")
+    p.add_argument(
+        "--unfreeze_efficientnet",
+        action="store_true",
+        help="Unfreeze and train the full EfficientNet backbone (default: frozen).",
+    )
+    p.add_argument(
+        "--decoder",
+        type=str,
+        choices=("physics", "conv"),
+        default="physics",
+        help="Decoder head: physics (default) or conv (standard UNet-style ablation).",
+    )
     p.add_argument(
         "--high_dim_256",
         action="store_true",
@@ -110,6 +121,7 @@ def main():
         efficientnet_name=args.efficientnet_name,
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
+        decoder_type=args.decoder,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )

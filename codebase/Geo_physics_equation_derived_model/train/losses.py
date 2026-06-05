@@ -43,12 +43,23 @@ class GeoPhysicsLoss(nn.Module):
             target = F.interpolate(target.float(), size=pred.shape[-2:], mode="nearest")
         return target
 
-    def forward(self, outputs, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, outputs, target: torch.Tensor):
+        """Same weighted Tversky sum as dual_stream_gated.losses.DualStreamLoss."""
         main, aux2, aux3 = outputs
         t_main = self._resize_target(target, main)
-        total = self.main_weight * self.criterion(main, t_main)
+        loss_main = self.criterion(main, t_main)
+        total = self.main_weight * loss_main
+        loss_aux2 = None
+        loss_aux3 = None
         if aux2 is not None:
-            total = total + self.aux2_weight * self.criterion(aux2, self._resize_target(target, aux2))
+            loss_aux2 = self.criterion(aux2, self._resize_target(target, aux2))
+            total = total + self.aux2_weight * loss_aux2
         if aux3 is not None:
-            total = total + self.aux3_weight * self.criterion(aux3, self._resize_target(target, aux3))
-        return total
+            loss_aux3 = self.criterion(aux3, self._resize_target(target, aux3))
+            total = total + self.aux3_weight * loss_aux3
+        return {
+            "loss": total,
+            "loss_main": loss_main.detach(),
+            "loss_aux2": loss_aux2.detach() if loss_aux2 is not None else loss_main.new_zeros(()),
+            "loss_aux3": loss_aux3.detach() if loss_aux3 is not None else loss_main.new_zeros(()),
+        }

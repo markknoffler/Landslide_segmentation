@@ -7,12 +7,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .bridge import TriTemporalTriStreamBridge
-from .decoder import PhysicsDecoder
+from .decoder import ConvDecoder, PhysicsDecoder
 from .encoders import EfficientNetFoundationEncoder, PhysicsEncoder, PrithviFoundationEncoder
 from .fusion import MAOGeoEGCA
 from .physics import PhysicsProxyMapper
 
 FmBackbone = Literal["efficientnet", "prithvi"]
+DecoderType = Literal["physics", "conv"]
 
 
 class GeoPhysicsLandslideNet(nn.Module):
@@ -27,12 +28,14 @@ class GeoPhysicsLandslideNet(nn.Module):
         efficientnet_name: str = "tf_efficientnet_b4",
         efficientnet_pretrained: bool = True,
         freeze_efficientnet: bool = True,
+        decoder_type: DecoderType | str = "physics",
         tteb_attn_chunk: int = 1024,
         tteb_attn_low_res_max: int = 4096,
     ):
         super().__init__()
         self.channels = channels
         self.fm_backbone = str(fm_backbone).lower()
+        self.decoder_type = str(decoder_type).lower()
 
         self.proxy_rgb = PhysicsProxyMapper()
         self.proxy_dem = PhysicsProxyMapper()
@@ -71,7 +74,14 @@ class GeoPhysicsLandslideNet(nn.Module):
             ]
         )
         self.fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
-        self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
+        if self.decoder_type == "physics":
+            self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
+        elif self.decoder_type == "conv":
+            self.decoder = ConvDecoder(channels=channels, n_classes=n_classes)
+        else:
+            raise ValueError(
+                f"Unknown decoder_type={decoder_type!r}. Choose 'physics' or 'conv'."
+            )
 
     def _fm_input(self, batch: dict) -> torch.Tensor:
         if "fm_input" in batch:

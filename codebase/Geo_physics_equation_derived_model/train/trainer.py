@@ -13,7 +13,7 @@ from tqdm import tqdm
 from .distributed import all_reduce_sum_and_count, barrier, is_main_process
 from .logging_utils import log_dict, log_main, tqdm_file
 from .losses import GeoPhysicsLoss
-from .metrics import MetricAccumulator, image_level_metrics_from_logits, pixel_metrics_from_logits
+from .metrics import pixel_metrics_from_logits
 
 
 def _fmt(v: float) -> str:
@@ -28,8 +28,7 @@ def _epoch_metrics_line(row: dict) -> str:
         f"prec={_fmt(row['train_precision'])} rec={_fmt(row['train_recall'])} | "
         f"val loss={_fmt(row['val_loss'])} acc={_fmt(row['val_acc'])} "
         f"f1={_fmt(row['val_f1'])} iou={_fmt(row['val_iou'])} "
-        f"prec={_fmt(row['val_precision'])} rec={_fmt(row['val_recall'])} | "
-        f"ls_f1={_fmt(row['val_landslide_f1'])} ls_iou={_fmt(row['val_landslide_iou'])}"
+        f"prec={_fmt(row['val_precision'])} rec={_fmt(row['val_recall'])}"
     )
 
 
@@ -64,8 +63,10 @@ def run_epoch(
 
     model.train() if training else model.eval()
     losses = []
-    pix_accum = MetricAccumulator()
-    img_hist = {"auroc": [], "auprc": [], "best_f1": [], "best_threshold": []}
+    loss_main_hist: list[float] = []
+    loss_aux2_hist: list[float] = []
+    loss_aux3_hist: list[float] = []
+    pix_hist = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
 
     phase = "Train" if training else "Val"
     if epoch is not None and total_epochs is not None:
@@ -106,56 +107,47 @@ def run_epoch(
 
         with torch.set_grad_enabled(training):
             main, aux2, aux3 = model(batch)
-            loss = criterion((main, aux2, aux3), y)
+            loss_dict = criterion((main, aux2, aux3), y)
+            loss = loss_dict["loss"]
             if training:
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
 
         losses.append(float(loss.item()))
-        pix_accum.update(main, y, threshold=threshold)
-        batch_pix = pixel_metrics_from_logits(main, y, threshold=threshold)
-        img = image_level_metrics_from_logits(main, y, prob_thr_for_instances=threshold, min_area=20)
-        for k in img_hist:
-            img_hist[k].append(float(img[k]))
+        loss_main_hist.append(float(loss_dict["loss_main"].item()))
+        loss_aux2_hist.append(float(loss_dict["loss_aux2"].item()))
+        loss_aux3_hist.append(float(loss_dict["loss_aux3"].item()))
+        pix = pixel_metrics_from_logits(main, y, threshold=threshold)
+        for k in pix_hist:
+            pix_hist[k].append(float(pix[k]))
 
         if show_pbar:
             pbar.set_postfix(
                 loss=f"{losses[-1]:.4f}",
-                acc=f"{batch_pix['acc']:.4f}",
-                f1=f"{batch_pix['f1']:.4f}",
+                main=f"{loss_main_hist[-1]:.4f}",
+                f1=f"{pix_hist['f1'][-1]:.4f}",
                 refresh=False,
             )
 
     def _mean(vals: list[float]) -> float:
         return all_reduce_sum_and_count(vals, device) if distributed else (float(np.mean(vals)) if vals else 0.0)
 
-    pix_accum.reduce_distributed(device)
-    pix = pix_accum.compute()
-
     metrics = {
         "loss": _mean(losses),
-        "acc": pix["acc"],
-        "precision": pix["precision"],
-        "recall": pix["recall"],
-        "f1": pix["f1"],
-        "iou": pix["iou"],
-        "landslide_f1": pix["landslide_f1"],
-        "landslide_iou": pix["landslide_iou"],
-        "landslide_precision": pix["landslide_precision"],
-        "landslide_recall": pix["landslide_recall"],
-        "auroc": _mean(img_hist["auroc"]),
-        "auprc": _mean(img_hist["auprc"]),
-        "image_best_f1": _mean(img_hist["best_f1"]),
-        "image_best_threshold": _mean(img_hist["best_threshold"]) if img_hist["best_threshold"] else threshold,
+        "loss_main": _mean(loss_main_hist),
+        "loss_aux2": _mean(loss_aux2_hist),
+        "loss_aux3": _mean(loss_aux3_hist),
+        **{k: _mean(v) for k, v in pix_hist.items()},
     }
 
     if show_pbar:
         log_main(
             rank,
             f"{desc} done in {time.time() - t0:.0f}s | "
-            f"loss={metrics['loss']:.4f} acc={metrics['acc']:.4f} "
-            f"f1={metrics['f1']:.4f} iou={metrics['iou']:.4f} "
+            f"loss={metrics['loss']:.4f} "
+            f"(main={metrics['loss_main']:.4f} aux2={metrics['loss_aux2']:.4f} aux3={metrics['loss_aux3']:.4f}) "
+            f"acc={metrics['acc']:.4f} f1={metrics['f1']:.4f} iou={metrics['iou']:.4f} "
             f"prec={metrics['precision']:.4f} rec={metrics['recall']:.4f}",
         )
 
@@ -283,40 +275,20 @@ def train_model(
             "train_recall": train_m["recall"],
             "train_f1": train_m["f1"],
             "train_iou": train_m["iou"],
-            "train_landslide_f1": train_m["landslide_f1"],
-            "train_landslide_iou": train_m["landslide_iou"],
-            "train_landslide_precision": train_m["landslide_precision"],
-            "train_landslide_recall": train_m["landslide_recall"],
-            "train_auroc": train_m["auroc"],
-            "train_auprc": train_m["auprc"],
-            "train_image_best_f1": train_m["image_best_f1"],
-            "train_image_best_threshold": train_m["image_best_threshold"],
             "val_loss": val_m["loss"],
             "val_acc": val_m["acc"],
             "val_precision": val_m["precision"],
             "val_recall": val_m["recall"],
             "val_f1": val_m["f1"],
             "val_iou": val_m["iou"],
-            "val_landslide_f1": val_m["landslide_f1"],
-            "val_landslide_iou": val_m["landslide_iou"],
-            "val_landslide_precision": val_m["landslide_precision"],
-            "val_landslide_recall": val_m["landslide_recall"],
-            "val_auroc": val_m["auroc"],
-            "val_auprc": val_m["auprc"],
-            "val_image_best_f1": val_m["image_best_f1"],
-            "val_image_best_threshold": val_m["image_best_threshold"],
         }
         if is_main_process(rank):
             append_csv(epoch_csv, row)
             log_main(rank, _epoch_metrics_line(row))
 
-        track_f1 = val_m["landslide_f1"] if val_m["landslide_f1"] > 0 else val_m["f1"]
-        if track_f1 > best_f1:
-            best_f1 = track_f1
-            log_main(
-                rank,
-                f"New best val landslide F1={best_f1:.4f} (micro_f1={val_m['f1']:.4f}; no checkpoint saved)",
-            )
+        if val_m["f1"] > best_f1:
+            best_f1 = val_m["f1"]
+            log_main(rank, f"New best val F1={best_f1:.4f} (no checkpoint saved)")
 
     log_main(rank, f"Training finished. Best val F1={best_f1:.4f}")
 

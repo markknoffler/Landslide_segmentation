@@ -61,7 +61,7 @@ python -m codebase.Geo_physics_equation_derived_model.train.train_bijie \
   --resize_to 256 \
   --batch_size 4 \
   --num_workers 4 \
-  --metric_threshold 0.6 \
+  --metric_threshold 0.5 \
   --tversky_alpha 0.7 \
   --tversky_beta 0.3
 ```
@@ -102,7 +102,7 @@ torchrun --standalone --nproc_per_node=3 \
 - Do **not** use `--high_dim_256` until C=64 runs stably. At 256×256, TTEB auto-downsamples attention to 64×64 (`--tteb_attn_low_res_max 4096`).
 - If OOM persists: `--tteb_attn_chunk 256`, `--no_activation_checkpointing` (sometimes helps recompute OOM), or `--resize_to 128`.
 - First run downloads ImageNet weights for EfficientNet via `timm` (needs network once per node/cache).
-- Metrics: `outputs_*/results/epoch_metrics.csv` — use **`val_landslide_f1`** / **`val_landslide_iou`** (micro metrics over full val set).
+- Metrics: `outputs_*/results/epoch_metrics.csv` — same columns and formulas as `dual_stream_gated/train_bijie.py` (`val_f1`, `val_iou`, per-image mean per batch, mean over batches).
 - No `.pt` checkpoints are saved (GlusterFS-safe); metrics-only CSV.
 
 ## HPC: Bijie with Prithvi (legacy path)
@@ -130,7 +130,7 @@ torchrun --standalone --nproc_per_node=3 \
 | `--no_efficientnet_pretrained` | off | Random-init EfficientNet |
 | `--high_dim_256` | off | C=256 everywhere (heavier) |
 | `--fsdp` | auto on multi-GPU | Shard model across GPUs |
-| `--metric_threshold` | `0.6` | Aligned with dual-stream Bijie |
+| `--metric_threshold` | `0.5` | Same as dual_stream_gated Bijie |
 | `--tversky_alpha` / `--tversky_beta` | `0.7` / `0.3` | Penalize false positives |
 
 ## Landslide4Sense

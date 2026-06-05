@@ -35,20 +35,20 @@ def parse_args():
     p.add_argument(
         "--metric_threshold",
         type=float,
-        default=0.6,
-        help="Probability threshold for pixel metrics (dual-stream Bijie uses 0.6).",
+        default=0.5,
+        help="Probability threshold for pixel metrics (same as dual_stream_gated/train_bijie.py).",
     )
     p.add_argument(
         "--tversky_alpha",
         type=float,
-        default=0.7,
-        help="Tversky FP weight (higher penalizes false positives / over-segmentation).",
+        default=0.3,
+        help="Tversky FP weight (same default as dual_stream_gated Bijie).",
     )
     p.add_argument(
         "--tversky_beta",
         type=float,
-        default=0.3,
-        help="Tversky FN weight (lower than alpha to avoid predicting the whole tile).",
+        default=0.7,
+        help="Tversky FN weight (same default as dual_stream_gated Bijie).",
     )
     p.add_argument("--main_weight", type=float, default=1.0)
     p.add_argument("--aux2_weight", type=float, default=0.6)
@@ -76,7 +76,14 @@ def parse_args():
     p.add_argument(
         "--unfreeze_efficientnet",
         action="store_true",
-        help="Fine-tune EfficientNet backbone (default: frozen, train projectors only).",
+        help="Unfreeze and train the full EfficientNet backbone (default: frozen).",
+    )
+    p.add_argument(
+        "--decoder",
+        type=str,
+        choices=("physics", "conv"),
+        default="physics",
+        help="Decoder head: physics (default) or conv (standard UNet-style ablation).",
     )
     p.add_argument(
         "--high_dim_256",
@@ -157,7 +164,7 @@ def main():
 
     log_main(
         rank,
-        f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone})...",
+        f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone}, decoder={args.decoder})...",
     )
     model = GeoPhysicsLandslideNet(
         channels=channels,
@@ -168,6 +175,7 @@ def main():
         efficientnet_name=args.efficientnet_name,
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
+        decoder_type=args.decoder,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )
@@ -187,7 +195,9 @@ def main():
         rank,
         f"Ready: distributed={distributed} world_size={world_size} "
         f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
-        f"fm_backbone={args.fm_backbone} fsdp={use_fsdp} resize_to={args.resize_to} "
+        f"fm_backbone={args.fm_backbone} decoder={args.decoder} "
+        f"freeze_efficientnet={not args.unfreeze_efficientnet} "
+        f"fsdp={use_fsdp} resize_to={args.resize_to} "
         f"channels={channels} "
         f"full_precision={args.full_precision} "
         f"train_steps={len(train_loader)} val_steps={len(val_loader)}",
@@ -215,6 +225,8 @@ def main():
                 "dataset_root": args.dataset_root,
                 "fm_backbone": args.fm_backbone,
                 "efficientnet_name": args.efficientnet_name,
+                "decoder": args.decoder,
+                "freeze_efficientnet": not args.unfreeze_efficientnet,
             },
             distributed=distributed,
             rank=rank,

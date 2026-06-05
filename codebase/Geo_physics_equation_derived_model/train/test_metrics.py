@@ -2,24 +2,10 @@
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 
-from .metrics import MetricAccumulator, pixel_metrics_from_logits
-
-
-def _manual_counts(logits, target, thr=0.5):
-    probs = torch.sigmoid(logits)
-    pred = (probs >= thr).long()
-    tgt = (target > 0).long()
-    if pred.dim() == 3:
-        pred = pred.unsqueeze(1)
-    if tgt.dim() == 3:
-        tgt = tgt.unsqueeze(1)
-    tp = int((pred * tgt).sum())
-    fp = int((pred * (1 - tgt)).sum())
-    fn = int(((1 - pred) * tgt).sum())
-    tn = int(((1 - pred) * (1 - tgt)).sum())
-    return tp, fp, fn, tn
+from .metrics import pixel_metrics_from_logits
 
 
 def _assert_close(a: float, b: float, tol: float = 1e-4):
@@ -38,26 +24,21 @@ def test_perfect_prediction():
     _assert_close(m["recall"], 1.0)
 
 
-def test_accumulator_matches_manual_micro():
-    torch.manual_seed(0)
-    logits = torch.randn(4, 1, 48, 48)
-    target = (torch.rand(4, 1, 48, 48) > 0.92).float()
+def test_matches_per_image_mean_over_batch():
+    """Same formula as ablation baseline_models/common/metrics.py."""
+    logits = torch.randn(4, 1, 16, 16)
+    target = (torch.rand(4, 1, 16, 16) > 0.85).float()
+    m = pixel_metrics_from_logits(logits, target, 0.5)
 
-    acc = MetricAccumulator()
-    for i in range(logits.shape[0]):
-        acc.update(logits[i : i + 1], target[i : i + 1], threshold=0.6)
-    got = acc.compute()
-
-    tp, fp, fn, tn = _manual_counts(logits, target, 0.6)
-    eps = 1e-6
-    exp_f1 = (2 * tp + eps) / (2 * tp + fp + fn + eps)
-    exp_iou = (tp + eps) / (tp + fp + fn + eps)
-    _assert_close(got["f1"], float(exp_f1))
-    _assert_close(got["iou"], float(exp_iou))
+    per_image = []
+    for i in range(4):
+        per_image.append(pixel_metrics_from_logits(logits[i : i + 1], target[i : i + 1], 0.5))
+    exp_f1 = float(np.mean([x["f1"] for x in per_image]))
+    _assert_close(m["f1"], exp_f1)
 
 
-def test_accumulator_beats_mean_of_batch_metrics():
-    """Mean of per-batch micro F1 must not be used as epoch F1."""
+def test_epoch_style_mean_of_batch_metrics():
+    """Trainer epoch F1 = mean of per-batch pixel_metrics (dual_stream_gated style)."""
     B, H, W = 8, 32, 32
     logits = torch.full((B, 1, H, W), -4.0)
     target = torch.zeros(B, 1, H, W)
@@ -65,27 +46,14 @@ def test_accumulator_beats_mean_of_batch_metrics():
         logits[i] = 2.0
         target[i, :, 12:14, 12:14] = 1.0
 
-    acc = MetricAccumulator()
     batch_f1s = []
     for i in range(B):
-        acc.update(logits[i : i + 1], target[i : i + 1], 0.5)
-        batch_f1s.append(pixel_metrics_from_logits(logits[i : i + 1], target[i : i + 1], 0.5)["f1"])
-
-    epoch = acc.compute()
-    wrong_epoch_f1 = sum(batch_f1s) / len(batch_f1s)
-    assert abs(epoch["f1"] - wrong_epoch_f1) > 0.01, "test should expose batch-mean vs global gap"
-
-
-def test_landslide_subset_only_counts_positive_gt():
-    logits = torch.full((2, 1, 4, 4), 2.0)
-    target = torch.zeros(2, 1, 4, 4)
-    target[1, :, 0, 0] = 1.0  # only second tile has landslide GT
-
-    m = pixel_metrics_from_logits(logits, target, 0.5)
-    assert m["n_with_gt"] == 1
-    assert m["n_total"] == 2
-    _assert_close(m["landslide_recall"], 1.0)
-    assert m["landslide_precision"] < 0.25
+        batch_f1s.append(
+            pixel_metrics_from_logits(logits[i : i + 1], target[i : i + 1], 0.5)["f1"]
+        )
+    epoch_f1 = float(np.mean(batch_f1s))
+    full_batch_f1 = pixel_metrics_from_logits(logits, target, 0.5)["f1"]
+    assert abs(epoch_f1 - full_batch_f1) < 1e-5
 
 
 def test_f1_iou_consistency():
@@ -102,9 +70,8 @@ def test_f1_iou_consistency():
 
 def run_all():
     test_perfect_prediction()
-    test_accumulator_matches_manual_micro()
-    test_accumulator_beats_mean_of_batch_metrics()
-    test_landslide_subset_only_counts_positive_gt()
+    test_matches_per_image_mean_over_batch()
+    test_epoch_style_mean_of_batch_metrics()
     test_f1_iou_consistency()
     print("All metric tests passed.")
 
