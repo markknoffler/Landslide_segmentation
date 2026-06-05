@@ -62,6 +62,13 @@ def parse_args():
         help="Decoder head: physics (default) or conv (standard UNet-style ablation).",
     )
     p.add_argument(
+        "--fusion",
+        type=str,
+        choices=("balanced", "mao"),
+        default="balanced",
+        help="Fusion: balanced (intra-stream + symmetric mix + cross-attn) or mao (legacy).",
+    )
+    p.add_argument(
         "--high_dim_256",
         action="store_true",
         help="Use unified feature width C=256 across the full model.",
@@ -122,6 +129,7 @@ def main():
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
         decoder_type=args.decoder,
+        fusion_type=args.fusion,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )

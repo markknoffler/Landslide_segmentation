@@ -9,11 +9,12 @@ import torch.nn.functional as F
 from .bridge import TriTemporalTriStreamBridge
 from .decoder import ConvDecoder, PhysicsDecoder
 from .encoders import EfficientNetFoundationEncoder, PhysicsEncoder, PrithviFoundationEncoder
-from .fusion import MAOGeoEGCA
+from .fusion import BalancedTriStreamFusion, BalancedTriStreamSkip, MAOGeoEGCA
 from .physics import PhysicsProxyMapper
 
 FmBackbone = Literal["efficientnet", "prithvi"]
 DecoderType = Literal["physics", "conv"]
+FusionType = Literal["balanced", "mao"]
 
 
 class GeoPhysicsLandslideNet(nn.Module):
@@ -29,6 +30,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         efficientnet_pretrained: bool = True,
         freeze_efficientnet: bool = True,
         decoder_type: DecoderType | str = "physics",
+        fusion_type: FusionType | str = "balanced",
         tteb_attn_chunk: int = 1024,
         tteb_attn_low_res_max: int = 4096,
     ):
@@ -36,6 +38,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         self.channels = channels
         self.fm_backbone = str(fm_backbone).lower()
         self.decoder_type = str(decoder_type).lower()
+        self.fusion_type = str(fusion_type).lower()
 
         self.proxy_rgb = PhysicsProxyMapper()
         self.proxy_dem = PhysicsProxyMapper()
@@ -61,19 +64,28 @@ class GeoPhysicsLandslideNet(nn.Module):
                 f"Unknown fm_backbone={fm_backbone!r}. Choose 'efficientnet' or 'prithvi'."
             )
 
-        self.mao3 = MAOGeoEGCA(channels)
-        self.mao4 = MAOGeoEGCA(channels)
-        self.tteb = nn.ModuleList(
-            [
-                TriTemporalTriStreamBridge(
-                    channels,
-                    attn_chunk_size=tteb_attn_chunk,
-                    attn_low_res_max=tteb_attn_low_res_max,
-                )
-                for _ in range(4)
-            ]
-        )
-        self.fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
+        if self.fusion_type == "balanced":
+            self.fuse3 = BalancedTriStreamFusion(channels)
+            self.fuse4 = BalancedTriStreamFusion(channels)
+            self.skips = nn.ModuleList([BalancedTriStreamSkip(channels) for _ in range(4)])
+        elif self.fusion_type == "mao":
+            self.fuse3 = MAOGeoEGCA(channels)
+            self.fuse4 = MAOGeoEGCA(channels)
+            self.skips = nn.ModuleList(
+                [
+                    TriTemporalTriStreamBridge(
+                        channels,
+                        attn_chunk_size=tteb_attn_chunk,
+                        attn_low_res_max=tteb_attn_low_res_max,
+                    )
+                    for _ in range(4)
+                ]
+            )
+            self.post_fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
+        else:
+            raise ValueError(
+                f"Unknown fusion_type={fusion_type!r}. Choose 'balanced' or 'mao'."
+            )
         if self.decoder_type == "physics":
             self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
         elif self.decoder_type == "conv":
@@ -105,16 +117,20 @@ class GeoPhysicsLandslideNet(nn.Module):
         p_dem = self.enc_dem(dem, alpha_d, h_d, m_d)
         t_fm = self.enc_fm(fm_in)
 
-        f3 = self.mao3(t_fm[3], p_rgb[3], p_dem[3])
-        f4 = self.mao4(t_fm[4], p_rgb[4], p_dem[4])
-
-        skips = [self.tteb[i](p_rgb, p_dem, t_fm, level=i) for i in range(4)]
+        if self.fusion_type == "balanced":
+            f3 = self.fuse3(t_fm[3], p_rgb[3], p_dem[3])
+            f4 = self.fuse4(t_fm[4], p_rgb[4], p_dem[4])
+            skip_feats = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in range(4)]
+        else:
+            f3 = self.post_fuse3(self.fuse3(t_fm[3], p_rgb[3], p_dem[3]))
+            f4 = self.fuse4(t_fm[4], p_rgb[4], p_dem[4])
+            skip_feats = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in range(4)]
 
         alpha = 0.5 * (alpha_r + alpha_d)
         h = 0.5 * (h_r + h_d)
         m = 0.5 * (m_r + m_d)
 
-        main, aux2, aux3 = self.decoder(f4, self.fuse3(f3), skips, alpha, h, m)
+        main, aux2, aux3 = self.decoder(f4, f3, skip_feats, alpha, h, m)
         target_size = batch["mask"].shape[-2:]
         if aux2.shape[-2:] != target_size:
             aux2 = F.interpolate(aux2, size=target_size, mode="bilinear", align_corners=False)

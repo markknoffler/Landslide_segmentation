@@ -21,15 +21,23 @@ from ..decoder.physics_decoder import PhysicsDecoder
 from ..encoders.physics_encoder import PhysicsEncoder
 from ..encoders.efficientnet_fm import EfficientNetFoundationEncoder
 from ..encoders.prithvi_lora import PrithviFoundationEncoder
+from ..fusion.balanced_skip_fusion import BalancedTriStreamSkip
+from ..fusion.balanced_tri_fusion import BalancedTriStreamFusion
 from ..fusion.mao_geo_egca import MAOGeoEGCA
 from ..model import GeoPhysicsLandslideNet
 
 
 def _checkpoint_policy(module: nn.Module) -> bool:
-    # TTEB is excluded: activation checkpoint recompute peaks during large attention mats.
+    # TTEB / spatial cross-attn blocks are excluded from activation checkpointing.
     return isinstance(
         module,
-        (MAOGeoEGCA, PrithviFoundationEncoder, EfficientNetFoundationEncoder),
+        (
+            MAOGeoEGCA,
+            BalancedTriStreamFusion,
+            BalancedTriStreamSkip,
+            PrithviFoundationEncoder,
+            EfficientNetFoundationEncoder,
+        ),
     )
 
 
@@ -50,6 +58,8 @@ def wrap_geo_physics_fsdp(
         {
             TriTemporalTriStreamBridge,
             MAOGeoEGCA,
+            BalancedTriStreamFusion,
+            BalancedTriStreamSkip,
             PhysicsEncoder,
             PrithviFoundationEncoder,
             EfficientNetFoundationEncoder,

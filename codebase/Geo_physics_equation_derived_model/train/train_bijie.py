@@ -86,6 +86,13 @@ def parse_args():
         help="Decoder head: physics (default) or conv (standard UNet-style ablation).",
     )
     p.add_argument(
+        "--fusion",
+        type=str,
+        choices=("balanced", "mao"),
+        default="balanced",
+        help="Fusion: balanced (intra-stream + symmetric mix + cross-attn) or mao (legacy).",
+    )
+    p.add_argument(
         "--high_dim_256",
         action="store_true",
         help="Use unified feature width C=256 across the full model.",
@@ -164,7 +171,8 @@ def main():
 
     log_main(
         rank,
-        f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone}, decoder={args.decoder})...",
+        f"Building GeoPhysicsLandslideNet (fm_backbone={args.fm_backbone}, "
+        f"decoder={args.decoder}, fusion={args.fusion})...",
     )
     model = GeoPhysicsLandslideNet(
         channels=channels,
@@ -176,6 +184,7 @@ def main():
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
         decoder_type=args.decoder,
+        fusion_type=args.fusion,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     )
@@ -195,7 +204,7 @@ def main():
         rank,
         f"Ready: distributed={distributed} world_size={world_size} "
         f"per_gpu_batch={args.batch_size} global_batch={args.batch_size * world_size} "
-        f"fm_backbone={args.fm_backbone} decoder={args.decoder} "
+        f"fm_backbone={args.fm_backbone} decoder={args.decoder} fusion={args.fusion} "
         f"freeze_efficientnet={not args.unfreeze_efficientnet} "
         f"fsdp={use_fsdp} resize_to={args.resize_to} "
         f"channels={channels} "
@@ -226,6 +235,7 @@ def main():
                 "fm_backbone": args.fm_backbone,
                 "efficientnet_name": args.efficientnet_name,
                 "decoder": args.decoder,
+                "fusion": args.fusion,
                 "freeze_efficientnet": not args.unfreeze_efficientnet,
             },
             distributed=distributed,

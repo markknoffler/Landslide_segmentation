@@ -130,18 +130,110 @@ Outputs: \(\{P_{\text{rgb}}^L\}_{L=0}^4\), \(\{P_{\text{dem}}^L\}_{L=0}^4\).
 \text{StreamProjector}(F) = \text{GN}(\text{ReLU}(\text{Conv}_{1\times1}(F; C_{\text{in}}\rightarrow C)))
 \]
 
-### 3.4 MAO-GeoEGCA (levels L3, L4)
+### 3.4 Fusion strategies (levels L0–L4)
 
-Applied independently at each bottleneck scale.
+The model now supports **two fusion modes**, selectable at run time:
 
-1. **Physics anchor:** \(X_p = \text{Conv}_{1\times1}([P_{\text{rgb}}; P_{\text{dem}}])\)
-2. **Equilibrium gate:** \(G = \sigma(\text{DWSepConv}_{3\times3}(T_{\text{fm}} \odot X_p))\) → B×1×H×W
-3. **Projections:** \(Q = W_q X_p\), \(K = W_k T_{\text{fm}}\), \(V = W_v T_{\text{fm}}\) (flattened to tokens N=H·W)
-4. **Manifold alignment:** \(\hat{Q} = Q/\|Q\|_2\), \(K' = K \odot \hat{Q}\)
-5. **Multi-head attention** (4 heads): \(\text{Attn} = \text{softmax}(Q K'^T / \sqrt{d_h}) V\)
+- **`--fusion balanced`** (default): symmetric tri-stream fusion with intra-stream refinement.  
+- **`--fusion mao`**: legacy MAO + TTEB design (FM-heavy cross-attention).
+
+#### 3.4.1 Balanced tri-stream fusion (new default, levels L3, L4)
+
+Modules:
+
+- `IntraStreamBlock(C)` — per-stream refinement (RGB-physics, DEM-physics, FM).  
+  - Depthwise 3×3 + 1×1 conv + GN + GELU  
+  - Optional spatial multi-head self-attention when \(H\cdot W \le 4096\)  
+  - 1×1 Conv FFN (expansion=2) + residual
+- `BalancedTriStreamFusion(C)` — symmetric bottleneck fusion at L3/L4.  
+- `BalancedTriStreamSkip(C)` — symmetric skip fusion at L0–L3.
+
+Let \(R^L = P_{\text{rgb}}^L\), \(D^L = P_{\text{dem}}^L\), \(F^L = T_{\text{fm}}^L\).
+
+**Intra-stream refinement (per stream, per level):**
+
+1. \(R' = \text{IntraStreamBlock}(R^L)\)  
+2. \(D' = \text{IntraStreamBlock}(D^L)\)  
+3. \(F' = \text{IntraStreamBlock}(F^L)\)
+
+Each block is applied **independently** to its stream (no cross-encoder attention here).
+
+**Calibration and symmetric gating:**
+
+4. \(\tilde{R} = \text{GN}(R')\), \(\tilde{D} = \text{GN}(D')\), \(\tilde{F} = \text{GN}(F')\)  
+5. Concatenate along channels and predict logits:
+   \[
+   H_{\text{gate}} = \text{Conv}_{1\times1}([\tilde{R};\tilde{D};\tilde{F}])
+   \]
+   \[
+   G = \text{Conv}_{1\times1}(H_{\text{gate}}) \in \mathbb{R}^{B\times 3\times H\times W}
+   \]
+6. Stream probabilities (per-pixel softmax):
+   \[
+   [g_R, g_D, g_F] = \text{softmax}(G,\ \text{dim}=1)
+   \]
+7. Symmetric mixed representation:
+   \[
+   M = g_R \odot \tilde{R} + g_D \odot \tilde{D} + g_F \odot \tilde{F}
+   \]
+
+**Symmetric cross-attention:**
+
+8. Keys/values use the **equal-weight average** of all refined streams:
+   \[
+   K_{\text{src}} = V_{\text{src}} = (\tilde{R} + \tilde{D} + \tilde{F}) / 3
+   \]
+9. Linear projections:
+   \[
+   Q = W_q M,\quad K = W_k K_{\text{src}},\quad V = W_v V_{\text{src}}
+   \]
+10. Reshape to heads (H×W tokens), scale, and attend:
+    \[
+    \text{Attn} = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_h}}\right)V
+    \]
+11. Reshape back to feature map and project:
+    \[
+    F_{\text{ctx}} = W_o(\text{Attn})
+    \]
+12. Output bottleneck feature:
+    \[
+    F^L_{\text{balanced}} = \text{Conv}_{3\times3}(\text{GN}(M + F_{\text{ctx}}))
+    \]
+
+Here **no single stream is structurally privileged**: queries, keys, and values all come from symmetric combinations of \(R^L, D^L, F^L\).
+
+#### 3.4.2 Balanced tri-stream skips (levels L0–L3)
+
+`BalancedTriStreamSkip(C)` mirrors the intra-stream + gating part of `BalancedTriStreamFusion` but **omits cross-attention** for efficiency.
+
+For each level L:
+
+1. \(R' = \text{IntraStreamBlock}(P_{\text{rgb}}^L)\), \(D' = \text{IntraStreamBlock}(P_{\text{dem}}^L)\), \(F' = \text{IntraStreamBlock}(T_{\text{fm}}^L)\)  
+2. \(\tilde{R}, \tilde{D}, \tilde{F}\) via GN  
+3. Gating logits and softmax as above → \(g_R, g_D, g_F\)  
+4. Mixed skip:
+   \[
+   S_{\text{balanced}}^L = \text{Conv}_{3\times3}\left(g_R \odot \tilde{R} + g_D \odot \tilde{D} + g_F \odot \tilde{F}\right)
+   \]
+
+These skips are used directly by the decoder in place of `TTEB` outputs when `--fusion balanced`.
+
+#### 3.4.3 Legacy MAO-GeoEGCA + TTEB (fusion=`mao`)
+
+When `--fusion mao` is selected, the original FM-heavy design is used.
+
+**MAO-GeoEGCA (levels L3, L4):** applied independently at each bottleneck scale.
+
+1. **Physics anchor:** \(X_p = \text{Conv}_{1\times1}([P_{\text{rgb}}; P_{\text{dem}}])\)  
+2. **Equilibrium gate:** \(G = \sigma(\text{DWSepConv}_{3\times3}(T_{\text{fm}} \odot X_p))\) → B×1×H×W  
+3. **Projections:** \(Q = W_q X_p\), \(K = W_k T_{\text{fm}}\), \(V = W_v T_{\text{fm}}\) (flattened to tokens N=H·W)  
+4. **Manifold alignment:** \(\hat{Q} = Q/\|Q\|_2\), \(K' = K \odot \hat{Q}\)  
+5. **Multi-head attention** (4 heads): \(\text{Attn} = \text{softmax}(Q K'^T / \sqrt{d_h}) V\)  
 6. **Output:** \(F = \text{Conv}_{3\times3}(\text{reshape}(\text{Attn}) \odot G) + X_p\)
 
-### 3.5 TTEB — Tri-Temporal Tri-Stream Bridge (levels L0–L3)
+In this mode, skips are produced by **TTEB** (Tri-Temporal Tri-Stream Bridge) as described below.
+
+### 3.5 TTEB — Tri-Temporal Tri-Stream Bridge (levels L0–L3)  *(fusion=`mao` only)*
 
 **Lattice:** For each level L and stream s ∈ {rgb, dem, fm}, nodes at scales L−1, L, L+1 (replicate boundaries).
 
@@ -156,9 +248,16 @@ Applied independently at each bottleneck scale.
 7. **Attention:** Q from A; K,V from mixed context; output scaled by δ
 8. **Skip:** \(S^L = A + \text{Conv}_{3\times3}(\text{AttnOut})\)
 
-### 3.6 Physics decoder + PGDI
+### 3.6 Decoders: physics vs conv
 
-**Top:** Fused \(F^{4}\) from MAO at L4.
+The network exposes a **decoder switch** via `--decoder`:
+
+- `--decoder physics` (default): original physics-aware decoder with PGDI.  
+- `--decoder conv`: standard UNet-style convolutional decoder (ablation).
+
+#### 3.6.1 Physics decoder + PGDI
+
+**Top:** Fused \(F^{4}\) from the chosen fusion module at L4.
 
 | Step | Operation |
 |------|-----------|
@@ -175,6 +274,28 @@ Applied independently at each bottleneck scale.
 | PGDI@L0 | same with S⁰ |
 | Head | PixelMechanisticCell + Conv1×1 → B×1×256×256 logits |
 
+#### 3.6.2 ConvDecoder (standard convolutional decoder)
+
+`ConvDecoder` uses a UNet-style upsampling path without explicit physics gates.
+
+- Inputs: bottleneck features \(F^{4}\), \(F^{3}\), and skips \(\{S^L\}_{L=0}^3\) from the chosen fusion mode.  
+- Operations:
+
+| Step | Operation |
+|------|-----------|
+| Stem4 | DoubleConv(F4) at 16×16 |
+| ↑ | Bilinear ×2 + Conv |
+| Fuse@L3 | Concatenate with S³, DoubleConv → D3, Aux3 head: Conv1×1(D3) |
+| ↑ | ×2 |
+| Fuse@L2 | Concatenate with S², DoubleConv → D2, Aux2 head: Conv1×1(D2) |
+| ↑ | ×2 |
+| Fuse@L1 | Concatenate with S¹, DoubleConv → D1 |
+| ↑ | ×2 |
+| Fuse@L0 | Concatenate with S⁰, DoubleConv → D0 |
+| Head | Conv1×1(D0) → B×1×256×256 logits |
+
+The interface matches the physics decoder (three outputs: main, aux2, aux3), so loss and metrics are unchanged; only the internal decoding strategy differs.
+
 **Auxiliary outputs:** aux2 at 64×64, aux3 at 32×32 (upsampled to full res for loss).
 
 ---
@@ -188,9 +309,14 @@ Input: stream_a (RGB), stream_b (topo), prithvi_6band, proxies (slope, dem, ndvi
 3. {P_rgb^L} ← PhysicsEncoder_rgb(stream_a, α_rgb, h_rgb, m_rgb)
 4. {P_dem^L} ← PhysicsEncoder_dem(dem_ch, α_dem, h_dem, m_dem)
 5. {T_fm^L} ← PrithviEncoder(prithvi_6band)
-6. For L in {3,4}: F^L ← MAO_GeoEGCA(P_rgb^L, P_dem^L, T_fm^L)
-7. For L in {0,1,2,3}: S^L ← TTEB({P_rgb}, {P_dem}, {T_fm}, L)
-8. (main, aux2, aux3) ← PhysicsDecoder(F^4, F^3, {S^L}, α, h, m at full res)
+6. If `fusion=balanced`:
+      - For L in {3,4}: F^L ← BalancedTriStreamFusion(P_rgb^L, P_dem^L, T_fm^L)
+      - For L in {0,1,2,3}: S^L ← BalancedTriStreamSkip({P_rgb}, {P_dem}, {T_fm}, L)
+   Else (`fusion=mao`):
+      - For L in {3,4}: F^L ← MAO_GeoEGCA(P_rgb^L, P_dem^L, T_fm^L)
+      - For L in {0,1,2,3}: S^L ← TTEB({P_rgb}, {P_dem}, {T_fm}, L)
+7. If `decoder=physics`: (main, aux2, aux3) ← PhysicsDecoder(F^4, F^3, {S^L}, α, h, m at full res)  
+   Else (`decoder=conv`): (main, aux2, aux3) ← ConvDecoder(F^4, F^3, {S^L}, α, h, m)  (α,h,m unused)
 9. Return (main, aux2, aux3)
 ```
 
