@@ -16,6 +16,7 @@ from torch.distributed.fsdp import MixedPrecision, ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
 from ..bridge.tteb import TriTemporalTriStreamBridge
+from ..decoder.adaptive_conv_decoder import AdaptiveConvDecoder
 from ..decoder.conv_decoder import ConvDecoder
 from ..decoder.physics_decoder import PhysicsDecoder
 from ..encoders.physics_encoder import PhysicsEncoder
@@ -65,6 +66,7 @@ def wrap_geo_physics_fsdp(
             EfficientNetFoundationEncoder,
             PhysicsDecoder,
             ConvDecoder,
+            AdaptiveConvDecoder,
         }
     )
     mixed_precision = None

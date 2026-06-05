@@ -7,8 +7,9 @@ import torch.nn as nn
 class PixelMechanisticCell(nn.Module):
     """Pixel-level infinite-slope stability gate (Taylor-stabilized ratio)."""
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, mechanistic_gating: bool = True):
         super().__init__()
+        self.mechanistic_gating = mechanistic_gating
         self.feature_map = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self.w_c = nn.Parameter(torch.randn(1, out_channels, 1, 1) * 0.02)
         self.w_phi = nn.Parameter(torch.randn(1, out_channels, 1, 1) * 0.02)
@@ -34,6 +35,9 @@ class PixelMechanisticCell(nn.Module):
         resisting = c + phi * h * cos2
         driving = gamma * h * sin_cos + w_moist * m + 1e-6
         fs = resisting / driving
+        features = self.feature_map(x)
+        if not self.mechanistic_gating:
+            return features
         failure_energy = self.psi - fs
         gate = torch.sigmoid(failure_energy)
-        return self.feature_map(x) * gate
+        return features * gate

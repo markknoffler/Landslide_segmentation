@@ -15,7 +15,7 @@ See [model_architecture.md](model_architecture.md) for full specification.
 | slope_norm | Sobel on measured DEM |
 | ndvi_norm | Green–red index from measured RGB (no zero-filled NDVI) |
 | fm_input (`efficientnet`) | **Same measured RGB** as stream_a (3 channels) |
-| fm_input (`prithvi`) | B, G, R, DEM, slope(DEM), veg_index(RGB) — 6 observed/derived channels |
+| fm_input (`prithvi`) | R, G, B, DEM, slope(DEM), veg_index(RGB) — 6 observed/derived channels |
 
 Physics RGB/DEM encoders, MAO, TTEB, and decoder are **unchanged** regardless of `--fm_backbone`.
 

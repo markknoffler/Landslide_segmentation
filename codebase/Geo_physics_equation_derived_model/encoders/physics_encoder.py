@@ -21,7 +21,13 @@ class _Down(nn.Module):
 class PhysicsEncoder(nn.Module):
     """5-level physics pyramid with pixel cell at L0 and latent cells deeper."""
 
-    def __init__(self, in_channels: int, width: int = 64, unified_channels: int = 64):
+    def __init__(
+        self,
+        in_channels: int,
+        width: int = 64,
+        unified_channels: int = 64,
+        mechanistic_gating: bool = True,
+    ):
         super().__init__()
         if unified_channels % 8 != 0:
             raise ValueError(f"unified_channels must be divisible by 8, got {unified_channels}")
@@ -32,7 +38,7 @@ class PhysicsEncoder(nn.Module):
         c2 = unified_channels
         c3 = unified_channels
         c4 = unified_channels
-        self.pixel = PixelMechanisticCell(in_channels, c0)
+        self.pixel = PixelMechanisticCell(in_channels, c0, mechanistic_gating=mechanistic_gating)
         self.stem = nn.Sequential(
             nn.Conv2d(c0, c0, kernel_size=3, padding=1, bias=False),
             nn.GroupNorm(8, c0),

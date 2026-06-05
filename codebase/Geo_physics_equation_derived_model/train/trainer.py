@@ -96,12 +96,7 @@ def run_epoch(
         for k in batch:
             if isinstance(batch[k], torch.Tensor):
                 batch[k] = batch[k].to(device, non_blocking=True)
-        y = batch["mask"]
-        # Align with ablation dual_stream_gated behavior: enforce binary masks
-        # before computing Tversky and pixel metrics.
-        if y.dtype.is_floating_point:
-            y = y.round().long()
-        y = y.float()
+        y = batch["mask"].float()
         if y.dim() == 3:
             y = y.unsqueeze(1)
 

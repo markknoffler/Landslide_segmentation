@@ -10,16 +10,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ..encoders.pyramid_utils import group_norm_groups, match_spatial
 from .intra_stream import IntraStreamBlock
 
 
 class SymmetricCrossAttention(nn.Module):
-    """
-    Cross-attention after symmetric stream mixing.
-
-    Query: mixed representation (symmetrically gated blend).
-    Key/Value: equal blend of all three refined streams (not FM-only).
-    """
+    """Cross-attention after symmetric stream mixing."""
 
     def __init__(self, channels: int, num_heads: int = 4):
         super().__init__()
@@ -60,15 +56,35 @@ class BalancedTriStreamFusion(nn.Module):
     3) Cross-attention on the gated mix with symmetric K/V from all streams.
     """
 
-    def __init__(self, channels: int, num_heads: int = 4, attn_spatial_max: int = 4096):
+    def __init__(
+        self,
+        physics_channels: int,
+        fm_channels: int | None = None,
+        num_heads: int = 4,
+        attn_spatial_max: int = 4096,
+    ):
         super().__init__()
+        channels = fm_channels if fm_channels is not None else physics_channels
+        self.channels = channels
+        self.rgb_proj = (
+            nn.Identity()
+            if physics_channels == channels
+            else nn.Conv2d(physics_channels, channels, kernel_size=1, bias=False)
+        )
+        self.dem_proj = (
+            nn.Identity()
+            if physics_channels == channels
+            else nn.Conv2d(physics_channels, channels, kernel_size=1, bias=False)
+        )
+
         self.rgb_intra = IntraStreamBlock(channels, num_heads=num_heads, attn_spatial_max=attn_spatial_max)
         self.dem_intra = IntraStreamBlock(channels, num_heads=num_heads, attn_spatial_max=attn_spatial_max)
         self.fm_intra = IntraStreamBlock(channels, num_heads=num_heads, attn_spatial_max=attn_spatial_max)
 
-        self.rgb_cal = nn.GroupNorm(8, channels)
-        self.dem_cal = nn.GroupNorm(8, channels)
-        self.fm_cal = nn.GroupNorm(8, channels)
+        gn = group_norm_groups(channels)
+        self.rgb_cal = nn.GroupNorm(gn, channels)
+        self.dem_cal = nn.GroupNorm(gn, channels)
+        self.fm_cal = nn.GroupNorm(gn, channels)
 
         self.stream_gate = nn.Sequential(
             nn.Conv2d(channels * 3, channels, kernel_size=1, bias=False),
@@ -76,7 +92,7 @@ class BalancedTriStreamFusion(nn.Module):
             nn.Conv2d(channels, 3, kernel_size=1, bias=True),
         )
         self.cross_attn = SymmetricCrossAttention(channels, num_heads=num_heads)
-        self.out_norm = nn.GroupNorm(8, channels)
+        self.out_norm = nn.GroupNorm(gn, channels)
         self.out_conv = nn.Sequential(
             nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False),
             nn.GELU(),
@@ -88,6 +104,9 @@ class BalancedTriStreamFusion(nn.Module):
         x_rgb: torch.Tensor,
         x_dem: torch.Tensor,
     ) -> torch.Tensor:
+        x_rgb = match_spatial(self.rgb_proj(x_rgb), t_fm)
+        x_dem = match_spatial(self.dem_proj(x_dem), t_fm)
+
         rgb = self.rgb_cal(self.rgb_intra(x_rgb))
         dem = self.dem_cal(self.dem_intra(x_dem))
         fm = self.fm_cal(self.fm_intra(t_fm))

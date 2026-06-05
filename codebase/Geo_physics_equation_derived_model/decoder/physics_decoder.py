@@ -21,8 +21,9 @@ class _Up(nn.Module):
 
 
 class PhysicsDecoder(nn.Module):
-    def __init__(self, channels: int = 64, n_classes: int = 1):
+    def __init__(self, channels: int = 64, n_classes: int = 1, mechanistic_gating: bool = True):
         super().__init__()
+        self.mechanistic_gating = mechanistic_gating
         self.latent4 = LatentMechanisticCell(channels)
         self.latent3 = LatentMechanisticCell(channels)
         self.latent2 = LatentMechanisticCell(channels)
@@ -36,7 +37,7 @@ class PhysicsDecoder(nn.Module):
         self.pgdi0 = PhysicsGatedDecoderInjection(channels)
         self.aux2_head = nn.Conv2d(channels, n_classes, kernel_size=1)
         self.aux3_head = nn.Conv2d(channels, n_classes, kernel_size=1)
-        self.pixel_out = PixelMechanisticCell(channels, channels)
+        self.pixel_out = PixelMechanisticCell(channels, channels, mechanistic_gating=mechanistic_gating)
         self.head = nn.Conv2d(channels, n_classes, kernel_size=1)
         # Bias toward background at init — reduces early false positives (high recall / low precision).
         for head in (self.head, self.aux2_head, self.aux3_head):
@@ -46,14 +47,16 @@ class PhysicsDecoder(nn.Module):
     def forward(
         self,
         fused4: torch.Tensor,
-        fused3: torch.Tensor,
+        fused3: torch.Tensor | None,
         skips: list[torch.Tensor],
         alpha: torch.Tensor,
         h: torch.Tensor,
         m: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         d4 = self.latent4(fused4)
-        d3 = self.latent3(self.up3(d4) + fused3)
+        d3 = self.latent3(self.up3(d4))
+        if fused3 is not None:
+            d3 = d3 + fused3
         d3 = self.pgdi3(d3, skips[3])
         aux3 = self.aux3_head(d3)
 
@@ -67,5 +70,7 @@ class PhysicsDecoder(nn.Module):
         d0 = self.up0(d1)
         d0 = self.pgdi0(d0, skips[0])
 
-        main = self.head(self.pixel_out(d0, alpha, h, m))
+        if self.mechanistic_gating:
+            d0 = self.pixel_out(d0, alpha, h, m)
+        main = self.head(d0)
         return main, aux2, aux3

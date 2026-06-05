@@ -55,6 +55,18 @@ def parse_args():
         help="Unfreeze and train the full EfficientNet backbone (default: frozen).",
     )
     p.add_argument(
+        "--no_mechanistic_gating",
+        action="store_true",
+        help="Disable pixel-level FS sigmoid gates in physics encoders/decoder (diagnostic ablation).",
+    )
+    p.add_argument(
+        "--fm_pyramid",
+        type=str,
+        choices=("native", "legacy"),
+        default="native",
+        help="EfficientNet pyramid: native timm sizes/channels (default) or legacy 64-ch grid.",
+    )
+    p.add_argument(
         "--decoder",
         type=str,
         choices=("physics", "conv"),
@@ -128,10 +140,12 @@ def main():
         efficientnet_name=args.efficientnet_name,
         efficientnet_pretrained=not args.no_efficientnet_pretrained,
         freeze_efficientnet=not args.unfreeze_efficientnet,
+        fm_pyramid=args.fm_pyramid,
         decoder_type=args.decoder,
         fusion_type=args.fusion,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
+        mechanistic_gating=not args.no_mechanistic_gating,
     )
 
     if use_fsdp:

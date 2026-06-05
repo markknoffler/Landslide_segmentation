@@ -23,13 +23,13 @@ def vegetation_index_from_rgb(rgb_chw: np.ndarray, eps: float = 1e-6) -> np.ndar
     """
     Green-red vegetation index from measured RGB only (no NIR band in Bijie).
 
-    Uses G and R channels: (G - R) / (G + R + eps), clipped to [0, 1].
-    This is a standard surrogate when multispectral NIR is unavailable.
+    Expects CHW order from Bijie loaders: channel 0 = R, 1 = G, 2 = B (PIL RGB PNG).
+    Uses (G - R) / (G + R + eps), per-image min-max normalized to [0, 1].
     """
     if rgb_chw.shape[0] < 3:
         raise ValueError(f"RGB stack must have 3 channels, got shape {rgb_chw.shape}")
+    r = rgb_chw[0].astype(np.float32)
     g = rgb_chw[1].astype(np.float32)
-    r = rgb_chw[2].astype(np.float32)
     vi = (g - r) / (g + r + eps)
     vi = np.clip(vi, 0.0, 1.0)
     mn, mx = float(vi.min()), float(vi.max())
@@ -42,8 +42,8 @@ def build_bijie_observed_stack(rgb_chw: np.ndarray, dem_chw: np.ndarray) -> torc
     """
     Six-channel stack for Bijie using only measured RGB + DEM and derived terrain indices.
 
-    Channels (all from real PNG rasters on disk):
-      0 Blue, 1 Green, 2 Red, 3 DEM, 4 slope(DEM), 5 vegetation_index(RGB)
+    Channels (CHW, Bijie PNG RGB order):
+      0 Red, 1 Green, 2 Blue, 3 DEM, 4 slope(DEM), 5 vegetation_index(G-R from RGB)
     """
     if rgb_chw.shape[0] != 3:
         raise ValueError(f"Expected RGB with 3 channels, got {rgb_chw.shape}")
@@ -78,12 +78,13 @@ def build_l4s_observed_stack(stream_a: np.ndarray, stream_b: np.ndarray) -> torc
     if stream_a.shape[0] < 3 or stream_b.shape[0] < 3:
         raise ValueError(f"Expected 3+ channels in each stream, got {stream_a.shape}, {stream_b.shape}")
 
-    b, g, r = stream_a[0], stream_a[1], stream_a[2]
+    # L4S stream_a is [B4, B3, B2] = [R, G, B] (see L4SDualStreamDataset).
+    r, g, b = stream_a[0], stream_a[1], stream_a[2]
     ndvi = stream_b[0]
     slope = stream_b[1]
     dem = stream_b[2]
 
-    stack = torch.stack([b, g, r, ndvi, slope, dem], dim=0).float()
+    stack = torch.stack([r, g, b, ndvi, slope, dem], dim=0).float()
     return minmax_per_channel(stack)
 
 
