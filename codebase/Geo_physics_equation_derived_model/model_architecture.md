@@ -135,9 +135,20 @@ Outputs: \(\{P_{\text{rgb}}^L\}_{L=0}^4\), \(\{P_{\text{dem}}^L\}_{L=0}^4\).
 The model now supports **two fusion modes**, selectable at run time:
 
 - **`--fusion balanced`** (default): symmetric tri-stream fusion with intra-stream refinement.  
+- **`--fusion concat`**: simple baseline — concat RGB-physics, DEM-physics, FM at each level, 1×1 conv to C.  
 - **`--fusion mao`**: legacy MAO + TTEB design (FM-heavy cross-attention).
 
-#### 3.4.1 Balanced tri-stream fusion (new default, levels L3, L4)
+#### 3.4.1 Concat tri-stream fusion (baseline, all levels)
+
+`ConcatTriStreamLevel(C)` — diagnostic / ablation baseline:
+
+\[
+F^L_{\text{concat}} = \text{ReLU}(\text{GN}(\text{Conv}_{1\times1}([P_{\text{rgb}}^L; P_{\text{dem}}^L; T_{\text{fm}}^L])))
+\]
+
+Applied at L3/L4 (bottleneck) and L0–L3 (skips). No cross-stream attention or gating. Used with `--decoder conv` to test whether poor F1 is fusion-related or pipeline/data-related.
+
+#### 3.4.2 Balanced tri-stream fusion (default, levels L3, L4)
 
 Modules:
 
@@ -202,7 +213,7 @@ Each block is applied **independently** to its stream (no cross-encoder attentio
 
 Here **no single stream is structurally privileged**: queries, keys, and values all come from symmetric combinations of \(R^L, D^L, F^L\).
 
-#### 3.4.2 Balanced tri-stream skips (levels L0–L3)
+#### 3.4.3 Balanced tri-stream skips (levels L0–L3)
 
 `BalancedTriStreamSkip(C)` mirrors the intra-stream + gating part of `BalancedTriStreamFusion` but **omits cross-attention** for efficiency.
 
@@ -218,7 +229,7 @@ For each level L:
 
 These skips are used directly by the decoder in place of `TTEB` outputs when `--fusion balanced`.
 
-#### 3.4.3 Legacy MAO-GeoEGCA + TTEB (fusion=`mao`)
+#### 3.4.4 Legacy MAO-GeoEGCA + TTEB (fusion=`mao`)
 
 When `--fusion mao` is selected, the original FM-heavy design is used.
 
@@ -309,9 +320,9 @@ Input: stream_a (RGB), stream_b (topo), prithvi_6band, proxies (slope, dem, ndvi
 3. {P_rgb^L} ← PhysicsEncoder_rgb(stream_a, α_rgb, h_rgb, m_rgb)
 4. {P_dem^L} ← PhysicsEncoder_dem(dem_ch, α_dem, h_dem, m_dem)
 5. {T_fm^L} ← PrithviEncoder(prithvi_6band)
-6. If `fusion=balanced`:
-      - For L in {3,4}: F^L ← BalancedTriStreamFusion(P_rgb^L, P_dem^L, T_fm^L)
-      - For L in {0,1,2,3}: S^L ← BalancedTriStreamSkip({P_rgb}, {P_dem}, {T_fm}, L)
+6. If `fusion=concat` or `fusion=balanced`:
+      - For L in {3,4}: F^L ← ConcatTriStreamLevel or BalancedTriStreamFusion(...)
+      - For L in {0,1,2,3}: S^L ← ConcatTriStreamSkip or BalancedTriStreamSkip(...)
    Else (`fusion=mao`):
       - For L in {3,4}: F^L ← MAO_GeoEGCA(P_rgb^L, P_dem^L, T_fm^L)
       - For L in {0,1,2,3}: S^L ← TTEB({P_rgb}, {P_dem}, {T_fm}, L)

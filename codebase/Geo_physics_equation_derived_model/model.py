@@ -9,12 +9,18 @@ import torch.nn.functional as F
 from .bridge import TriTemporalTriStreamBridge
 from .decoder import ConvDecoder, PhysicsDecoder
 from .encoders import EfficientNetFoundationEncoder, PhysicsEncoder, PrithviFoundationEncoder
-from .fusion import BalancedTriStreamFusion, BalancedTriStreamSkip, MAOGeoEGCA
+from .fusion import (
+    BalancedTriStreamFusion,
+    BalancedTriStreamSkip,
+    ConcatTriStreamLevel,
+    ConcatTriStreamSkip,
+    MAOGeoEGCA,
+)
 from .physics import PhysicsProxyMapper
 
 FmBackbone = Literal["efficientnet", "prithvi"]
 DecoderType = Literal["physics", "conv"]
-FusionType = Literal["balanced", "mao"]
+FusionType = Literal["balanced", "mao", "concat"]
 
 
 class GeoPhysicsLandslideNet(nn.Module):
@@ -64,7 +70,11 @@ class GeoPhysicsLandslideNet(nn.Module):
                 f"Unknown fm_backbone={fm_backbone!r}. Choose 'efficientnet' or 'prithvi'."
             )
 
-        if self.fusion_type == "balanced":
+        if self.fusion_type == "concat":
+            self.fuse3 = ConcatTriStreamLevel(channels)
+            self.fuse4 = ConcatTriStreamLevel(channels)
+            self.skips = nn.ModuleList([ConcatTriStreamSkip(channels) for _ in range(4)])
+        elif self.fusion_type == "balanced":
             self.fuse3 = BalancedTriStreamFusion(channels)
             self.fuse4 = BalancedTriStreamFusion(channels)
             self.skips = nn.ModuleList([BalancedTriStreamSkip(channels) for _ in range(4)])
@@ -84,7 +94,7 @@ class GeoPhysicsLandslideNet(nn.Module):
             self.post_fuse3 = nn.Conv2d(channels, channels, kernel_size=1, bias=False)
         else:
             raise ValueError(
-                f"Unknown fusion_type={fusion_type!r}. Choose 'balanced' or 'mao'."
+                f"Unknown fusion_type={fusion_type!r}. Choose 'balanced', 'concat', or 'mao'."
             )
         if self.decoder_type == "physics":
             self.decoder = PhysicsDecoder(channels=channels, n_classes=n_classes)
@@ -117,7 +127,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         p_dem = self.enc_dem(dem, alpha_d, h_d, m_d)
         t_fm = self.enc_fm(fm_in)
 
-        if self.fusion_type == "balanced":
+        if self.fusion_type in ("balanced", "concat"):
             f3 = self.fuse3(t_fm[3], p_rgb[3], p_dem[3])
             f4 = self.fuse4(t_fm[4], p_rgb[4], p_dem[4])
             skip_feats = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in range(4)]

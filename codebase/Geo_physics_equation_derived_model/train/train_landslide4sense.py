@@ -64,9 +64,9 @@ def parse_args():
     p.add_argument(
         "--fusion",
         type=str,
-        choices=("balanced", "mao"),
+        choices=("balanced", "concat", "mao"),
         default="balanced",
-        help="Fusion: balanced (intra-stream + symmetric mix + cross-attn) or mao (legacy).",
+        help="Fusion: balanced, concat (simple 3-stream concat), or mao (legacy).",
     )
     p.add_argument(
         "--high_dim_256",
