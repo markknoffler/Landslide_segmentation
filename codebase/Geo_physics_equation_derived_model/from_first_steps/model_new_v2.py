@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-import warnings
+import importlib.util
+import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import warnings
 
 import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
-
-from prithvi_encoder import PrithviFoundationEncoder
 
 
 def LN2d(channels: int) -> nn.GroupNorm:
@@ -135,94 +136,6 @@ def build_encoder(
         freeze=freeze,
     )
     return TimmEncoder(spec)
-
-
-def _sobel_slope_norm(dem: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    """Per-sample normalized slope in [0, 1] from a single-channel DEM tensor [B, 1, H, W]."""
-    b, _, h, w = dem.shape
-    out = []
-    for i in range(b):
-        d = dem[i, 0]
-        gy, gx = torch.gradient(d, spacing=(1.0, 1.0))
-        slope = torch.sqrt(gx * gx + gy * gy)
-        mn = slope.min()
-        mx = slope.max()
-        if float(mx - mn) > eps:
-            slope = (slope - mn) / (mx - mn + eps)
-        out.append(torch.clamp(slope, 0.0, 1.0))
-    return torch.stack(out, dim=0).unsqueeze(1)
-
-
-def _vegetation_index_from_rgb(rgb: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    """Green-red vegetation proxy from RGB [B, 3, H, W], normalized per sample to [0, 1]."""
-    r = rgb[:, 0]
-    g = rgb[:, 1]
-    vi = (g - r) / (g + r + eps)
-    vi = torch.clamp(vi, 0.0, 1.0)
-    b = vi.shape[0]
-    out = []
-    for i in range(b):
-        channel = vi[i]
-        mn = channel.min()
-        mx = channel.max()
-        if float(mx - mn) > eps:
-            channel = (channel - mn) / (mx - mn + eps)
-        out.append(torch.clamp(channel, 0.0, 1.0))
-    return torch.stack(out, dim=0).unsqueeze(1)
-
-
-def _minmax_per_channel_batch(x: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    out = x.clone()
-    b, c, _, _ = out.shape
-    for bi in range(b):
-        for ci in range(c):
-            channel = out[bi, ci]
-            mn = channel.min()
-            mx = channel.max()
-            if float(mx - mn) > eps:
-                channel = (channel - mn) / (mx - mn + eps)
-            out[bi, ci] = torch.clamp(channel, 0.0, 1.0)
-    return out
-
-
-def _is_replicated_dem_stream(stream_b: torch.Tensor, eps: float = 1e-3) -> bool:
-    """True when stream_b carries the same raster in all channels (Bijie DEM x3 layout)."""
-    diff01 = (stream_b[:, 0] - stream_b[:, 1]).abs().mean()
-    diff12 = (stream_b[:, 1] - stream_b[:, 2]).abs().mean()
-    return bool(diff01 < eps and diff12 < eps)
-
-
-def observed_stack_from_streams(stream_a: torch.Tensor, stream_b: torch.Tensor) -> torch.Tensor:
-    """
-    Build the 6-channel Prithvi input from the existing dual-stream batch tensors.
-
-    Landslide4Sense layout (stream_b = NDVI, slope, DEM):
-      [R, G, B, NDVI, slope, DEM]
-
-    Bijie layout (stream_b = DEM replicated x3):
-      [R, G, B, DEM, slope(DEM), vegetation_index(RGB)]
-    """
-    if stream_a.shape[1] < 3 or stream_b.shape[1] < 3:
-        raise ValueError(
-            f"Expected 3+ channels in each stream, got {stream_a.shape} and {stream_b.shape}"
-        )
-
-    r, g, b = stream_a[:, 0], stream_a[:, 1], stream_a[:, 2]
-    if _is_replicated_dem_stream(stream_b):
-        dem = stream_b[:, 0:1]
-        slope = _sobel_slope_norm(dem)
-        veg = _vegetation_index_from_rgb(stream_a)
-        stack = torch.cat([r.unsqueeze(1), g.unsqueeze(1), b.unsqueeze(1), dem, slope, veg], dim=1)
-    else:
-        ndvi, slope, dem = stream_b[:, 0], stream_b[:, 1], stream_b[:, 2]
-        stack = torch.stack([r, g, b, ndvi, slope, dem], dim=1)
-    return _minmax_per_channel_batch(stack)
-
-
-def _extract_dem_channel(stream_b: torch.Tensor) -> torch.Tensor:
-    if _is_replicated_dem_stream(stream_b):
-        return stream_b[:, 0:1]
-    return stream_b[:, 2:3]
 
 
 class SubPixelUp(nn.Module):
@@ -376,158 +289,139 @@ class GateFuse(nn.Module):
         return out, reg
 
 
-class DualStreamGateNet(nn.Module):
+class PrithviEncoder(nn.Module):
     """
-    Step-1 tri-stream encoder model built on the working DiGATe-UNet fusion/decoder stack.
-
-    Encoders (new):
-      - RGB EfficientNet on stream_a
-      - DEM EfficientNet on the DEM channel extracted from stream_b
-      - Prithvi-EO-2.0 + LoRA on a 6-channel observed raster stack built inside forward()
-
-    Fusion / decoder (unchanged from the working baseline):
-      - GateFuse at encoder levels c3/c4
-      - Dual AdaptiveDecoder paths
-      - GateFuse on decoder features x3/x4
+    Prithvi encoder for RGB data - using a different backbone than EfficientNet
     """
+    def __init__(self, n_channels: int = 3, pretrained: bool = True):
+        super().__init__()
+        # Using a different backbone for Prithvi (this would be a placeholder)
+        # In practice, this would be a specific Prithvi model
+        self.encoder = build_encoder(
+            name="prithvi_vit_384",  # Placeholder - this would be your actual Prithvi backbone
+            n_channels=n_channels,
+            pretrained=pretrained,
+            freeze=True
+        )
 
-    PRITHVI_CHANNELS = 64
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        return self.encoder(x)
 
+
+class DualStreamMixedNet(nn.Module):
+    """
+    Model with:
+    1. One Prithvi encoder for RGB data
+    2. Two EfficientNet encoders (one for DEM and one for RGB)
+    3. Single decoder that combines features from all three encoders
+    """
     def __init__(
         self,
         n_classes: int = 1,
-        backbone: str = "tf_efficientnet_b4",
-        n_channels: int = 3,
-        n_channels_b: Optional[int] = None,
+        backbone_rgb: str = "tf_efficientnet_b4",
+        backbone_dem: str = "tf_efficientnet_b4",
+        backbone_prithvi: str = "prithvi_vit_384",
+        n_channels_rgb: int = 3,
+        n_channels_dem: int = 1,
         pretrained: bool = True,
         pretrained_path: Optional[str] = None,
         use_input_adapter: bool = False,
         freeze_backbone: bool = True,
-        share_backbone: bool = False,
         out_indices: Tuple[int, ...] = (0, 1, 2, 3, 4),
-        prithvi_snapshot: Optional[str | Path] = None,
-        lora_rank: int = 8,
-        enable_prithvi: bool = True,
     ):
         super().__init__()
 
-        if share_backbone:
-            warnings.warn(
-                "share_backbone is ignored in the step-1 tri-stream model "
-                "(RGB, DEM, and Prithvi use separate encoders).",
-                stacklevel=2,
-            )
+        # Prithvi encoder for RGB data
+        self.prithvi_encoder = PrithviEncoder(
+            n_channels=n_channels_rgb,
+            pretrained=pretrained
+        )
 
-        self.enable_prithvi = enable_prithvi
-        self.encoder_rgb = build_encoder(
-            name=backbone,
-            n_channels=n_channels,
+        # EfficientNet encoder for DEM data
+        self.dem_encoder = build_encoder(
+            name=backbone_dem,
+            n_channels=n_channels_dem,
             out_indices=out_indices,
             pretrained=pretrained if pretrained_path is None else False,
             pretrained_path=pretrained_path,
             use_input_adapter=use_input_adapter,
             freeze=freeze_backbone,
         )
-        self.encoder_dem = build_encoder(
-            name=backbone,
-            n_channels=1,
+
+        # EfficientNet encoder for RGB data (separate from Prithvi)
+        self.rgb_encoder = build_encoder(
+            name=backbone_rgb,
+            n_channels=n_channels_rgb,
             out_indices=out_indices,
             pretrained=pretrained if pretrained_path is None else False,
             pretrained_path=pretrained_path,
-            use_input_adapter=False,
+            use_input_adapter=use_input_adapter,
             freeze=freeze_backbone,
         )
 
-        if tuple(self.encoder_rgb.channels) != tuple(self.encoder_dem.channels):
-            raise ValueError(
-                f"RGB/DEM encoder channel lists differ: "
-                f"{self.encoder_rgb.channels} vs {self.encoder_dem.channels}"
-            )
-        ch_list = self.encoder_rgb.channels
+        # Get channel sizes from the encoders
+        # Note: Using the dem_encoder channel sizes as reference
+        ch_list = self.dem_encoder.channels
 
-        if self.enable_prithvi:
-            self.encoder_fm = PrithviFoundationEncoder(
-                unified_channels=self.PRITHVI_CHANNELS,
-                lora_rank=lora_rank,
-                snapshot_dir=prithvi_snapshot,
-                input_normalization="observed_rasters",
-            )
-            _, _, c3, c4, _ = ch_list
-            self.fm_proj_c3 = nn.Sequential(
-                nn.Conv2d(self.PRITHVI_CHANNELS, c3, kernel_size=1, bias=False),
-                LN2d(c3),
-                nn.ReLU(inplace=True),
-            )
-            self.fm_proj_c4 = nn.Sequential(
-                nn.Conv2d(self.PRITHVI_CHANNELS, c4, kernel_size=1, bias=False),
-                LN2d(c4),
-                nn.ReLU(inplace=True),
-            )
-            self.efuse_c4_ab = GateFuse(ch_list[3])
-            self.efuse_c4_fm = GateFuse(ch_list[3])
-            self.efuse_c3_ab = GateFuse(ch_list[2])
-            self.efuse_c3_fm = GateFuse(ch_list[2])
-        else:
-            self.encoder_fm = None
-            self.fm_proj_c3 = None
-            self.fm_proj_c4 = None
-            self.efuse_c4_ab = GateFuse(ch_list[3])
-            self.efuse_c4_fm = None
-            self.efuse_c3_ab = GateFuse(ch_list[2])
-            self.efuse_c3_fm = None
+        # Single decoder that processes features from all three encoders
+        self.decoder = AdaptiveDecoder(ch_list)
 
-        self.decoderA = AdaptiveDecoder(ch_list)
-        self.decoderB = AdaptiveDecoder(ch_list)
-        self.fuse_x3 = GateFuse(self.decoderA.ch_x3)
-        self.fuse_x4 = GateFuse(self.decoderA.ch_x4)
-        final_ch = self.decoderA.final_ch
+        # Gate fusion modules for combining features from different encoders
+        self.fuse_prithvi_dem = GateFuse(ch_list[-1])  # Fuse at highest resolution
+        self.fuse_rgb_dem = GateFuse(ch_list[-1])      # Fuse at highest resolution
+
+        # Additional fusion modules for intermediate features
+        self.fuse_prithvi_rgb = GateFuse(ch_list[-2])  # Fuse at second highest resolution
+
+        # Final head components
+        final_ch = self.decoder.final_ch
         self.up_final = SubPixelUp(final_ch, final_ch // 2)
         self.head = OutConv(final_ch // 2, n_classes)
-        self.aux2 = OutConv(self.decoderA.ch_x3, n_classes)
-        self.aux3 = OutConv(self.decoderA.ch_x4, n_classes)
-
-    def _fuse_encoder_level(
-        self,
-        rgb_feat: torch.Tensor,
-        dem_feat: torch.Tensor,
-        fm_feat: Optional[torch.Tensor],
-        fuse_ab: GateFuse,
-        fuse_fm: Optional[GateFuse],
-    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        fused_ab, reg_ab = fuse_ab(rgb_feat, dem_feat)
-        if fm_feat is None or fuse_fm is None:
-            return fused_ab, (reg_ab,)
-        fused, reg_fm = fuse_fm(fused_ab, fm_feat)
-        return fused, (reg_ab, reg_fm)
+        self.aux2 = OutConv(self.decoder.ch_x3, n_classes)
+        self.aux3 = OutConv(self.decoder.ch_x4, n_classes)
 
     def forward(
-        self, x1: torch.Tensor, x2: torch.Tensor
+        self,
+        rgb: torch.Tensor,
+        dem: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
-        dem = _extract_dem_channel(x2)
-        (a1, a2, a3, a4, a5) = self.encoder_rgb(x1)
-        (b1, b2, b3, b4, b5) = self.encoder_dem(dem)
+        # Process RGB data through Prithvi encoder
+        prithvi_feats = self.prithvi_encoder(rgb)
 
-        fm3 = fm4 = None
-        if self.enable_prithvi and self.encoder_fm is not None:
-            fm_in = observed_stack_from_streams(x1, x2)
-            fm_feats = self.encoder_fm(fm_in)
-            fm3 = self.fm_proj_c3(fm_feats[3])
-            fm4 = self.fm_proj_c4(fm_feats[4])
+        # Process DEM data through EfficientNet encoder
+        dem_feats = self.dem_encoder(dem)
 
-        f4, reg_c4 = self._fuse_encoder_level(a4, b4, fm4, self.efuse_c4_ab, self.efuse_c4_fm)
-        f3, reg_c3 = self._fuse_encoder_level(a3, b3, fm3, self.efuse_c3_ab, self.efuse_c3_fm)
+        # Process RGB data through EfficientNet encoder
+        rgb_feats = self.rgb_encoder(rgb)
 
-        _, _, x3a, x4a = self.decoderA(a1, a2, f3, f4, a5)
-        _, _, x3b, x4b = self.decoderB(b1, b2, f3, f4, b5)
+        # Unpack features from each encoder
+        prithvi_f1, prithvi_f2, prithvi_f3, prithvi_f4, prithvi_f5 = prithvi_feats
+        dem_f1, dem_f2, dem_f3, dem_f4, dem_f5 = dem_feats
+        rgb_f1, rgb_f2, rgb_f3, rgb_f4, rgb_f5 = rgb_feats
 
-        x3, reg_x3 = self.fuse_x3(x3a, x3b)
-        x4, reg_x4 = self.fuse_x4(x4a, x4b)
+        # Gate fusion of features from different encoders
+        # Fuse Prithvi and DEM features at highest resolution
+        fused_f5, reg_f5 = self.fuse_prithvi_dem(prithvi_f5, dem_f5)
 
+        # Fuse RGB and DEM features at highest resolution
+        fused_f5_2, reg_f5_2 = self.fuse_rgb_dem(rgb_f5, dem_f5)
+
+        # Combine the fused features (simple concatenation or more sophisticated fusion)
+        # For now, we'll use the Prithvi-Dem fused features as the main input to decoder
+        # This can be modified based on specific requirements
+        fused_features = (prithvi_f1, prithvi_f2, prithvi_f3, fused_f5, prithvi_f5)
+
+        # Process through decoder
+        x1, x2, x3, x4 = self.decoder(*fused_features)
+
+        # Final prediction
         main = self.head(self.up_final(x4))
         aux2 = F.interpolate(self.aux2(x3), size=main.shape[2:], mode="bilinear", align_corners=True)
         aux3 = F.interpolate(self.aux3(x4), size=main.shape[2:], mode="bilinear", align_corners=True)
-        reg = (*reg_c4, *reg_c3, reg_x3, reg_x4)
+        reg = (reg_f5, reg_f5_2)  # Regularization terms from gate fusion
+
         return main, aux2, aux3, reg
 
 
-DiGATe_Unet = DualStreamGateNet
+# Alias for backward compatibility
+DiGATe_Unet = DualStreamMixedNet

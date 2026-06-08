@@ -25,7 +25,7 @@ FusionType = Literal["balanced", "mao", "concat"]
 FmPyramid = Literal["native", "legacy"]
 
 
-class GeoPhysicsLandslideNet(nn.Module):
+class DualStreamPhysicsNet(nn.Module):
     def __init__(
         self,
         channels: int = 64,
@@ -54,8 +54,11 @@ class GeoPhysicsLandslideNet(nn.Module):
         if self.fm_backbone != "efficientnet":
             self.fm_pyramid = "legacy"
 
+        # Physics proxy mappers for both streams
         self.proxy_rgb = PhysicsProxyMapper()
         self.proxy_dem = PhysicsProxyMapper()
+
+        # Physics encoders for both streams
         self.enc_rgb = PhysicsEncoder(
             in_channels=3, unified_channels=channels, mechanistic_gating=mechanistic_gating
         )
@@ -63,6 +66,7 @@ class GeoPhysicsLandslideNet(nn.Module):
             in_channels=1, unified_channels=channels, mechanistic_gating=mechanistic_gating
         )
 
+        # Feature map backbone - using the existing foundation encoders
         if self.fm_backbone == "prithvi":
             self.enc_fm = PrithviFoundationEncoder(
                 unified_channels=channels,
@@ -245,3 +249,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         if aux3.shape[-2:] != target_size:
             aux3 = F.interpolate(aux3, size=target_size, mode="bilinear", align_corners=False)
         return main, aux2, aux3
+
+
+# Keep the original GeoPhysicsLandslideNet as an alias for backward compatibility
+GeoPhysicsLandslideNet = DualStreamPhysicsNet
