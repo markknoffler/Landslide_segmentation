@@ -15,9 +15,9 @@ The full geo-physics model under-performed vs the paper-aligned dual-stream gate
 | Step | Focus | Status |
 |------|--------|--------|
 | 1 | 3 encoders (EffNet RGB + EffNet DEM + Prithvi); keep `GateFuse` + paper decoder | Done |
-| 2 | Document fusion (MAO-GeoEGCA + TTEB); keep EffNet encoders + paper decoder | **Done** |
-| 3 | Replace EffNet RGB/DEM with physics encoders | Planned |
-| 4 | Physics decoder + PGDI (optional; only if paper decoder is swapped) | Planned |
+| 2 | Document fusion (MAO-GeoEGCA + TTEB); keep EffNet encoders + paper decoder | Done |
+| 3 | **5 encoders** (EffNet×2 + Physics×2 + Prithvi); CMB hybrid bridge; dual physics decoder | **Done** |
+| 4 | Optional ablations (balanced/concat fusion, mechanistic gating off) | Planned |
 
 ---
 
@@ -228,22 +228,166 @@ Compare `outputs_step1_*` vs `outputs_step2_*` on the same splits/hyperparameter
 
 ---
 
-## Planned Step 3+
+# Step 3 — Penta-Stream Encoders + Dual Physics Decoder
 
-1. **Physics encoders** — swap EffNet RGB/DEM for `PhysicsEncoder` + `PhysicsProxyMapper`; keep MAO/TTEB + paper decoder.
-2. **Optional:** balanced/concat fusion modes as ablations.
-3. **Optional later:** physics decoder + PGDI instead of `AdaptiveDecoder`.
+## Your prompt (summary)
+
+- Expand from **3 to 5 encoders**: keep EffNet RGB, EffNet DEM, Prithvi **and add** physics encoders for RGB and DEM.
+- Design a **principled fusion strategy** for 5 encoders (not a hack).
+- Replace decoder with **physics decoder + PGDI** from the architecture docs, but preserve the **dual-stream decoder strategy** (two paths + `GateFuse` on outputs).
+- Update `model_architecture.md` for the 5-encoder design.
+- Document here as Step 3.
+
+## Design rationale
+
+### Why not replace EfficientNet with physics?
+
+Step 2 showed strong metrics with CNN texture + Prithvi + MAO/TTEB. Physics encoders encode **geotechnical stability** (FS gates) but lack ImageNet-scale texture priors. Removing CNNs would discard proven features.
+
+**Solution:** run both in parallel and merge per level with the **Complementary Modality Bridge (CMB)**:
+
+- High CNN–physics resonance → trust mechanistic features.
+- Low resonance → keep CNN, add learned blend correction.
+
+### Five-encoder → three-stream fusion
+
+MAO/TTEB were designed for three streams at C=64. Rather than inventing a 5-way fusion block (which would be harder to train and interpret), we **collapse to hybrid bimodal streams** first:
+
+| Modality | Encoders | CMB output |
+|----------|----------|------------|
+| RGB | EffNet RGB + PhysicsEncoder RGB | \(H_{\text{rgb}}^L\) |
+| DEM | EffNet DEM + PhysicsEncoder DEM | \(H_{\text{dem}}^L\) |
+| FM | Prithvi (unchanged) | \(T_{\text{fm}}^L\) |
+
+Then Step 2 fusion applies unchanged on \((H_{\text{rgb}}, H_{\text{dem}}, T_{\text{fm}})\).
+
+### Physics proxies (no dataset changes)
+
+`slope`, `dem`, `ndvi` are derived inside `forward()` via `physics_proxies_from_streams(x1, x2)` — same logic as the parent GPLNet pipeline. Separate `PhysicsProxyMapper` instances for RGB-path vs DEM-path decoders.
+
+### Dual physics decoder (paper strategy preserved)
+
+| Component | Step 2 (paper) | Step 3 (physics) |
+|-----------|----------------|------------------|
+| Paths | `AdaptiveDecoder` A / B | `PhysicsDecoder` A / B |
+| Bottleneck | `a5` / `b5` (EffNet) | `a5` / `b5` projected to C=64 and added to \(F^4\) |
+| Shared context | MAO/TTEB skips (projected to EffNet ch) | MAO/TTEB skips at C=64 directly |
+| Physics vars | — | RGB proxies → path A; DEM proxies → path B |
+| Output fusion | `GateFuse` on x3/x4 features | `GateFuse` on main/aux2/aux3 **logits** |
+
+## Files added/changed (Step 3)
+
+| File | Change |
+|------|--------|
+| `physics/pixel_cell.py` | `PixelMechanisticCell` (FS gate at L0) |
+| `physics/latent_cell.py` | `LatentMechanisticCell` (latent FS ratio) |
+| `physics/proxy_mapper.py` | `PhysicsProxyMapper` (slope/dem/ndvi → α,h,m) |
+| `physics/__init__.py` | Exports |
+| `encoders/physics_encoder.py` | 5-level physics pyramid + projectors |
+| `encoders/projector.py` | `StreamProjector` |
+| `encoders/__init__.py` | Exports |
+| `fusion/hybrid_stream_bridge.py` | `ComplementaryModalityBridge` (CMB) |
+| `decoder/pgdi.py` | `PhysicsGatedDecoderInjection` |
+| `decoder/physics_decoder.py` | Upsampling + PGDI + aux heads |
+| `decoder/dual_physics_decoder.py` | Dual paths + `GateFuse` on logits |
+| `decoder/__init__.py` | Exports |
+| `model.py` | 5 encoders, CMB, physics decoder path, ablation flags |
+| `train_bijie.py`, `training.py` | `--decoder`, `--no_physics_encoders`, `--no_mechanistic_gating` |
+| `model_architecture.md` | §3.1.1 CMB, §3.6.3 dual physics decoder, Algorithm 1B |
+
+## Step 3 architecture diagram
+
+```
+stream_a ──► EffNet RGB ────────┐
+         └──► PhysicsEnc RGB ──┼──► CMB ──► H_rgb (64ch pyramid) ─┐
+stream_b ──► EffNet DEM ────────┐                                  │
+         └──► PhysicsEnc DEM ──┼──► CMB ──► H_dem (64ch pyramid) ─┼─┐
+         └──► 6ch stack ──► Prithvi ──► T_fm (64ch pyramid) ──────┘ │
+                                                                      │
+                         MAO @ L2,L3 + TTEB @ L0–L3 ──────────────────┘
+                                       │
+                         DualPhysicsGatedDecoder
+                         (PhysicsDecoder A + B, GateFuse logits)
+                                       │
+                              main + aux2 + aux3 + reg (3 terms)
+```
+
+## Model API (Step 3 defaults)
+
+```python
+model = DualStreamGateNet(
+    fusion_type="mao",              # required for physics decoder
+    decoder_type="physics",         # default Step 3
+    enable_physics_encoders=True,   # default
+    enable_prithvi=True,
+    mechanistic_gating=True,
+    prithvi_snapshot="/path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL",
+)
+```
+
+## Ablation flags
+
+| Flag | Effect |
+|------|--------|
+| `--decoder paper` | Step 2 `AdaptiveDecoder` + `fusion_to_decoder` bridge |
+| `--no_physics_encoders` | Step 2 tri-stream (EffNet only); requires `--decoder paper` |
+| `--fusion gate` | Step 1 encoder `GateFuse`; requires `--decoder paper` |
+| `--no_mechanistic_gating` | Physics cells run without FS gate (features only) |
+| `--no_prithvi` | Disable Prithvi (not compatible with `--decoder physics`) |
+
+## Train command (Bijie, Step 3 default)
+
+```bash
+python train_bijie.py \
+  --dataset_root /path/to/Bijie-landslide-dataset \
+  --output_dir ./outputs_step3_bijie \
+  --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
+  --fusion mao \
+  --decoder physics \
+  --tversky_alpha 0.3 --tversky_beta 0.7 \
+  --backbone tf_efficientnet_b4 --pretrained --freeze_backbone \
+  --epochs 100 --batch_size 32 --lr 3e-4
+```
+
+Reproduce Step 2 exactly:
+
+```bash
+python train_bijie.py ... --decoder paper --no_physics_encoders --fusion mao
+```
+
+## Verification (Step 3)
+
+```
+physics + mao + prithvi: main/aux2/aux3 = [B,1,256,256], reg length = 3
+paper + mao (Step 2):    reg length = 2
+gate (Step 1):           reg length = 4–6 depending on Prithvi
+```
+
+Local smoke test (no Prithvi weights): `--no_prithvi --decoder paper --fusion gate` runs forward.
+
+## Expected outcome
+
+Step 3 answers: **"Does adding physics encoders + dual physics decoder on top of Step 2 fusion improve landslide segmentation?"**
+
+Compare `outputs_step2_*` vs `outputs_step3_*` on identical splits/hyperparameters.
+
+---
+
+## Planned Step 4+
+
+1. Balanced / concat fusion modes from parent `model_architecture.md`.
+2. Further ablations: CMB off (concat CNN+physics), single physics decoder path.
 
 ---
 
 ## Requirement → implementation matrix
 
-| Requirement | Step 1 | Step 2 |
-|-------------|--------|--------|
-| Only `from_first_steps/` | Yes | Yes |
-| No training/data/metrics changes | Yes | Yes (added CLI flags only) |
-| 3 encoders | EffNet + EffNet + Prithvi | Same |
-| Physics encoders | No | No |
-| Document fusion | No (`GateFuse`) | Yes (MAO + TTEB) |
-| Paper decoder | Yes | Yes |
-| Prithvi path via CLI | Added after Step 1 | `--prithvi_snapshot` |
+| Requirement | Step 1 | Step 2 | Step 3 |
+|-------------|--------|--------|--------|
+| Only `from_first_steps/` | Yes | Yes | Yes |
+| No training/data/metrics changes | Yes | Yes (CLI flags) | Yes (CLI flags) |
+| Encoders | 3 (EffNet×2 + Prithvi) | Same | **5** (EffNet×2 + Physics×2 + Prithvi) |
+| Physics encoders | No | No | **Yes** (parallel to EffNet, not replacement) |
+| Document fusion | `GateFuse` | MAO + TTEB | MAO + TTEB on **hybrid** streams |
+| Decoder | Paper | Paper | **Dual physics** (default); paper via flag |
+| Prithvi path via CLI | Yes | Yes | Yes |

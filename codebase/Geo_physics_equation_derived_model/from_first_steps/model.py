@@ -11,8 +11,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from fusion import MAOGeoEGCA, TriTemporalTriStreamBridge
+from decoder import DualPhysicsGatedDecoder
+from encoders import PhysicsEncoder
+from fusion import ComplementaryModalityBridge, MAOGeoEGCA, TriTemporalTriStreamBridge
 from fusion.pyramid_utils import match_spatial
+from physics import PhysicsProxyMapper
 from prithvi_encoder import PrithviFoundationEncoder
 
 
@@ -227,6 +230,20 @@ def _extract_dem_channel(stream_b: torch.Tensor) -> torch.Tensor:
     return stream_b[:, 2:3]
 
 
+def physics_proxies_from_streams(
+    stream_a: torch.Tensor, stream_b: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Slope, DEM, and vegetation proxies for PhysicsProxyMapper (no dataset changes)."""
+    dem = _extract_dem_channel(stream_b)
+    if _is_replicated_dem_stream(stream_b):
+        slope = _sobel_slope_norm(dem)
+        ndvi = _vegetation_index_from_rgb(stream_a)
+    else:
+        ndvi = stream_b[:, 0:1]
+        slope = stream_b[:, 1:2]
+    return slope, dem, ndvi
+
+
 class SubPixelUp(nn.Module):
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
@@ -380,20 +397,19 @@ class GateFuse(nn.Module):
 
 class DualStreamGateNet(nn.Module):
     """
-    Tri-stream model: EfficientNet RGB + EfficientNet DEM + Prithvi (Step 1 encoders).
+    Penta-stream model (Step 3 default):
+      - EfficientNet RGB + PhysicsEncoder RGB  -> ComplementaryModalityBridge -> H_rgb
+      - EfficientNet DEM + PhysicsEncoder DEM    -> ComplementaryModalityBridge -> H_dem
+      - Prithvi FM                             -> T_fm
+      - MAO-GeoEGCA @ c3/c4 + TTEB skips @ L0-L3 on (H_rgb, H_dem, T_fm)
+      - DualPhysicsGatedDecoder (physics cells + PGDI + dual GateFuse)
 
-    Step 2 fusion (default, fusion_type='mao'):
-      - MAO-GeoEGCA at encoder levels c3/c4 (L3/L4)
-      - TTEB skip fusion at levels 0–3
-      - Paper AdaptiveDecoder dual paths + GateFuse on decoder x3/x4
-
-    fusion_type='gate' restores Step-1 chained GateFuse at c3/c4 (ablation).
+    fusion_type='gate' + decoder_type='paper' reproduces Step 1/2 ablations.
     """
 
     PRITHVI_CHANNELS = 64
     FUSION_CHANNELS = 64
-    # Prithvi pyramid index aligned to each EfficientNet level (0..4).
-    FM_LEVEL_FOR_EFFNET = (1, 2, 3, 4, 4)
+    LEGACY_LEVEL_FOR_EFFNET = (1, 2, 3, 4, 4)
     MAO_LEVELS = (2, 3)
     TTEB_LEVELS = (0, 1, 2, 3)
 
@@ -412,7 +428,10 @@ class DualStreamGateNet(nn.Module):
         prithvi_snapshot: Optional[str | Path] = None,
         lora_rank: int = 8,
         enable_prithvi: bool = True,
+        enable_physics_encoders: bool = True,
         fusion_type: str = "mao",
+        decoder_type: str = "physics",
+        mechanistic_gating: bool = True,
         tteb_attn_chunk: int = 1024,
         tteb_attn_low_res_max: int = 4096,
     ):
@@ -425,9 +444,21 @@ class DualStreamGateNet(nn.Module):
             )
 
         self.enable_prithvi = enable_prithvi
+        self.enable_physics_encoders = enable_physics_encoders
         self.fusion_type = str(fusion_type).lower()
+        self.decoder_type = str(decoder_type).lower()
+        self.mechanistic_gating = mechanistic_gating
         if self.fusion_type not in {"mao", "gate"}:
             raise ValueError(f"Unknown fusion_type={fusion_type!r}. Choose 'mao' or 'gate'.")
+        if self.decoder_type not in {"physics", "paper"}:
+            raise ValueError(f"Unknown decoder_type={decoder_type!r}. Choose 'physics' or 'paper'.")
+        if self.decoder_type == "physics":
+            if self.fusion_type != "mao":
+                raise ValueError("decoder_type='physics' requires fusion_type='mao'.")
+            if not enable_physics_encoders:
+                raise ValueError("decoder_type='physics' requires enable_physics_encoders=True.")
+            if not enable_prithvi:
+                raise ValueError("decoder_type='physics' requires Prithvi enabled.")
 
         self.encoder_rgb = build_encoder(
             name=backbone,
@@ -454,8 +485,34 @@ class DualStreamGateNet(nn.Module):
                 f"{self.encoder_rgb.channels} vs {self.encoder_dem.channels}"
             )
         ch_list = list(self.encoder_rgb.channels)
-
         fusion_ch = self.FUSION_CHANNELS
+
+        if self.enable_physics_encoders:
+            self.proxy_rgb = PhysicsProxyMapper()
+            self.proxy_dem = PhysicsProxyMapper()
+            self.enc_phys_rgb = PhysicsEncoder(
+                in_channels=3,
+                unified_channels=fusion_ch,
+                mechanistic_gating=mechanistic_gating,
+            )
+            self.enc_phys_dem = PhysicsEncoder(
+                in_channels=1,
+                unified_channels=fusion_ch,
+                mechanistic_gating=mechanistic_gating,
+            )
+            self.hybrid_rgb = nn.ModuleList(
+                [ComplementaryModalityBridge(ch, fusion_ch) for ch in ch_list]
+            )
+            self.hybrid_dem = nn.ModuleList(
+                [ComplementaryModalityBridge(ch, fusion_ch) for ch in ch_list]
+            )
+        else:
+            self.proxy_rgb = None
+            self.proxy_dem = None
+            self.enc_phys_rgb = None
+            self.enc_phys_dem = None
+            self.hybrid_rgb = None
+            self.hybrid_dem = None
 
         def _to_fusion(in_ch: int) -> nn.Module:
             if in_ch == fusion_ch:
@@ -528,15 +585,51 @@ class DualStreamGateNet(nn.Module):
             self.efuse_c3_ab = GateFuse(ch_list[2])
             self.efuse_c3_fm = GateFuse(ch_list[2]) if self.enable_prithvi else None
 
-        self.decoderA = AdaptiveDecoder(ch_list)
-        self.decoderB = AdaptiveDecoder(ch_list)
-        self.fuse_x3 = GateFuse(self.decoderA.ch_x3)
-        self.fuse_x4 = GateFuse(self.decoderA.ch_x4)
-        final_ch = self.decoderA.final_ch
-        self.up_final = SubPixelUp(final_ch, final_ch // 2)
-        self.head = OutConv(final_ch // 2, n_classes)
-        self.aux2 = OutConv(self.decoderA.ch_x3, n_classes)
-        self.aux3 = OutConv(self.decoderA.ch_x4, n_classes)
+        if self.decoder_type == "physics":
+            self.physics_decoder = DualPhysicsGatedDecoder(
+                channels=fusion_ch,
+                n_classes=n_classes,
+                bottleneck_ch=ch_list[4],
+                mechanistic_gating=mechanistic_gating,
+            )
+            self.decoderA = None
+            self.decoderB = None
+            self.fuse_x3 = None
+            self.fuse_x4 = None
+            self.up_final = None
+            self.head = None
+            self.aux2 = None
+            self.aux3 = None
+        else:
+            self.physics_decoder = None
+            self.decoderA = AdaptiveDecoder(ch_list)
+            self.decoderB = AdaptiveDecoder(ch_list)
+            self.fuse_x3 = GateFuse(self.decoderA.ch_x3)
+            self.fuse_x4 = GateFuse(self.decoderA.ch_x4)
+            final_ch = self.decoderA.final_ch
+            self.up_final = SubPixelUp(final_ch, final_ch // 2)
+            self.head = OutConv(final_ch // 2, n_classes)
+            self.aux2 = OutConv(self.decoderA.ch_x3, n_classes)
+            self.aux3 = OutConv(self.decoderA.ch_x4, n_classes)
+
+    def _align_legacy_level(self, legacy_pyramid: list[torch.Tensor], ref: torch.Tensor, level_i: int) -> torch.Tensor:
+        legacy_idx = self.LEGACY_LEVEL_FOR_EFFNET[level_i]
+        return match_spatial(legacy_pyramid[legacy_idx], ref)
+
+    def _hybrid_pyramids(
+        self,
+        rgb_feats: Tuple[torch.Tensor, ...],
+        dem_feats: Tuple[torch.Tensor, ...],
+        phys_rgb: list[torch.Tensor],
+        phys_dem: list[torch.Tensor],
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+        h_rgb, h_dem = [], []
+        for i, (rgb, dem) in enumerate(zip(rgb_feats, dem_feats)):
+            pr = self._align_legacy_level(phys_rgb, rgb, i)
+            pd = self._align_legacy_level(phys_dem, dem, i)
+            h_rgb.append(self.hybrid_rgb[i](rgb, pr))
+            h_dem.append(self.hybrid_dem[i](dem, pd))
+        return h_rgb, h_dem
 
     def _fusion_pyramids(
         self,
@@ -550,7 +643,7 @@ class DualStreamGateNet(nn.Module):
         p_rgb, p_dem, t_fm = [], [], []
         for i, rgb in enumerate(rgb_feats):
             dem = dem_feats[i]
-            fm_idx = self.FM_LEVEL_FOR_EFFNET[i]
+            fm_idx = self.LEGACY_LEVEL_FOR_EFFNET[i]
             fm = match_spatial(fm_feats[fm_idx], rgb)
             p_rgb.append(self.rgb_to_fusion[i](rgb))
             p_dem.append(self.dem_to_fusion[i](dem))
@@ -578,6 +671,8 @@ class DualStreamGateNet(nn.Module):
         self, x1: torch.Tensor, x2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
         dem = _extract_dem_channel(x2)
+        slope, dem_norm, ndvi = physics_proxies_from_streams(x1, x2)
+
         rgb_feats = self.encoder_rgb(x1)
         dem_feats = self.encoder_dem(dem)
         a1, a2, a3, a4, a5 = rgb_feats
@@ -588,12 +683,49 @@ class DualStreamGateNet(nn.Module):
         if self.fusion_type == "mao" and self.enable_prithvi and self.encoder_fm is not None:
             fm_in = observed_stack_from_streams(x1, x2)
             fm_raw = self.encoder_fm(fm_in)
-            p_rgb, p_dem, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
+            _, _, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
 
-            f3 = self._decode_from_fusion(2, self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2])))
-            f4 = self._decode_from_fusion(3, self.fuse4(t_fm[3], p_rgb[3], p_dem[3]))
-            s0 = self._decode_from_fusion(0, self.skips[0](p_rgb, p_dem, t_fm, level=0))
-            s1 = self._decode_from_fusion(1, self.skips[1](p_rgb, p_dem, t_fm, level=1))
+            if self.enable_physics_encoders:
+                alpha_r, h_r, m_r = self.proxy_rgb(slope, dem_norm, ndvi)
+                alpha_d, h_d, m_d = self.proxy_dem(slope, dem_norm, ndvi)
+                phys_rgb = self.enc_phys_rgb(x1, alpha_r, h_r, m_r)
+                phys_dem = self.enc_phys_dem(dem, alpha_d, h_d, m_d)
+                p_rgb, p_dem = self._hybrid_pyramids(rgb_feats, dem_feats, phys_rgb, phys_dem)
+            else:
+                alpha_r = h_r = m_r = alpha_d = h_d = m_d = None
+                p_rgb, p_dem, _ = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
+
+            f3_fused = self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2]))
+            f4_fused = self.fuse4(t_fm[3], p_rgb[3], p_dem[3])
+            tteb_skips = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in self.TTEB_LEVELS]
+
+            if self.decoder_type == "physics" and self.physics_decoder is not None:
+                main, aux2, aux3, dec_reg = self.physics_decoder(
+                    f4_fused,
+                    f3_fused,
+                    tteb_skips,
+                    a5,
+                    b5,
+                    alpha_r,
+                    h_r,
+                    m_r,
+                    alpha_d,
+                    h_d,
+                    m_d,
+                )
+                target_size = x1.shape[-2:]
+                if main.shape[-2:] != target_size:
+                    main = F.interpolate(main, size=target_size, mode="bilinear", align_corners=False)
+                if aux2.shape[-2:] != target_size:
+                    aux2 = F.interpolate(aux2, size=target_size, mode="bilinear", align_corners=False)
+                if aux3.shape[-2:] != target_size:
+                    aux3 = F.interpolate(aux3, size=target_size, mode="bilinear", align_corners=False)
+                return main, aux2, aux3, dec_reg
+
+            f3 = self._decode_from_fusion(2, f3_fused)
+            f4 = self._decode_from_fusion(3, f4_fused)
+            s0 = self._decode_from_fusion(0, tteb_skips[0])
+            s1 = self._decode_from_fusion(1, tteb_skips[1])
 
             _, _, x3a, x4a = self.decoderA(s0, s1, f3, f4, a5)
             _, _, x3b, x4b = self.decoderB(s0, s1, f3, f4, b5)

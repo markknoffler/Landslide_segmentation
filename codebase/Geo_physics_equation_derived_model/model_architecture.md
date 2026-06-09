@@ -30,7 +30,9 @@
 | 3 | 32×32 |
 | 4 | 16×16 |
 
-Streams: **rgb** (physics RGB encoder), **dem** (physics DEM encoder), **fm** (EfficientNet-B4 via `timm` **or** Prithvi-EO-2.0 + LoRA; select with `--fm_backbone`).
+Streams (original GPLNet): **rgb** (physics RGB encoder), **dem** (physics DEM encoder), **fm** (EfficientNet-B4 via `timm` **or** Prithvi-EO-2.0 + LoRA; select with `--fm_backbone`).
+
+**Penta-stream variant (`from_first_steps/` Step 3):** five encoders run in parallel — **E_rgb** (EfficientNet RGB), **P_rgb** (physics RGB), **E_dem** (EfficientNet DEM), **P_dem** (physics DEM), **T_fm** (Prithvi). CNN and physics branches per modality are merged by the **Complementary Modality Bridge (CMB)** before MAO/TTEB.
 
 ---
 
@@ -113,6 +115,29 @@ Shared architecture; different input channels and proxy mappers.
 | Proj | StreamProjector 1×1 Conv per level | B×C×H_L×W_L |
 
 Outputs: \(\{P_{\text{rgb}}^L\}_{L=0}^4\), \(\{P_{\text{dem}}^L\}_{L=0}^4\).
+
+#### 3.1.1 Penta-stream hybrid bridge (Step 3, `from_first_steps/`)
+
+CNN texture encoders are **not** removed. Each modality keeps EfficientNet **and** gains a physics encoder. At every pyramid level \(L\):
+
+\[
+H_{\text{rgb}}^L = \text{CMB}(E_{\text{rgb}}^L,\ P_{\text{rgb}}^L), \quad
+H_{\text{dem}}^L = \text{CMB}(E_{\text{dem}}^L,\ P_{\text{dem}}^L)
+\]
+
+**Complementary Modality Bridge** (`ComplementaryModalityBridge`):
+
+1. Project CNN features to C=64 if needed: \(\tilde{E} = \text{GN}(\text{Conv}_{1\times1}(E))\)  
+2. Calibrate physics features: \(\tilde{P} = \text{GN}(P)\)  
+3. **Resonance gate:** \(g = \sigma(\text{Conv}_{1\times1}(\tilde{E} \odot \tilde{P}))\)  
+4. **Blend:** \(B = \text{Conv}_{1\times1}([\tilde{E}; \tilde{P}])\)  
+5. **Hybrid:** \(H = g \odot \tilde{P} + (1-g) \odot \tilde{E} + B\)
+
+When CNN and physics agree (high \(g\)), mechanistic features dominate; when they disagree, CNN texture is preserved and the blend path adds a learned correction.
+
+Physics pyramids are aligned to EfficientNet spatial sizes via index map `LEGACY_LEVEL_FOR_EFFNET = (1,2,3,4,4)` (same as Prithvi→EffNet alignment).
+
+Tri-stream fusion (MAO @ L2–L3, TTEB @ L0–L3) then consumes **\((H_{\text{rgb}}, H_{\text{dem}}, T_{\text{fm}})\)** instead of raw CNN or physics tensors alone.
 
 ### 3.2 Prithvi foundation encoder
 
@@ -285,6 +310,20 @@ The network exposes a **decoder switch** via `--decoder`:
 | PGDI@L0 | same with S⁰ |
 | Head | PixelMechanisticCell + Conv1×1 → B×1×256×256 logits |
 
+#### 3.6.3 Dual physics gated decoder (Step 3, `from_first_steps/`)
+
+Preserves the **dual-stream decoder strategy** from the paper baseline while replacing `AdaptiveDecoder` internals with physics cells:
+
+1. **Shared tri-stream context:** MAO/TTEB outputs \(F^4, F^3, \{S^L\}_{L=0}^3\) at C=64 (no projection back to EffNet widths).  
+2. **Stream-specific bottlenecks:**  
+   - Path A: \(F^4_A = F^4 + \text{Proj}(a_5)\) (RGB EfficientNet bottleneck)  
+   - Path B: \(F^4_B = F^4 + \text{Proj}(b_5)\) (DEM EfficientNet bottleneck)  
+3. **Stream-specific physics variables:** Path A uses \((\alpha_{\text{rgb}}, h_{\text{rgb}}, m_{\text{rgb}})\); Path B uses \((\alpha_{\text{dem}}, h_{\text{dem}}, m_{\text{dem}})\) from separate `PhysicsProxyMapper` instances.  
+4. Each path runs `PhysicsDecoder` (LatentMechanisticCell upsampling + PGDI + PixelMechanisticCell head).  
+5. **Output fusion (paper strategy):** `GateFuse` on main, aux2, and aux3 logits between the two paths (3 regularization terms).
+
+CLI: `--decoder physics` (default in Step 3); `--decoder paper` restores Step 2 `AdaptiveDecoder` + `fusion_to_decoder` bridge.
+
 #### 3.6.2 ConvDecoder (standard convolutional decoder)
 
 `ConvDecoder` uses a UNet-style upsampling path without explicit physics gates.
@@ -313,6 +352,8 @@ The interface matches the physics decoder (three outputs: main, aux2, aux3), so 
 
 ## Algorithm 1: End-to-end forward pass
 
+### 1A — Original tri-stream GPLNet
+
 ```
 Input: stream_a (RGB), stream_b (topo), prithvi_6band, proxies (slope, dem, ndvi)
 1. (α_rgb, h_rgb, m_rgb) ← ProxyMapper_rgb(slope, dem, ndvi)
@@ -329,6 +370,28 @@ Input: stream_a (RGB), stream_b (topo), prithvi_6band, proxies (slope, dem, ndvi
 7. If `decoder=physics`: (main, aux2, aux3) ← PhysicsDecoder(F^4, F^3, {S^L}, α, h, m at full res)  
    Else (`decoder=conv`): (main, aux2, aux3) ← ConvDecoder(F^4, F^3, {S^L}, α, h, m)  (α,h,m unused)
 9. Return (main, aux2, aux3)
+```
+
+### 1B — Penta-stream Step 3 (`from_first_steps/`)
+
+```
+Input: stream_a (RGB), stream_b (topo) — proxies derived inside forward()
+1. (slope, dem, ndvi) ← physics_proxies_from_streams(stream_a, stream_b)
+2. (α_rgb, h_rgb, m_rgb) ← ProxyMapper_rgb(slope, dem, ndvi)
+3. (α_dem, h_dem, m_dem) ← ProxyMapper_dem(slope, dem, ndvi)
+4. {E_rgb^L} ← EfficientNet_rgb(stream_a);  {E_dem^L} ← EfficientNet_dem(dem_ch)
+5. {P_rgb^L} ← PhysicsEncoder_rgb(stream_a, α_rgb, h_rgb, m_rgb)
+6. {P_dem^L} ← PhysicsEncoder_dem(dem_ch, α_dem, h_dem, m_dem)
+7. {T_fm^L} ← PrithviEncoder(observed_stack_from_streams(stream_a, stream_b))
+8. For each L: H_rgb^L ← CMB(E_rgb^L, P_rgb^L);  H_dem^L ← CMB(E_dem^L, P_dem^L)
+9. F^3 ← MAO(H_rgb^2, H_dem^2, T_fm^2);  F^4 ← MAO(H_rgb^3, H_dem^3, T_fm^3)
+10. For L in {0,1,2,3}: S^L ← TTEB({H_rgb}, {H_dem}, {T_fm}, L)
+11. If `decoder=physics`:
+       (main, aux2, aux3, reg) ← DualPhysicsGatedDecoder(F^4, F^3, {S^L}, a5, b5,
+                          α_rgb, h_rgb, m_rgb, α_dem, h_dem, m_dem)
+    Else (`decoder=paper`):
+       Project fused tensors to EffNet widths → dual AdaptiveDecoder + GateFuse (Step 2)
+12. Return (main, aux2, aux3, reg)
 ```
 
 ---

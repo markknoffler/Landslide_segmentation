@@ -62,6 +62,23 @@ def parse_args():
     )
     parser.add_argument("--tteb_attn_chunk", type=int, default=1024)
     parser.add_argument("--tteb_attn_low_res_max", type=int, default=4096)
+    parser.add_argument(
+        "--decoder",
+        type=str,
+        default="physics",
+        choices=("physics", "paper"),
+        help="Decoder: physics (DualPhysicsGatedDecoder, Step 3) or paper (AdaptiveDecoder, Step 2).",
+    )
+    parser.add_argument(
+        "--no_physics_encoders",
+        action="store_true",
+        help="Disable physics encoders (Step 2 tri-stream; requires --decoder paper).",
+    )
+    parser.add_argument(
+        "--no_mechanistic_gating",
+        action="store_true",
+        help="Disable FS-based gating inside physics cells (ablation).",
+    )
     parser.add_argument("--use_input_adapter", action="store_true", default=False)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--save_every", type=int, default=5)
@@ -262,7 +279,10 @@ def main():
         prithvi_snapshot=args.prithvi_snapshot,
         lora_rank=args.lora_rank,
         enable_prithvi=not args.no_prithvi,
+        enable_physics_encoders=not args.no_physics_encoders,
         fusion_type=args.fusion,
+        decoder_type=args.decoder,
+        mechanistic_gating=not args.no_mechanistic_gating,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     ).to(device)
