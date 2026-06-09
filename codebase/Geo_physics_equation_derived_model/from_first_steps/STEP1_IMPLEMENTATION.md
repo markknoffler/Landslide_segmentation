@@ -1,4 +1,4 @@
-# Step 1 — Tri-Stream Encoder Integration (from_first_steps)
+## Step 1 — Tri-Stream Encoder Integration (from_first_steps)
 
 ## Your goal
 
