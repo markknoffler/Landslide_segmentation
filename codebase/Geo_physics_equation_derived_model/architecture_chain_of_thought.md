@@ -1015,7 +1015,7 @@ Let's address the strict truth.
 
 1. The Verdict on the Original Equations 
 
-If we pull open a foundational soil mechanics textbook, the true, unaltered classical Infinite Slope Stability Model with water seepage parallel to the slope is exactly this: 
+  If we pull open a foundational soil mechanics textbook, the true, unaltered classical Infinite Slope Stability Model with water seepage parallel to the slope is exactly this: 
 
 FS=γsat ⋅Hsinαcosαc′+(γsat ⋅H−u)cos2αtanϕ′  
 
