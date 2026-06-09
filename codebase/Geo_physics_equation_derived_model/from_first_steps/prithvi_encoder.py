@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -11,6 +12,58 @@ from typing import List, Literal, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+_REQUIRED_FILES = ("config.json", "prithvi_mae.py", "Prithvi_EO_V2_100M_TL.pt")
+
+
+def _is_prithvi_snapshot(path: Path) -> bool:
+    return path.is_dir() and all((path / name).exists() for name in _REQUIRED_FILES)
+
+
+def resolve_prithvi_snapshot(path: Optional[str | Path] = None) -> Path:
+    """
+    Resolve a HuggingFace cache root or snapshot directory to a valid Prithvi snapshot.
+
+    Accepts:
+      - snapshot dir containing config.json + prithvi_mae.py + Prithvi_EO_V2_100M_TL.pt
+      - HF cache root .../models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL
+      - path to Prithvi_EO_V2_100M_TL.pt (parent snapshot dir is used)
+      - env PRITHVI_SNAPSHOT or PRITHVI_WEIGHTS_ROOT when path is None
+    """
+    if path is None:
+        env_snapshot = os.environ.get("PRITHVI_SNAPSHOT")
+        if env_snapshot:
+            path = env_snapshot
+        else:
+            env_root = os.environ.get("PRITHVI_WEIGHTS_ROOT")
+            if env_root:
+                path = Path(env_root) / "models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL"
+            else:
+                path = DEFAULT_SNAPSHOT
+
+    candidate = Path(path).expanduser().resolve()
+    if candidate.is_file() and candidate.name == "Prithvi_EO_V2_100M_TL.pt":
+        candidate = candidate.parent
+
+    if _is_prithvi_snapshot(candidate):
+        return candidate
+
+    snapshots_dir = candidate / "snapshots"
+    if snapshots_dir.is_dir():
+        options = sorted(
+            (p for p in snapshots_dir.iterdir() if p.is_dir() and _is_prithvi_snapshot(p)),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if options:
+            return options[0]
+
+    raise FileNotFoundError(
+        "Could not find a valid Prithvi snapshot at "
+        f"{candidate}. Expected config.json, prithvi_mae.py, and Prithvi_EO_V2_100M_TL.pt "
+        "either directly in that directory or under snapshots/<hash>/."
+    )
+
 
 DEFAULT_WEIGHTS_ROOT = Path("/home/user/Desktop/Deep_learning_projects/4PI/prithvi_weights")
 DEFAULT_SNAPSHOT = (
@@ -91,7 +144,7 @@ class PrithviFoundationEncoder(nn.Module):
         input_normalization: Literal["eo_multispectral", "observed_rasters"] = "observed_rasters",
     ):
         super().__init__()
-        snapshot_dir = Path(snapshot_dir or DEFAULT_SNAPSHOT)
+        snapshot_dir = resolve_prithvi_snapshot(snapshot_dir)
         PrithviMAE = _load_prithvi_class(snapshot_dir)
 
         with open(snapshot_dir / "config.json") as f:

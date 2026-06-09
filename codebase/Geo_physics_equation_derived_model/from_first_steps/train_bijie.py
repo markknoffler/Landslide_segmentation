@@ -45,7 +45,23 @@ def parse_args():
     p.add_argument("--freeze_backbone", action="store_true", default=True)
     p.add_argument("--share_backbone", action="store_true", default=True)  # paper says siamese shared weights
     p.add_argument("--use_input_adapter", action="store_true", default=False)
-    p.add_argument("--pretrained_path", type=str, default=None)
+    p.add_argument(
+        "--pretrained_path",
+        type=str,
+        default=None,
+        help="Optional local EfficientNet checkpoint. Omit to use timm download with --pretrained.",
+    )
+    p.add_argument(
+        "--prithvi_snapshot",
+        type=str,
+        default=None,
+        help=(
+            "Prithvi weights path: HF cache root "
+            "(.../models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL) or snapshots/<hash>/."
+        ),
+    )
+    p.add_argument("--lora_rank", type=int, default=8)
+    p.add_argument("--no_prithvi", action="store_true", help="Disable Prithvi encoder (ablation).")
 
     # Resume/checkpoint
     p.add_argument("--resume", action="store_true", help="Resume from latest checkpoint in checkpoint/.")
@@ -194,16 +210,23 @@ def main():
         pin_memory=True,
     )
 
+    pretrained_path = args.pretrained_path
+    if pretrained_path in (None, "", "None", "none"):
+        pretrained_path = None
+
     model = DualStreamGateNet(
         n_classes=1,
         backbone=args.backbone,
         n_channels=3,
         n_channels_b=3,
         pretrained=args.pretrained,
-        pretrained_path=args.pretrained_path,
+        pretrained_path=pretrained_path,
         use_input_adapter=args.use_input_adapter,
         freeze_backbone=args.freeze_backbone,
         share_backbone=args.share_backbone,
+        prithvi_snapshot=args.prithvi_snapshot,
+        lora_rank=args.lora_rank,
+        enable_prithvi=not args.no_prithvi,
     ).to(device)
 
     criterion = DualStreamLoss(
