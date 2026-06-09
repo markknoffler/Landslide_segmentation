@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class PixelMechanisticCell(nn.Module):
@@ -22,6 +23,14 @@ class PixelMechanisticCell(nn.Module):
         h: torch.Tensor,
         m: torch.Tensor,
     ) -> torch.Tensor:
+        target = x.shape[-2:]
+        if alpha.shape[-2:] != target:
+            alpha = F.interpolate(alpha, size=target, mode="bilinear", align_corners=False)
+        if h.shape[-2:] != target:
+            h = F.interpolate(h, size=target, mode="bilinear", align_corners=False)
+        if m.shape[-2:] != target:
+            m = F.interpolate(m, size=target, mode="bilinear", align_corners=False)
+
         c = torch.exp(self.w_c)
         phi = torch.exp(self.w_phi)
         gamma = torch.exp(self.w_gamma)
