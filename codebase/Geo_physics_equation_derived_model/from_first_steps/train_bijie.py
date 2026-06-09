@@ -121,6 +121,7 @@ def prep_batch(batch, device: torch.device):
 def evaluate(model, loader, criterion, device: torch.device, threshold: float):
     model.eval()
     losses = []
+    loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
 
     # pixel totals per-image then average (matches your existing logging style)
     metric_accum = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
@@ -130,6 +131,10 @@ def evaluate(model, loader, criterion, device: torch.device, threshold: float):
         main, aux2, aux3, reg_tuple = model(x1, x2)
         loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
         losses.append(float(loss_dict["loss"].item()))
+        loss_parts["main"].append(float(loss_dict["loss_main"].item()))
+        loss_parts["aux2"].append(float(loss_dict["loss_aux2"].item()))
+        loss_parts["aux3"].append(float(loss_dict["loss_aux3"].item()))
+        loss_parts["reg"].append(float(loss_dict["loss_reg"].item()))
 
         pix = pixel_metrics_from_logits(main, y, threshold=threshold)
         for k in metric_accum:
@@ -137,12 +142,15 @@ def evaluate(model, loader, criterion, device: torch.device, threshold: float):
 
     out = {k: float(np.mean(v)) if v else 0.0 for k, v in metric_accum.items()}
     out["loss"] = float(np.mean(losses)) if losses else 0.0
+    for key, values in loss_parts.items():
+        out[f"loss_{key}"] = float(np.mean(values)) if values else 0.0
     return out
 
 
 def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, threshold: float):
     model.train()
     losses = []
+    loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
     metric_accum = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
 
     for batch in tqdm(loader, desc="Train", leave=False):
@@ -157,12 +165,18 @@ def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, t
         optimizer.step()
 
         losses.append(float(loss.item()))
+        loss_parts["main"].append(float(loss_dict["loss_main"].item()))
+        loss_parts["aux2"].append(float(loss_dict["loss_aux2"].item()))
+        loss_parts["aux3"].append(float(loss_dict["loss_aux3"].item()))
+        loss_parts["reg"].append(float(loss_dict["loss_reg"].item()))
         pix = pixel_metrics_from_logits(main, y, threshold=threshold)
         for k in metric_accum:
             metric_accum[k].append(float(pix[k]))
 
     out = {k: float(np.mean(v)) if v else 0.0 for k, v in metric_accum.items()}
     out["loss"] = float(np.mean(losses)) if losses else 0.0
+    for key, values in loss_parts.items():
+        out[f"loss_{key}"] = float(np.mean(values)) if values else 0.0
     return out
 
 
@@ -270,12 +284,20 @@ def main():
         row = {
             "epoch": epoch,
             "train_loss": train_metrics["loss"],
+            "train_loss_main": train_metrics.get("loss_main", 0.0),
+            "train_loss_aux2": train_metrics.get("loss_aux2", 0.0),
+            "train_loss_aux3": train_metrics.get("loss_aux3", 0.0),
+            "train_loss_reg": train_metrics.get("loss_reg", 0.0),
             "train_acc": train_metrics["acc"],
             "train_precision": train_metrics["precision"],
             "train_recall": train_metrics["recall"],
             "train_f1": train_metrics["f1"],
             "train_iou": train_metrics["iou"],
             "val_loss": val_metrics["loss"],
+            "val_loss_main": val_metrics.get("loss_main", 0.0),
+            "val_loss_aux2": val_metrics.get("loss_aux2", 0.0),
+            "val_loss_aux3": val_metrics.get("loss_aux3", 0.0),
+            "val_loss_reg": val_metrics.get("loss_reg", 0.0),
             "val_acc": val_metrics["acc"],
             "val_precision": val_metrics["precision"],
             "val_recall": val_metrics["recall"],
@@ -284,6 +306,12 @@ def main():
         }
         append_csv(epoch_csv, row)
         print(row)
+        print(
+            f"  val loss parts: main={row['val_loss_main']:.3f} "
+            f"aux2={row['val_loss_aux2']:.3f} aux3={row['val_loss_aux3']:.3f} "
+            f"reg={row['val_loss_reg']:.5f} "
+            f"(weighted sum={row['val_loss']:.3f})"
+        )
 
         if epoch % args.save_every == 0:
             save_checkpoint(
