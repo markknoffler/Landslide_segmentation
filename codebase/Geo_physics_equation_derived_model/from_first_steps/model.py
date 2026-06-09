@@ -11,6 +11,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
+from fusion import MAOGeoEGCA, TriTemporalTriStreamBridge
+from fusion.pyramid_utils import match_spatial
 from prithvi_encoder import PrithviFoundationEncoder
 
 
@@ -378,20 +380,22 @@ class GateFuse(nn.Module):
 
 class DualStreamGateNet(nn.Module):
     """
-    Step-1 tri-stream encoder model built on the working DiGATe-UNet fusion/decoder stack.
+    Tri-stream model: EfficientNet RGB + EfficientNet DEM + Prithvi (Step 1 encoders).
 
-    Encoders (new):
-      - RGB EfficientNet on stream_a
-      - DEM EfficientNet on the DEM channel extracted from stream_b
-      - Prithvi-EO-2.0 + LoRA on a 6-channel observed raster stack built inside forward()
+    Step 2 fusion (default, fusion_type='mao'):
+      - MAO-GeoEGCA at encoder levels c3/c4 (L3/L4)
+      - TTEB skip fusion at levels 0–3
+      - Paper AdaptiveDecoder dual paths + GateFuse on decoder x3/x4
 
-    Fusion / decoder (unchanged from the working baseline):
-      - GateFuse at encoder levels c3/c4
-      - Dual AdaptiveDecoder paths
-      - GateFuse on decoder features x3/x4
+    fusion_type='gate' restores Step-1 chained GateFuse at c3/c4 (ablation).
     """
 
     PRITHVI_CHANNELS = 64
+    FUSION_CHANNELS = 64
+    # Prithvi pyramid index aligned to each EfficientNet level (0..4).
+    FM_LEVEL_FOR_EFFNET = (1, 2, 3, 4, 4)
+    MAO_LEVELS = (2, 3)
+    TTEB_LEVELS = (0, 1, 2, 3)
 
     def __init__(
         self,
@@ -408,17 +412,23 @@ class DualStreamGateNet(nn.Module):
         prithvi_snapshot: Optional[str | Path] = None,
         lora_rank: int = 8,
         enable_prithvi: bool = True,
+        fusion_type: str = "mao",
+        tteb_attn_chunk: int = 1024,
+        tteb_attn_low_res_max: int = 4096,
     ):
         super().__init__()
 
         if share_backbone:
             warnings.warn(
-                "share_backbone is ignored in the step-1 tri-stream model "
-                "(RGB, DEM, and Prithvi use separate encoders).",
+                "share_backbone is ignored (RGB, DEM, and Prithvi use separate encoders).",
                 stacklevel=2,
             )
 
         self.enable_prithvi = enable_prithvi
+        self.fusion_type = str(fusion_type).lower()
+        if self.fusion_type not in {"mao", "gate"}:
+            raise ValueError(f"Unknown fusion_type={fusion_type!r}. Choose 'mao' or 'gate'.")
+
         self.encoder_rgb = build_encoder(
             name=backbone,
             n_channels=n_channels,
@@ -443,7 +453,31 @@ class DualStreamGateNet(nn.Module):
                 f"RGB/DEM encoder channel lists differ: "
                 f"{self.encoder_rgb.channels} vs {self.encoder_dem.channels}"
             )
-        ch_list = self.encoder_rgb.channels
+        ch_list = list(self.encoder_rgb.channels)
+
+        fusion_ch = self.FUSION_CHANNELS
+
+        def _to_fusion(in_ch: int) -> nn.Module:
+            if in_ch == fusion_ch:
+                return nn.Identity()
+            return nn.Sequential(
+                nn.Conv2d(in_ch, fusion_ch, kernel_size=1, bias=False),
+                LN2d(fusion_ch),
+                nn.ReLU(inplace=True),
+            )
+
+        def _from_fusion(out_ch: int) -> nn.Module:
+            if out_ch == fusion_ch:
+                return nn.Identity()
+            return nn.Sequential(
+                nn.Conv2d(fusion_ch, out_ch, kernel_size=1, bias=False),
+                LN2d(out_ch),
+                nn.ReLU(inplace=True),
+            )
+
+        self.rgb_to_fusion = nn.ModuleList([_to_fusion(ch) for ch in ch_list])
+        self.dem_to_fusion = nn.ModuleList([_to_fusion(ch) for ch in ch_list])
+        self.fusion_to_decoder = nn.ModuleList([_from_fusion(ch) for ch in ch_list])
 
         if self.enable_prithvi:
             self.encoder_fm = PrithviFoundationEncoder(
@@ -452,29 +486,47 @@ class DualStreamGateNet(nn.Module):
                 snapshot_dir=prithvi_snapshot,
                 input_normalization="observed_rasters",
             )
-            _, _, c3, c4, _ = ch_list
-            self.fm_proj_c3 = nn.Sequential(
-                nn.Conv2d(self.PRITHVI_CHANNELS, c3, kernel_size=1, bias=False),
-                LN2d(c3),
-                nn.ReLU(inplace=True),
+            self.fm_align = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Conv2d(self.PRITHVI_CHANNELS, fusion_ch, kernel_size=1, bias=False),
+                        LN2d(fusion_ch),
+                        nn.ReLU(inplace=True),
+                    )
+                    for _ in ch_list
+                ]
             )
-            self.fm_proj_c4 = nn.Sequential(
-                nn.Conv2d(self.PRITHVI_CHANNELS, c4, kernel_size=1, bias=False),
-                LN2d(c4),
-                nn.ReLU(inplace=True),
-            )
-            self.efuse_c4_ab = GateFuse(ch_list[3])
-            self.efuse_c4_fm = GateFuse(ch_list[3])
-            self.efuse_c3_ab = GateFuse(ch_list[2])
-            self.efuse_c3_fm = GateFuse(ch_list[2])
         else:
             self.encoder_fm = None
-            self.fm_proj_c3 = None
-            self.fm_proj_c4 = None
-            self.efuse_c4_ab = GateFuse(ch_list[3])
+            self.fm_align = None
+
+        if self.fusion_type == "mao" and self.enable_prithvi:
+            self.fuse3 = MAOGeoEGCA(fusion_ch)
+            self.fuse4 = MAOGeoEGCA(fusion_ch)
+            self.post_fuse3 = nn.Conv2d(fusion_ch, fusion_ch, kernel_size=1, bias=False)
+            self.skips = nn.ModuleList(
+                [
+                    TriTemporalTriStreamBridge(
+                        fusion_ch,
+                        attn_chunk_size=tteb_attn_chunk,
+                        attn_low_res_max=tteb_attn_low_res_max,
+                    )
+                    for i in self.TTEB_LEVELS
+                ]
+            )
+            self.efuse_c4_ab = None
             self.efuse_c4_fm = None
-            self.efuse_c3_ab = GateFuse(ch_list[2])
+            self.efuse_c3_ab = None
             self.efuse_c3_fm = None
+        else:
+            self.fuse3 = None
+            self.fuse4 = None
+            self.post_fuse3 = None
+            self.skips = None
+            self.efuse_c4_ab = GateFuse(ch_list[3])
+            self.efuse_c4_fm = GateFuse(ch_list[3]) if self.enable_prithvi else None
+            self.efuse_c3_ab = GateFuse(ch_list[2])
+            self.efuse_c3_fm = GateFuse(ch_list[2]) if self.enable_prithvi else None
 
         self.decoderA = AdaptiveDecoder(ch_list)
         self.decoderB = AdaptiveDecoder(ch_list)
@@ -486,7 +538,29 @@ class DualStreamGateNet(nn.Module):
         self.aux2 = OutConv(self.decoderA.ch_x3, n_classes)
         self.aux3 = OutConv(self.decoderA.ch_x4, n_classes)
 
-    def _fuse_encoder_level(
+    def _fusion_pyramids(
+        self,
+        rgb_feats: Tuple[torch.Tensor, ...],
+        dem_feats: Tuple[torch.Tensor, ...],
+        fm_feats: list[torch.Tensor],
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor], list[torch.Tensor]]:
+        """Project rgb/dem/fm native pyramids to unified C=64 for MAO/TTEB."""
+        if self.fm_align is None:
+            raise RuntimeError("Fusion pyramids requested but Prithvi encoder is disabled.")
+        p_rgb, p_dem, t_fm = [], [], []
+        for i, rgb in enumerate(rgb_feats):
+            dem = dem_feats[i]
+            fm_idx = self.FM_LEVEL_FOR_EFFNET[i]
+            fm = match_spatial(fm_feats[fm_idx], rgb)
+            p_rgb.append(self.rgb_to_fusion[i](rgb))
+            p_dem.append(self.dem_to_fusion[i](dem))
+            t_fm.append(self.fm_align[i](fm))
+        return p_rgb, p_dem, t_fm
+
+    def _decode_from_fusion(self, level: int, fused: torch.Tensor) -> torch.Tensor:
+        return self.fusion_to_decoder[level](fused)
+
+    def _fuse_encoder_level_gate(
         self,
         rgb_feat: torch.Tensor,
         dem_feat: torch.Tensor,
@@ -504,21 +578,40 @@ class DualStreamGateNet(nn.Module):
         self, x1: torch.Tensor, x2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, ...]]:
         dem = _extract_dem_channel(x2)
-        (a1, a2, a3, a4, a5) = self.encoder_rgb(x1)
-        (b1, b2, b3, b4, b5) = self.encoder_dem(dem)
+        rgb_feats = self.encoder_rgb(x1)
+        dem_feats = self.encoder_dem(dem)
+        a1, a2, a3, a4, a5 = rgb_feats
+        b1, b2, b3, b4, b5 = dem_feats
 
-        fm3 = fm4 = None
-        if self.enable_prithvi and self.encoder_fm is not None:
+        reg_encoder: Tuple[torch.Tensor, ...] = ()
+
+        if self.fusion_type == "mao" and self.enable_prithvi and self.encoder_fm is not None:
             fm_in = observed_stack_from_streams(x1, x2)
-            fm_feats = self.encoder_fm(fm_in)
-            fm3 = self.fm_proj_c3(fm_feats[3])
-            fm4 = self.fm_proj_c4(fm_feats[4])
+            fm_raw = self.encoder_fm(fm_in)
+            p_rgb, p_dem, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
 
-        f4, reg_c4 = self._fuse_encoder_level(a4, b4, fm4, self.efuse_c4_ab, self.efuse_c4_fm)
-        f3, reg_c3 = self._fuse_encoder_level(a3, b3, fm3, self.efuse_c3_ab, self.efuse_c3_fm)
+            f3 = self._decode_from_fusion(2, self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2])))
+            f4 = self._decode_from_fusion(3, self.fuse4(t_fm[3], p_rgb[3], p_dem[3]))
+            s0 = self._decode_from_fusion(0, self.skips[0](p_rgb, p_dem, t_fm, level=0))
+            s1 = self._decode_from_fusion(1, self.skips[1](p_rgb, p_dem, t_fm, level=1))
 
-        _, _, x3a, x4a = self.decoderA(a1, a2, f3, f4, a5)
-        _, _, x3b, x4b = self.decoderB(b1, b2, f3, f4, b5)
+            _, _, x3a, x4a = self.decoderA(s0, s1, f3, f4, a5)
+            _, _, x3b, x4b = self.decoderB(s0, s1, f3, f4, b5)
+        else:
+            fm3 = fm4 = None
+            if self.enable_prithvi and self.encoder_fm is not None and self.fm_align is not None:
+                fm_in = observed_stack_from_streams(x1, x2)
+                fm_raw = self.encoder_fm(fm_in)
+                _, _, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
+                fm3 = self._decode_from_fusion(2, t_fm[2])
+                fm4 = self._decode_from_fusion(3, t_fm[3])
+
+            f4, reg_c4 = self._fuse_encoder_level_gate(a4, b4, fm4, self.efuse_c4_ab, self.efuse_c4_fm)
+            f3, reg_c3 = self._fuse_encoder_level_gate(a3, b3, fm3, self.efuse_c3_ab, self.efuse_c3_fm)
+            reg_encoder = (*reg_c4, *reg_c3)
+
+            _, _, x3a, x4a = self.decoderA(a1, a2, f3, f4, a5)
+            _, _, x3b, x4b = self.decoderB(b1, b2, f3, f4, b5)
 
         x3, reg_x3 = self.fuse_x3(x3a, x3b)
         x4, reg_x4 = self.fuse_x4(x4a, x4b)
@@ -526,7 +619,7 @@ class DualStreamGateNet(nn.Module):
         main = self.head(self.up_final(x4))
         aux2 = F.interpolate(self.aux2(x3), size=main.shape[2:], mode="bilinear", align_corners=True)
         aux3 = F.interpolate(self.aux3(x4), size=main.shape[2:], mode="bilinear", align_corners=True)
-        reg = (*reg_c4, *reg_c3, reg_x3, reg_x4)
+        reg = (*reg_encoder, reg_x3, reg_x4)
         return main, aux2, aux3, reg
 
 

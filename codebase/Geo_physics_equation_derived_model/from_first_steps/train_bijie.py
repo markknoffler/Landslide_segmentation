@@ -62,6 +62,15 @@ def parse_args():
     )
     p.add_argument("--lora_rank", type=int, default=8)
     p.add_argument("--no_prithvi", action="store_true", help="Disable Prithvi encoder (ablation).")
+    p.add_argument(
+        "--fusion",
+        type=str,
+        default="mao",
+        choices=("mao", "gate"),
+        help="Tri-stream fusion: mao (MAO-GeoEGCA + TTEB, Step 2) or gate (Step 1 GateFuse).",
+    )
+    p.add_argument("--tteb_attn_chunk", type=int, default=1024)
+    p.add_argument("--tteb_attn_low_res_max", type=int, default=4096)
 
     # Resume/checkpoint
     p.add_argument("--resume", action="store_true", help="Resume from latest checkpoint in checkpoint/.")
@@ -227,6 +236,9 @@ def main():
         prithvi_snapshot=args.prithvi_snapshot,
         lora_rank=args.lora_rank,
         enable_prithvi=not args.no_prithvi,
+        fusion_type=args.fusion,
+        tteb_attn_chunk=args.tteb_attn_chunk,
+        tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     ).to(device)
 
     criterion = DualStreamLoss(

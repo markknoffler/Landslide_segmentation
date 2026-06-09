@@ -53,6 +53,15 @@ def parse_args():
     )
     parser.add_argument("--lora_rank", type=int, default=8)
     parser.add_argument("--no_prithvi", action="store_true", help="Disable Prithvi encoder (ablation).")
+    parser.add_argument(
+        "--fusion",
+        type=str,
+        default="mao",
+        choices=("mao", "gate"),
+        help="Tri-stream fusion: mao (MAO-GeoEGCA + TTEB, Step 2) or gate (Step 1 GateFuse).",
+    )
+    parser.add_argument("--tteb_attn_chunk", type=int, default=1024)
+    parser.add_argument("--tteb_attn_low_res_max", type=int, default=4096)
     parser.add_argument("--use_input_adapter", action="store_true", default=False)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--save_every", type=int, default=5)
@@ -253,6 +262,9 @@ def main():
         prithvi_snapshot=args.prithvi_snapshot,
         lora_rank=args.lora_rank,
         enable_prithvi=not args.no_prithvi,
+        fusion_type=args.fusion,
+        tteb_attn_chunk=args.tteb_attn_chunk,
+        tteb_attn_low_res_max=args.tteb_attn_low_res_max,
     ).to(device)
     criterion = DualStreamLoss(
         alpha=args.tversky_alpha,
