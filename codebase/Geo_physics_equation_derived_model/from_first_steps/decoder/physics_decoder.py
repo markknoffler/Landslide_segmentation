@@ -46,6 +46,10 @@ class PhysicsDecoder(nn.Module):
         d4 = self.latent4(fused4)
         d3 = self.latent3(self.up3(d4))
         if fused3 is not None:
+            if fused3.shape[-2:] != d3.shape[-2:]:
+                fused3 = F.interpolate(
+                    fused3, size=d3.shape[-2:], mode="bilinear", align_corners=False
+                )
             d3 = d3 + fused3
         d3 = self.pgdi3(d3, skips[3])
         aux3 = self.aux3_head(d3)

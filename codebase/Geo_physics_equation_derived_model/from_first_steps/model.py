@@ -695,9 +695,16 @@ class DualStreamGateNet(nn.Module):
                 alpha_r = h_r = m_r = alpha_d = h_d = m_d = None
                 p_rgb, p_dem, _ = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
 
-            f3_fused = self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2]))
-            f4_fused = self.fuse4(t_fm[3], p_rgb[3], p_dem[3])
             tteb_skips = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in self.TTEB_LEVELS]
+
+            # Paper decoder (Step 2) uses EffNet c3/c4 indices (64² / 32²).
+            # Physics decoder expects GPLNet pyramid levels L3/L4 (32² / 16²).
+            if self.decoder_type == "physics":
+                f3_fused = self.post_fuse3(self.fuse3(t_fm[3], p_rgb[3], p_dem[3]))
+                f4_fused = self.fuse4(t_fm[4], p_rgb[4], p_dem[4])
+            else:
+                f3_fused = self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2]))
+                f4_fused = self.fuse4(t_fm[3], p_rgb[3], p_dem[3])
 
             if self.decoder_type == "physics" and self.physics_decoder is not None:
                 main, aux2, aux3, dec_reg = self.physics_decoder(

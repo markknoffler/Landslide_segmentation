@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from fusion.pyramid_utils import match_spatial
 from physics import LatentMechanisticCell
 
 
@@ -16,6 +17,7 @@ class PhysicsGatedDecoderInjection(nn.Module):
         self.latent = LatentMechanisticCell(channels)
 
     def forward(self, decoder_state, skip):
+        skip = match_spatial(skip, decoder_state)
         beta = self.gate(torch.cat([decoder_state, skip], dim=1))
         injected = self.latent(skip)
         return decoder_state + beta * injected
