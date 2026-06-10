@@ -17,7 +17,9 @@ from model import DualStreamGateNet
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train paper-aligned DiGATe-UNet on Landslide4Sense.")
+    parser = argparse.ArgumentParser(
+        description="Train PS-GPLNet (penta-stream + dual physics decoder) on Landslide4Sense."
+    )
     parser.add_argument("--dataset_root", type=str, default="/home/user/Desktop/Deep_learning_projects/4PI/dataset")
     parser.add_argument("--output_dir", type=str, default=".")
     parser.add_argument("--epochs", type=int, default=100)
@@ -84,13 +86,13 @@ def parse_args():
     parser.add_argument("--save_every", type=int, default=5)
     parser.add_argument("--val_split_ratio", type=float, default=0.1)
     parser.add_argument("--val_split_seed", type=int, default=42)
-    parser.add_argument("--tversky_alpha", type=float, default=0.6)
-    parser.add_argument("--tversky_beta", type=float, default=0.4)
+    parser.add_argument("--tversky_alpha", type=float, default=0.3)
+    parser.add_argument("--tversky_beta", type=float, default=0.7)
     parser.add_argument("--main_weight", type=float, default=1.0)
     parser.add_argument("--aux2_weight", type=float, default=0.6)
     parser.add_argument("--aux3_weight", type=float, default=0.4)
     parser.add_argument("--reg_weight", type=float, default=1e-3)
-    parser.add_argument("--metric_threshold", type=float, default=0.6)
+    parser.add_argument("--metric_threshold", type=float, default=0.5)
     return parser.parse_args()
 
 
@@ -124,58 +126,75 @@ def append_csv(path: Path, row: Dict):
 def prep_batch(batch, device: torch.device):
     x1 = batch["stream_a"].float().to(device, non_blocking=True)
     x2 = batch["stream_b"].float().to(device, non_blocking=True)
-    y = batch["mask"]
+    y = batch["mask"].float()
     if y.dtype.is_floating_point:
         y = y.round().long()
     y = y.to(device, non_blocking=True)
+    if y.dim() == 3:
+        y = y.unsqueeze(1)
     return x1, x2, y
 
 
-def run_epoch(
-    loader,
-    model,
-    criterion,
-    device: torch.device,
-    threshold: float = 0.5,
-    optimizer=None,
-    training: bool = False,
-):
-    model.train() if training else model.eval()
-    prefix = "Train" if training else "Valid"
-
+def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, threshold: float):
+    model.train()
     losses = []
+    loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
     metrics = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
-    progress = tqdm(loader, desc=prefix, leave=False)
 
-    for batch in progress:
+    for batch in tqdm(loader, desc="Train", leave=False):
         x1, x2, y = prep_batch(batch, device)
+        main, aux2, aux3, reg_tuple = model(x1, x2)
+        loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
+        loss = loss_dict["loss"]
 
-        with torch.set_grad_enabled(training):
-            main, aux2, aux3, reg_tuple = model(x1, x2)
-            loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
-            loss = loss_dict["loss"]
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
 
-            if training:
-                optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                optimizer.step()
+        losses.append(float(loss.item()))
+        loss_parts["main"].append(float(loss_dict["loss_main"].item()))
+        loss_parts["aux2"].append(float(loss_dict["loss_aux2"].item()))
+        loss_parts["aux3"].append(float(loss_dict["loss_aux3"].item()))
+        loss_parts["reg"].append(float(loss_dict["loss_reg"].item()))
 
         pix = pixel_metrics_from_logits(main, y, threshold=threshold)
-        losses.append(float(loss.item()))
         for key in metrics:
             metrics[key].append(float(pix[key]))
 
-        progress.set_postfix(
-            loss=f"{losses[-1]:.4f}",
-            f1=f"{metrics['f1'][-1]:.4f}",
-            iou=f"{metrics['iou'][-1]:.4f}",
-            reg=f"{float(loss_dict['loss_reg'].item()):.3e}",
-        )
+    out = {key: float(np.mean(values)) if values else 0.0 for key, values in metrics.items()}
+    out["loss"] = float(np.mean(losses)) if losses else 0.0
+    for key, values in loss_parts.items():
+        out[f"loss_{key}"] = float(np.mean(values)) if values else 0.0
+    return out
 
-    return {
-        "loss": float(np.mean(losses)) if losses else 0.0,
-        **{key: float(np.mean(values)) if values else 0.0 for key, values in metrics.items()},
-    }
+
+@torch.no_grad()
+def evaluate(model, loader, criterion, device: torch.device, threshold: float):
+    model.eval()
+    losses = []
+    loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
+    metrics = {"acc": [], "precision": [], "recall": [], "f1": [], "iou": []}
+
+    for batch in tqdm(loader, desc="Val", leave=False):
+        x1, x2, y = prep_batch(batch, device)
+        main, aux2, aux3, reg_tuple = model(x1, x2)
+        loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
+
+        losses.append(float(loss_dict["loss"].item()))
+        loss_parts["main"].append(float(loss_dict["loss_main"].item()))
+        loss_parts["aux2"].append(float(loss_dict["loss_aux2"].item()))
+        loss_parts["aux3"].append(float(loss_dict["loss_aux3"].item()))
+        loss_parts["reg"].append(float(loss_dict["loss_reg"].item()))
+
+        pix = pixel_metrics_from_logits(main, y, threshold=threshold)
+        for key in metrics:
+            metrics[key].append(float(pix[key]))
+
+    out = {key: float(np.mean(values)) if values else 0.0 for key, values in metrics.items()}
+    out["loss"] = float(np.mean(losses)) if losses else 0.0
+    for key, values in loss_parts.items():
+        out[f"loss_{key}"] = float(np.mean(values)) if values else 0.0
+    return out
 
 
 def build_dataloaders(args):
@@ -261,6 +280,11 @@ def main():
     final_csv = results_dir / "final_metrics.csv"
 
     train_loader, valid_loader = build_dataloaders(args)
+    print(
+        f"Landslide4Sense | train={len(train_loader.dataset)} val={len(valid_loader.dataset)} "
+        f"| fusion={args.fusion} decoder={args.decoder} "
+        f"| physics_encoders={not args.no_physics_encoders} prithvi={not args.no_prithvi}"
+    )
 
     pretrained_path = args.pretrained_path
     if pretrained_path in (None, "", "None", "none"):
@@ -309,34 +333,28 @@ def main():
             best_f1 = float(state.get("best_f1", 0.0))
 
     for epoch in range(start_epoch, args.epochs + 1):
-        train_metrics = run_epoch(
-            train_loader,
-            model,
-            criterion,
-            device,
-            threshold=args.metric_threshold,
-            optimizer=optimizer,
-            training=True,
+        train_metrics = train_one_epoch(
+            model, train_loader, criterion, optimizer, device, threshold=args.metric_threshold
         )
-        val_metrics = run_epoch(
-            valid_loader,
-            model,
-            criterion,
-            device,
-            threshold=args.metric_threshold,
-            optimizer=None,
-            training=False,
-        )
+        val_metrics = evaluate(model, valid_loader, criterion, device, threshold=args.metric_threshold)
 
         row = {
             "epoch": epoch,
             "train_loss": train_metrics["loss"],
+            "train_loss_main": train_metrics.get("loss_main", 0.0),
+            "train_loss_aux2": train_metrics.get("loss_aux2", 0.0),
+            "train_loss_aux3": train_metrics.get("loss_aux3", 0.0),
+            "train_loss_reg": train_metrics.get("loss_reg", 0.0),
             "train_acc": train_metrics["acc"],
             "train_precision": train_metrics["precision"],
             "train_recall": train_metrics["recall"],
             "train_f1": train_metrics["f1"],
             "train_iou": train_metrics["iou"],
             "val_loss": val_metrics["loss"],
+            "val_loss_main": val_metrics.get("loss_main", 0.0),
+            "val_loss_aux2": val_metrics.get("loss_aux2", 0.0),
+            "val_loss_aux3": val_metrics.get("loss_aux3", 0.0),
+            "val_loss_reg": val_metrics.get("loss_reg", 0.0),
             "val_acc": val_metrics["acc"],
             "val_precision": val_metrics["precision"],
             "val_recall": val_metrics["recall"],
@@ -345,6 +363,12 @@ def main():
         }
         append_csv(epoch_csv, row)
         print(row)
+        print(
+            f"  val loss parts: main={row['val_loss_main']:.3f} "
+            f"aux2={row['val_loss_aux2']:.3f} aux3={row['val_loss_aux3']:.3f} "
+            f"reg={row['val_loss_reg']:.5f} "
+            f"(weighted sum={row['val_loss']:.3f})"
+        )
 
         if epoch % args.save_every == 0:
             save_checkpoint(
@@ -372,6 +396,11 @@ def main():
             "freeze_backbone": args.freeze_backbone,
             "resize_to": args.resize_to,
             "bands": args.bands,
+            "fusion": args.fusion,
+            "decoder": args.decoder,
+            "physics_encoders": not args.no_physics_encoders,
+            "prithvi": not args.no_prithvi,
+            "mechanistic_gating": not args.no_mechanistic_gating,
             "tversky_alpha": args.tversky_alpha,
             "tversky_beta": args.tversky_beta,
             "main_weight": args.main_weight,

@@ -1,17 +1,15 @@
-# Dual-Stream Gated Landslide Segmentation
+# Penta-Stream Geo-Physics Landslide Segmentation (`from_first_steps/`)
 
-This directory now mirrors the released DiGATe-UNet codepath from the paper as closely as possible within the local flat-file layout.
+Incremental graft of **PS-GPLNet** (5 encoders + MAO/TTEB + dual physics decoder) onto the working DiGATe dual-stream baseline.
 
-## What Matches the Paper
+## Architecture (Step 3 default)
 
-- Siamese dual-stream encoder-decoder architecture.
-- `EfficientNet-B4` backbone by default via `timm`.
-- Pretrained `EfficientNet-B4` with `freeze_backbone=True` by default.
-- `TransUp`, `UpFlex`, `GateFuse`, and deep supervision (`main`, `aux2`, `aux3`).
-- Landslide4Sense setup using `RGB` and `NDVI + Slope + DEM`.
-- Resize to `256x256`.
-- Training augmentations: horizontal flip, vertical flip, Gaussian noise, salt-and-pepper noise, and CLAHE.
-- Tversky loss with `alpha=0.3`, `beta=0.7`, plus gate regularization.
+- **Encoders:** EfficientNet RGB + Physics RGB + EfficientNet DEM + Physics DEM + Prithvi+LoRA
+- **Fusion:** Complementary Modality Bridge → MAO-GeoEGCA + TTEB
+- **Decoder:** Dual physics gated decoder (`--decoder physics`)
+- **Ablations:** `--decoder paper`, `--fusion gate`, `--no_physics_encoders`
+
+See `model_architecture.md` and `step_by_step_implementation.md` for full design.
 
 ## Dataset Layout Expected
 
@@ -27,24 +25,36 @@ dataset/
     img/image_*.h5
 ```
 
-## Train
+## Train — Landslide4Sense (Step 3)
 
 ```bash
 python training.py \
-  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset \
-  --output_dir . \
+  --dataset_root /path/to/Landslide4Sense/dataset \
+  --output_dir ./outputs_step3_l4s \
+  --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
+  --fusion mao \
+  --decoder physics \
   --backbone tf_efficientnet_b4 \
+  --pretrained \
+  --freeze_backbone \
   --epochs 100 \
   --batch_size 32 \
+  --lr 3e-4 \
+  --tversky_alpha 0.3 \
+  --tversky_beta 0.7 \
+  --metric_threshold 0.5 \
   --save_every 5
 ```
+
+Do **not** pass `--pretrained_path None` (shell passes the literal string `None`).
 
 ## Resume from Last Checkpoint
 
 ```bash
 python training.py \
-  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset \
-  --output_dir . \
+  --dataset_root /path/to/Landslide4Sense/dataset \
+  --output_dir ./outputs_step3_l4s \
+  --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
   --resume
 ```
 
@@ -63,47 +73,33 @@ python data_processing.py \
   --output_json ./results/dataset_summary.json
 ```
 
-## Notes
+## Train — Bijie (Step 3)
 
-- Main defaults:
-  - `--backbone tf_efficientnet_b4`
-  - `--resize_to 256`
-  - `--bands RGB-NDVI-SLOPE-DEM`
-  - `--pretrained`
-  - `--freeze_backbone`
-  - separate encoders by default to match the released notebook path; add `--share_backbone` to force siamese sharing
-- Current tuning defaults are slightly more precision-friendly than the paper:
-  - `--tversky_alpha 0.6`
-  - `--tversky_beta 0.4`
-  - `--metric_threshold 0.6`
-- To reproduce the paper settings exactly, use:
-  - `--tversky_alpha 0.3 --tversky_beta 0.7 --metric_threshold 0.5`
-- Bijie training:
-
-  Create a new run using `train_bijie.py` (PNG loader for Bijie + paper split 70/20/10).
-
-  Example:
+Use `train_bijie.py` (PNG loader, 70/20/10 split):
 
 ```bash
 python train_bijie.py \
-  --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset_bijie_landslide/Bijie-landslide-dataset \
-  --output_dir ./outputs_bijie \
-  --epochs 100 \
-  --batch_size 32 \
-  --lr 3e-4 \
-  --weight_decay 1e-4 \
+  --dataset_root /path/to/Bijie-landslide-dataset \
+  --output_dir ./outputs_step3_bijie \
+  --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
+  --fusion mao \
+  --decoder physics \
   --backbone tf_efficientnet_b4 \
   --pretrained \
   --freeze_backbone \
-  --share_backbone \
+  --epochs 100 \
+  --batch_size 32 \
+  --lr 3e-4 \
   --tversky_alpha 0.3 \
   --tversky_beta 0.7 \
-  --main_weight 1.0 \
-  --aux2_weight 0.6 \
-  --aux3_weight 0.4 \
-  --reg_weight 1e-3 \
-  --metric_threshold 0.5
+  --metric_threshold 0.5 \
+  --save_every 5
 ```
 
-- Note: `train_bijie.py` always uses `resize_to=256` and uses `RGB` + `DEM replicated to 3 channels` (paper setting).
-- Required runtime packages now include `timm` and `segmentation-models-pytorch`.
+## Notes
+
+- **Landslide4Sense streams:** `stream_a` = RGB; `stream_b` = NDVI + slope + DEM (`--bands RGB-NDVI-SLOPE-DEM`)
+- **Bijie streams:** `stream_a` = RGB; `stream_b` = DEM ×3 (proxies derived inside `forward()`)
+- Default hyperparameters match Bijie Step 3: Tversky 0.3/0.7, threshold 0.5
+- Reproduce Step 2 on either dataset: add `--decoder paper --no_physics_encoders`
+- Required packages: `timm`, `h5py`, `opencv-python`, Prithvi snapshot on disk or `PRITHVI_SNAPSHOT` env var

@@ -373,6 +373,66 @@ Compare `outputs_step2_*` vs `outputs_step3_*` on identical splits/hyperparamete
 
 ---
 
+# Landslide4Sense — Step 3 training (`training.py`)
+
+## Dataset layout
+
+```
+dataset_root/
+  TrainData/
+    img/image_*.h5
+    mask/mask_*.h5
+  ValidData/          # optional; if masks missing, 90/10 split from TrainData
+    img/image_*.h5
+    mask/mask_*.h5
+  TestData/
+    img/image_*.h5
+```
+
+## Stream mapping (L4S native layout)
+
+| Stream | Channels | Source |
+|--------|----------|--------|
+| `stream_a` | RGB | B4, B3, B2 |
+| `stream_b` | NDVI, slope, DEM | computed NDVI + B13 + B14 |
+
+Prithvi 6-band stack inside `forward()`: `[R, G, B, NDVI, slope, DEM]` — no dataset changes.
+
+Physics proxies: slope = `stream_b` ch1, DEM = ch2, NDVI = ch0 (native L4S path in `physics_proxies_from_streams`).
+
+## Train command (cluster)
+
+```bash
+python training.py \
+  --dataset_root /scratch/earnest/samreedh/landslide_segmentation/dataset \
+  --output_dir ./outputs_step3_l4s \
+  --prithvi_snapshot /scratch/earnest/samreedh/landslide_segmentation/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
+  --fusion mao \
+  --decoder physics \
+  --bands RGB-NDVI-SLOPE-DEM \
+  --backbone tf_efficientnet_b4 \
+  --pretrained \
+  --freeze_backbone \
+  --epochs 100 \
+  --batch_size 32 \
+  --lr 3e-4 \
+  --tversky_alpha 0.3 \
+  --tversky_beta 0.7 \
+  --metric_threshold 0.5 \
+  --save_every 5
+```
+
+## What changed vs Bijie
+
+| Item | Bijie (`train_bijie.py`) | Landslide4Sense (`training.py`) |
+|------|--------------------------|----------------------------------|
+| Loader | PNG composites, 70/20/10 split | H5 dual-stream, official Train/Valid or 90/10 |
+| `stream_b` | DEM ×3 | NDVI + slope + DEM |
+| Model / loss / metrics | Same Step 3 PS-GPLNet | Same |
+| CSV logging | Loss breakdown per head | Same (aligned) |
+
+---
+
 ## Planned Step 4+
 
 1. Balanced / concat fusion modes from parent `model_architecture.md`.
