@@ -28,11 +28,10 @@ class DualPhysicsDecoder(nn.Module):
         n_classes: int = 1,
         bottleneck_ch: int = 448,
         mechanistic_gating: bool = True,
-        shared_decoder: bool = False,
     ):
         super().__init__()
         self.decoder_a = PhysicsDecoder(channels, n_classes, mechanistic_gating)
-        self.decoder_b = self.decoder_a if shared_decoder else PhysicsDecoder(channels, n_classes, mechanistic_gating)
+        self.decoder_b = PhysicsDecoder(channels, n_classes, mechanistic_gating)
         self.bn_proj_a = nn.Sequential(
             nn.Conv2d(bottleneck_ch, channels, kernel_size=1, bias=False),
             _ln2d(channels),

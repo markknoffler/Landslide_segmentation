@@ -292,10 +292,7 @@ def main():
         pretrained_path = None
 
     if args.compact:
-        print(
-            "Compact mode: B0 backbone, fusion C=32, LoRA r=4, "
-            "shared decoder, fp16 frozen encoders."
-        )
+        print("Compact mode: B0 backbone, fusion C=32, LoRA r=4 (dual decoders unchanged).")
 
     print("Building GeoPhysicsLandslideNet on CPU...")
     model = GeoPhysicsLandslideNet(
@@ -311,8 +308,6 @@ def main():
         prithvi_snapshot=args.prithvi_snapshot,
         lora_rank=args.lora_rank,
         fusion_channels=args.fusion_channels,
-        shared_physics_decoder=args.shared_physics_decoder,
-        fp16_frozen_encoders=args.fp16_frozen_encoders,
         mechanistic_gating=not args.no_mechanistic_gating,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
@@ -334,11 +329,10 @@ def main():
         torch.cuda.empty_cache()
     print("Moving model to GPU...")
     model = model.to(device)
-    model.apply_fp16_frozen_encoders()
     set_seed(args.seed, cuda=True)
 
     use_amp = args.amp and device.type == "cuda"
-    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     criterion = DualStreamLoss(
         alpha=args.tversky_alpha,
