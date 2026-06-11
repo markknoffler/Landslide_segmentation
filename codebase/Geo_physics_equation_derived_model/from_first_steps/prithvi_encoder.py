@@ -180,6 +180,10 @@ class PrithviFoundationEncoder(nn.Module):
         for block in self.model.encoder.blocks:
             _inject_lora_into_block(block, rank=lora_rank)
 
+        # Decoder weights are unused (encoder-only features); drop to save GPU memory.
+        if hasattr(self.model, "decoder"):
+            del self.model.decoder
+
         self.block_indices = block_indices or [2, 5, 8, 11]
         embed_dim = cfg["embed_dim"]
         self.spatial_projs = nn.ModuleList(

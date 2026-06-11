@@ -1,10 +1,10 @@
-"""Dual-stream physics decoder with GateFuse on outputs (paper strategy + physics cells)."""
+"""Dual physics decoder with mechanistic path equilibrium fusion (MPEF)."""
 
 from __future__ import annotations
 
-import torch
 import torch.nn as nn
 
+from decoder.mechanistic_path_fusion import MechanisticPathEquilibriumFusion
 from decoder.physics_decoder import PhysicsDecoder
 from fusion.pyramid_utils import match_spatial
 
@@ -13,23 +13,13 @@ def _ln2d(channels: int) -> nn.GroupNorm:
     return nn.GroupNorm(1, channels)
 
 
-class GateFuse(nn.Module):
-    def __init__(self, ch: int):
-        super().__init__()
-        self.g = nn.Sequential(nn.Conv2d(ch * 2, 1, 1), nn.Sigmoid())
-
-    def forward(self, a, b):
-        alpha = self.g(torch.cat([a, b], dim=1))
-        out = alpha * a + (1 - alpha) * b
-        reg = (alpha * (1 - alpha)).mean()
-        return out, reg
-
-
-class DualPhysicsGatedDecoder(nn.Module):
+class DualPhysicsDecoder(nn.Module):
     """
-    Two PhysicsDecoder paths (RGB-proxy vs DEM-proxy physics variables) sharing
-    tri-stream fused skips, with stream-specific CNN bottleneck residuals and
-    GateFuse on main/aux outputs (same role as paper dual AdaptiveDecoder).
+    Two PhysicsDecoder paths:
+      - Path A: RGB-proxy geotechnical variables + RGB CNN bottleneck residual
+      - Path B: DEM-proxy geotechnical variables + DEM CNN bottleneck residual
+
+    Shared MAO/TTEB context; outputs merged by MechanisticPathEquilibriumFusion (MPEF).
     """
 
     def __init__(
@@ -52,9 +42,9 @@ class DualPhysicsGatedDecoder(nn.Module):
             _ln2d(channels),
             nn.ReLU(inplace=True),
         )
-        self.fuse_main = GateFuse(n_classes)
-        self.fuse_aux2 = GateFuse(n_classes)
-        self.fuse_aux3 = GateFuse(n_classes)
+        self.fuse_main = MechanisticPathEquilibriumFusion(n_classes)
+        self.fuse_aux2 = MechanisticPathEquilibriumFusion(n_classes)
+        self.fuse_aux3 = MechanisticPathEquilibriumFusion(n_classes)
 
     def forward(self, f4, f3, skips, a5, b5, alpha_a, h_a, m_a, alpha_b, h_b, m_b):
         f4_a = f4 + match_spatial(self.bn_proj_a(a5), f4)
@@ -63,7 +53,11 @@ class DualPhysicsGatedDecoder(nn.Module):
         main_a, aux2_a, aux3_a = self.decoder_a(f4_a, f3, skips, alpha_a, h_a, m_a)
         main_b, aux2_b, aux3_b = self.decoder_b(f4_b, f3, skips, alpha_b, h_b, m_b)
 
-        main, reg_m = self.fuse_main(main_a, main_b)
-        aux2, reg_a2 = self.fuse_aux2(aux2_a, aux2_b)
-        aux3, reg_a3 = self.fuse_aux3(aux3_a, aux3_b)
+        main, reg_m = self.fuse_main(main_a, main_b, alpha_a, h_a, m_a, alpha_b, h_b, m_b)
+        aux2, reg_a2 = self.fuse_aux2(aux2_a, aux2_b, alpha_a, h_a, m_a, alpha_b, h_b, m_b)
+        aux3, reg_a3 = self.fuse_aux3(aux3_a, aux3_b, alpha_a, h_a, m_a, alpha_b, h_b, m_b)
         return main, aux2, aux3, (reg_m, reg_a2, reg_a3)
+
+
+# Backward-compatible alias (deprecated name).
+DualPhysicsGatedDecoder = DualPhysicsDecoder

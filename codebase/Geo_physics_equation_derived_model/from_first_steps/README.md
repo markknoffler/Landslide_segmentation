@@ -6,8 +6,8 @@ Incremental graft of **PS-GPLNet** (5 encoders + MAO/TTEB + dual physics decoder
 
 - **Encoders:** EfficientNet RGB + Physics RGB + EfficientNet DEM + Physics DEM + Prithvi+LoRA
 - **Fusion:** Complementary Modality Bridge → MAO-GeoEGCA + TTEB
-- **Decoder:** Dual physics gated decoder (`--decoder physics`)
-- **Ablations:** `--decoder paper`, `--fusion gate`, `--no_physics_encoders`
+- **Decoder:** Dual physics decoder + MPEF path fusion
+- **Baseline comparison:** use `model_backup.py` (DiGATe) separately in ablation studies
 
 See `model_architecture.md` and `step_by_step_implementation.md` for full design.
 
@@ -32,8 +32,6 @@ python training.py \
   --dataset_root /path/to/Landslide4Sense/dataset \
   --output_dir ./outputs_step3_l4s \
   --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
-  --fusion mao \
-  --decoder physics \
   --backbone tf_efficientnet_b4 \
   --pretrained \
   --freeze_backbone \
@@ -82,8 +80,6 @@ python train_bijie.py \
   --dataset_root /path/to/Bijie-landslide-dataset \
   --output_dir ./outputs_step3_bijie \
   --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
-  --fusion mao \
-  --decoder physics \
   --backbone tf_efficientnet_b4 \
   --pretrained \
   --freeze_backbone \

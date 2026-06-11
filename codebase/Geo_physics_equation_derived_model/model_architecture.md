@@ -3,7 +3,8 @@
 **Model name:** GeoPhysicsLandslideNet — Penta-Stream Variant (PS-GPLNet)  
 **Reference implementation:** `codebase/Geo_physics_equation_derived_model/from_first_steps/`  
 **Task:** Binary landslide segmentation from RGB + topography + geospatial foundation features  
-**Input resolution:** 256×256 (training/evaluation aligned with DiGATe / dual-stream ablation study)  
+**Primary class:** `GeoPhysicsLandslideNet` (`from_first_steps/model.py`)  
+**Input resolution:** 256×256 (Landslide4Sense and Bijie training pipelines)  
 **Unified feature width:** \(C = 64\)
 
 ---
@@ -22,7 +23,7 @@ Unlike the original three-stream GPLNet sketch (physics RGB + physics DEM + foun
 | 4 | PhysicsEncoder DEM (\(P_{\text{dem}}\)) | FS-gated mechanistic features from DEM |
 | 5 | Prithvi + LoRA (\(T_{\text{fm}}\)) | Planetary-scale environmental context |
 
-CNN and physics branches per modality are merged by the **Complementary Modality Bridge (CMB)** into hybrid streams \(H_{\text{rgb}}\), \(H_{\text{dem}}\) before tri-stream fusion. The decoder is a **dual physics gated decoder**: two equation-based decode paths (RGB-proxy vs DEM-proxy physics variables) whose outputs are blended by learned `GateFuse` gates — preserving the dual-stream strategy from the DiGATe paper baseline.
+CNN and physics branches per modality are merged by the **Complementary Modality Bridge (CMB)** into hybrid streams \(H_{\text{rgb}}\), \(H_{\text{dem}}\) before tri-stream fusion. The decoder is a **dual physics decoder**: two equation-based decode paths (RGB-proxy vs DEM-proxy physics variables) whose outputs are merged by **Mechanistic Path Equilibrium Fusion (MPEF)** — instability-weighted routing from each path's \((\alpha, h, m)\) proxies, not learned scalar gate fusion.
 
 ---
 
@@ -41,7 +42,7 @@ CNN and physics branches per modality are merged by the **Complementary Modality
 | \(\odot\) | Element-wise (Hadamard) product |
 | \([\cdot\,\|\,\cdot]\) | Channel-wise concatenation |
 
-**Inputs (dual-stream batch, unchanged from baseline training code):**
+**Inputs (two raster streams per sample; no dataset-format changes):**
 
 | Tensor | Shape | Content |
 |--------|-------|---------|
@@ -253,13 +254,11 @@ H = g \odot \tilde{P} + (1 - g) \odot \tilde{E} + B_{\text{mix}}
 \hat{T}_{\text{fm}}^i = \text{fm\_align}_i(\text{align}(T_{\text{fm}}^{\text{LEGACY}[i]}, E_{\text{rgb}}^i))
 \]
 
-(When physics encoders are disabled for ablation, \(\hat{H}_{\text{rgb}} = \text{rgb\_to\_fusion}(E_{\text{rgb}})\) directly from raw EfficientNet features.)
-
 ---
 
 ## 7. Stage C — Tri-stream fusion (MAO-GeoEGCA + TTEB)
 
-Default fusion mode: `--fusion mao`. The hybrid streams \(\hat{H}_{\text{rgb}}\), \(\hat{H}_{\text{dem}}\), and \(\hat{T}_{\text{fm}}\) (all \(C=64\)) enter the Geo-Equilibrium Gated Cross-Attention core.
+The hybrid streams \(\hat{H}_{\text{rgb}}\), \(\hat{H}_{\text{dem}}\), and \(\hat{T}_{\text{fm}}\) (all \(C=64\)) enter the **Geo-Equilibrium Gated Cross-Attention** core. This is the sole encoder/skip fusion path in `GeoPhysicsLandslideNet` — there is no alternate gated CNN fusion branch in the main model.
 
 ### 7.1 MAO-GeoEGCA (bottleneck levels)
 
@@ -333,22 +332,11 @@ Applied at EfficientNet indices \(\{0, 1, 2, 3\}\) (spatially 128², 64², 32²,
 
 **Skip tensor list:** \(\{S^0, S^1, S^2, S^3\}\) at 128², 64², 32², 16² respectively. PGDI in the decoder resizes skips to the current decoder state when spatial sizes differ.
 
-### 7.3 Legacy gate fusion (ablation: `--fusion gate`)
-
-Restores Step-1 chained `GateFuse` at EfficientNet indices 2 and 3:
-
-\[
-F_{\text{ab}} = \alpha_{ab} E_{\text{rgb}} + (1-\alpha_{ab}) E_{\text{dem}}, \quad
-F = \alpha_{fm} F_{\text{ab}} + (1-\alpha_{fm}) \hat{T}_{\text{fm}}
-\]
-
-Requires `--decoder paper` (physics decoder is incompatible with gate fusion).
-
 ---
 
-## 8. Stage D — Dual physics gated decoder
+## 8. Stage D — Dual physics decoder
 
-Default decoder: `--decoder physics`. Two structurally identical `PhysicsDecoder` instances share fused context \((F^3, F^2, \{S^L\})\) but use **stream-specific physics variables** and **stream-specific CNN bottleneck residuals**.
+`DualPhysicsDecoder` runs two structurally identical `PhysicsDecoder` instances. Both share fused MAO/TTEB context \((F^3, F^2, \{S^L\})\) but use **stream-specific physics variables** \((\alpha, h, m)\) and **stream-specific CNN bottleneck residuals** \((a_5, b_5)\).
 
 ### 8.1 Bottleneck injection
 
@@ -391,26 +379,32 @@ D' = D + \beta \odot \text{LatentMechanisticCell}(S)
 
 \(S\) is bilinearly resized to match \(D\) when shapes differ.
 
-### 8.4 Dual-path output fusion (GateFuse)
+### 8.4 Dual-path output fusion (MPEF)
 
-Path A (RGB proxies + \(a_5\) bias) and Path B (DEM proxies + \(b_5\) bias) each produce \((\text{main}, \text{aux2}, \text{aux3})\). Learned per-pixel gates blend the two paths:
+Path A (RGB proxies + \(a_5\) bias) and Path B (DEM proxies + \(b_5\) bias) each produce \((\text{main}, \text{aux2}, \text{aux3})\). **Mechanistic Path Equilibrium Fusion** merges logits:
 
-\[
-\alpha_g = \sigma(\text{Conv}_{1\times1}([O_A \, \|\, O_B])), \quad
-O = \alpha_g \odot O_A + (1 - \alpha_g) \odot O_B
-\]
+1. Per-path failure energy from each path's \((\alpha, h, m)\):
+   \[
+   \text{FE}_p = \text{relu}\!\left(1 - \text{FS}_{\text{nn}}(\alpha_p, h_p, m_p)\right)
+   \]
+2. Instability routing weights: \([w_A, w_B] = \text{softmax}([\text{FE}_A, \text{FE}_B])\)  
+3. Merged output:
+   \[
+   O = w_A O_A + w_B O_B + \text{Conv}_{1\times1}([O_A \, \| \, O_B])
+   \]
+4. Routing regularizer (per head):
+   \[
+   \mathcal{R}_{\text{MPEF}} = -\mathbb{E}\!\left[w_A \log(w_A+\varepsilon) + w_B \log(w_B+\varepsilon)\right]
+   \]
+   Lower entropy → more decisive path routing. Applied independently to **main**, **aux2**, and **aux3** (three `MechanisticPathEquilibriumFusion` modules).
 
-Applied independently to main, aux2, and aux3. Gate regularization terms \(\mathbb{E}[\alpha_g(1-\alpha_g)]\) are returned for the dual-stream loss.
-
-### 8.5 Paper decoder ablation (`--decoder paper`)
-
-Step-2 behaviour preserved: fused features are projected back to native EfficientNet channel widths via `fusion_to_decoder`, then fed to dual `AdaptiveDecoder` paths with TransUp/UpFlex blocks and `GateFuse` on intermediate decoder features x3/x4. No physics cells in the decode path.
+**Design note:** MPEF replaces learned scalar gate fusion between decode paths. Routing is driven by **relative geotechnical instability** on each path's proxy variables, keeping the dual-decoder structure while closing the physics loop at the output.
 
 ---
 
 ## 9. End-to-end forward pass
 
-### Algorithm 1 — PS-GPLNet forward (default configuration)
+### Algorithm 1 — PS-GPLNet forward (`GeoPhysicsLandslideNet`)
 
 ```
 Input: stream_a (RGB), stream_b (topography)
@@ -435,20 +429,20 @@ C. COMPLEMENTARY MODALITY BRIDGE
        Ĥ_dem^i ← dem_to_fusion_i(H_dem^i)
        T̂_fm^i  ← fm_align_i(align(T_fm, i))
 
-D. TRI-STREAM FUSION (fusion = mao)
+D. TRI-STREAM FUSION
    F² ← MAO_GeoEGCA(T̂_fm², Ĥ_rgb², Ĥ_dem²)     // 32×32 neck
    F³ ← MAO_GeoEGCA(T̂_fm³, Ĥ_rgb³, Ĥ_dem³)     // 16×16 bottleneck
    for L in {0,1,2,3}:
        S^L ← TTEB({Ĥ_rgb}, {Ĥ_dem}, {T̂_fm}, level=L)
 
-E. DUAL PHYSICS DECODERS (decoder = physics)
+E. DUAL PHYSICS DECODERS + MPEF
    F³_A ← F³ + Proj(a_5)
    F³_B ← F³ + Proj(b_5)
    (main_A, aux2_A, aux3_A) ← PhysicsDecoder(F³_A, F², {S^L}, α_r, h_r, m_r)
    (main_B, aux2_B, aux3_B) ← PhysicsDecoder(F³_B, F², {S^L}, α_d, h_d, m_d)
-   main  ← GateFuse(main_A,  main_B)
-   aux2  ← GateFuse(aux2_A,  aux2_B)
-   aux3  ← GateFuse(aux3_A,  aux3_B)
+   main  ← MPEF(main_A,  main_B,  α_r, h_r, m_r, α_d, h_d, m_d)
+   aux2  ← MPEF(aux2_A,  aux2_B,  ...)
+   aux3  ← MPEF(aux3_A,  aux3_B,  ...)
 
 F. OUTPUT
    Return (main, aux2, aux3, reg_tuple)
@@ -487,6 +481,18 @@ F. OUTPUT
 4. Return D'
 ```
 
+### Algorithm 5 — MPEF\((O_A, O_B, \alpha_A, h_A, m_A, \alpha_B, h_B, m_B)\)
+
+```
+1. Resize (α, h, m) for each path to match logits spatial size
+2. FE_A ← relu(1 - FS_nn(α_A, h_A, m_A))
+3. FE_B ← relu(1 - FS_nn(α_B, h_B, m_B))
+4. [w_A, w_B] ← softmax([FE_A, FE_B]) along path dimension
+5. O ← w_A ⊙ O_A + w_B ⊙ O_B + Conv1×1([O_A ; O_B])
+6. R ← -(w_A log(w_A+ε) + w_B log(w_B+ε)).mean()
+7. Return O, R
+```
+
 ---
 
 ## 10. Architecture diagram
@@ -507,7 +513,7 @@ stream_b ──► E_dem (EffNet)  ──┐                                 │
                     ┌──────────────────┴──────────────────┐
                     ▼                                     ▼
          PhysicsDecoder_A (+a₅, α_r,h_r,m_r)   PhysicsDecoder_B (+b₅, α_d,h_d,m_d)
-                    └──────────── GateFuse (main, aux2, aux3) ────────┘
+                    └──────────── MPEF (main, aux2, aux3) ─────────────┘
                                        │
                               segmentation logits
 ```
@@ -537,53 +543,57 @@ stream_b ──► E_dem (EffNet)  ──┐                                 │
 
 ## 12. Loss, training, and outputs
 
-Aligned with DiGATe / dual-stream gated baseline (unchanged training code):
-
 | Item | Value |
 |------|-------|
 | Optimizer | Adam, lr = 3×10⁻⁴, weight decay = 10⁻⁴ |
-| Loss | Tversky \(\alpha=0.3, \beta=0.7\); head weights 1.0, 0.6, 0.4 |
-| Gate regularization | \(\lambda_{\text{reg}} = 10^{-3}\) on decoder GateFuse terms |
+| Segmentation loss | Tversky \(\alpha=0.3, \beta=0.7\) on main, aux2, aux3 |
+| Head weights | \(w_1=1.0,\; w_2=0.6,\; w_3=0.4\) |
+| MPEF routing regularization | \(\lambda_{\text{reg}} = 10^{-3}\) on \(\mathcal{R}_{\text{MPEF}}\) (3 terms: main, aux2, aux3) |
 | Epochs | 100 |
 | Batch size | 32 |
 | Metric threshold | 0.5 |
-| Metrics | acc, precision, recall, f1, iou, auroc, auprc |
+| Metrics | acc, precision, recall, f1, iou (main head at 0.5 threshold) |
 | Checkpoints | every 5 epochs + best on validation F1 |
 
 \[
-\mathcal{L} = w_1 \mathcal{L}_{\text{Tversky}}(\text{main}) + w_2 \mathcal{L}_{\text{Tversky}}(\text{aux2}) + w_3 \mathcal{L}_{\text{Tversky}}(\text{aux3}) + \lambda_{\text{reg}} \sum_k \mathbb{E}[\alpha_k(1-\alpha_k)]
+\mathcal{L} = w_1 \mathcal{L}_{\text{Tversky}}(\text{main}) + w_2 \mathcal{L}_{\text{Tversky}}(\text{aux2}) + w_3 \mathcal{L}_{\text{Tversky}}(\text{aux3}) + \lambda_{\text{reg}} \sum_{h \in \{\text{main},\text{aux2},\text{aux3}\}} \mathcal{R}_{\text{MPEF}}^{(h)}
 \]
 
 ---
 
-## 13. CLI configuration and ablation matrix
+## 13. CLI configuration
 
 | Flag | Default | Effect |
 |------|---------|--------|
-| `--fusion mao` | yes | MAO-GeoEGCA + TTEB (Step 2/3 fusion) |
-| `--fusion gate` | | Step-1 GateFuse; requires `--decoder paper` |
-| `--decoder physics` | yes | Dual physics gated decoder (Step 3) |
-| `--decoder paper` | | AdaptiveDecoder dual paths (Step 2) |
-| `--no_physics_encoders` | | Disable \(P_{\text{rgb}}, P_{\text{dem}}\); tri-stream EffNet + Prithvi |
-| `--no_prithvi` | | Disable Prithvi; incompatible with `--decoder physics` |
 | `--no_mechanistic_gating` | | Physics cells run without FS gate (conv features only) |
 | `--prithvi_snapshot` | required on cluster | Path to Prithvi HF cache or snapshot dir |
 | `--freeze_backbone` | yes | Freeze EfficientNet weights |
 | `--tteb_attn_chunk` | 1024 | TTEB attention chunk size |
 | `--tteb_attn_low_res_max` | 4096 | TTEB downsample threshold for attention |
 
-**Recommended Bijie command (Step 3):**
+**Recommended Bijie command:**
 
 ```bash
 python train_bijie.py \
   --dataset_root /path/to/Bijie-landslide-dataset \
-  --output_dir ./outputs_step3_bijie \
+  --output_dir ./outputs_gplnet_bijie \
   --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
-  --fusion mao \
-  --decoder physics \
   --backbone tf_efficientnet_b4 --pretrained --freeze_backbone \
   --epochs 100 --batch_size 32 --lr 3e-4
 ```
+
+**Recommended Landslide4Sense command:**
+
+```bash
+python training.py \
+  --dataset_root /path/to/Landslide4Sense/dataset \
+  --output_dir ./outputs_gplnet_l4s \
+  --prithvi_snapshot /path/to/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL \
+  --backbone tf_efficientnet_b4 --pretrained --freeze_backbone \
+  --epochs 100 --batch_size 32 --lr 3e-4
+```
+
+**External baseline (not part of this architecture):** DiGATe dual-stream gated U-Net remains in `from_first_steps/model_backup.py` for comparison experiments only.
 
 ---
 
@@ -599,6 +609,7 @@ python train_bijie.py \
 | MAO ×2 | ~0.3M |
 | TTEB ×4 | ~1.5M |
 | Dual physics decoder + PGDI | ~2M |
+| MPEF ×3 (main, aux2, aux3) | negligible |
 | Proxy mappers ×2 | negligible |
 | **Trainable total (typical)** | **~7–8M** |
 
@@ -610,9 +621,9 @@ python train_bijie.py \
 
 2. **Traffic control (fusion):** MAO-GeoEGCA uses the combined hybrid physics plane as the query anchor and Prithvi as contextual key/value, modulated by an equilibrium gate that suppresses irrelevant planetary context where local geomechanics indicate stability. TTEB propagates tri-stream, tri-temporal context into skip connections governed by a latent stability map \(\delta\).
 
-3. **Outlet (decoder):** two physics decoders upsample through latent mechanistic cells and PGDI-injected skips, apply FS gating at full resolution via pixel mechanistic cells, and blend through learned dual-stream gates — closing the equation loop from data to segmentation mask.
+3. **Outlet (decoder):** two physics decoders upsample through latent mechanistic cells and PGDI-injected skips, apply FS gating at full resolution via pixel mechanistic cells, and merge through **MPEF** instability routing — closing the equation loop from data to segmentation mask.
 
-This architecture is **enhanced** relative to the original three-stream GPLNet specification: it adds parallel CNN encoders, CMB hybridization, dual physics decode paths, and EfficientNet-aligned pyramid indexing — while preserving the core mathematical identity of the geo-physics equation throughout the network.
+PS-GPLNet is a **standalone pentastream architecture**: CMB hybrid encoding, MAO/TTEB fusion, dual mechanistic decoding, and MPEF path equilibrium — unified by the same Taylor-stabilized FS formalism at inlet, fusion anchor, skip stability, decode cells, and output routing.
 
 ---
 
@@ -620,12 +631,14 @@ This architecture is **enhanced** relative to the original three-stream GPLNet s
 
 | Module | File |
 |--------|------|
-| Full model | `from_first_steps/model.py` |
+| Full model (`GeoPhysicsLandslideNet`) | `from_first_steps/model.py` |
 | Pixel / latent cells, proxy mapper | `from_first_steps/physics/` |
 | Physics encoder | `from_first_steps/encoders/physics_encoder.py` |
 | Prithvi encoder | `from_first_steps/prithvi_encoder.py` |
 | CMB | `from_first_steps/fusion/hybrid_stream_bridge.py` |
 | MAO-GeoEGCA | `from_first_steps/fusion/mao_geo_egca.py` |
 | TTEB | `from_first_steps/fusion/tteb.py` |
-| Physics decoder, PGDI | `from_first_steps/decoder/` |
-| Step-by-step graft log | `from_first_steps/step_by_step_implementation.md` |
+| Physics decoder, PGDI | `from_first_steps/decoder/physics_decoder.py`, `pgdi.py` |
+| Dual decoder + MPEF | `from_first_steps/decoder/dual_physics_decoder.py`, `mechanistic_path_fusion.py` |
+| DiGATe baseline (comparison only) | `from_first_steps/model_backup.py` |
+| Implementation log | `from_first_steps/step_by_step_implementation.md` |
