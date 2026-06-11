@@ -11,26 +11,12 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
+from compact_config import add_compact_args, apply_compact_preset
 from dataset import DualStreamTransform, Landslide4SenseDualStream
+from device_utils import log_gpu_memory, resolve_device
 from losses import DualStreamLoss
 from metrics import pixel_metrics_from_logits
 from model import GeoPhysicsLandslideNet
-
-
-def check_cuda_memory(device: torch.device, min_free_gb: float = 8.0) -> None:
-    if device.type != "cuda":
-        return
-    idx = device.index if device.index is not None else torch.cuda.current_device()
-    free_b, total_b = torch.cuda.mem_get_info(idx)
-    free_gb = free_b / (1024**3)
-    total_gb = total_b / (1024**3)
-    if free_gb < min_free_gb:
-        raise RuntimeError(
-            f"CUDA device cuda:{idx} has only {free_gb:.2f} GiB free of {total_gb:.2f} GiB total. "
-            f"GeoPhysicsLandslideNet needs several GiB free to load Prithvi + dual EfficientNet + physics decoders. "
-            f"Run `nvidia-smi` — another process is likely using this GPU. "
-            f"Free the device or pick another with CUDA_VISIBLE_DEVICES=<id> or --device cuda:<id>."
-        )
 
 
 def parse_args():
@@ -44,6 +30,12 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--auto_gpu", action="store_true", default=True)
+    parser.add_argument("--no-auto_gpu", dest="auto_gpu", action="store_false")
+    parser.add_argument("--min_free_gb", type=float, default=4.0)
+    parser.add_argument("--amp", action="store_true", default=True)
+    parser.add_argument("--no-amp", dest="amp", action="store_false")
+    add_compact_args(parser)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--resize_to", type=int, default=256)
@@ -64,9 +56,9 @@ def parse_args():
     parser.add_argument(
         "--prithvi_snapshot",
         type=str,
-        default=None,
+        required=True,
         help=(
-            "Prithvi weights path: HF cache root "
+            "Required. Prithvi HF cache root "
             "(.../models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL) or snapshots/<hash>/."
         ),
     )
@@ -109,20 +101,6 @@ def dataloader_worker_init_fn(base_seed: int):
         torch.manual_seed(worker_seed)
 
     return _init
-
-
-def log_device_memory(device: torch.device) -> None:
-    if device.type != "cuda":
-        print(f"Training on CPU (pid={os.getpid()})")
-        return
-    idx = device.index if device.index is not None else torch.cuda.current_device()
-    free_b, total_b = torch.cuda.mem_get_info(idx)
-    alloc_mb = torch.cuda.memory_allocated(idx) / (1024**2)
-    print(
-        f"CUDA cuda:{idx} | pid={os.getpid()} | "
-        f"free={free_b / (1024**3):.2f} GiB / total={total_b / (1024**3):.2f} GiB | "
-        f"torch allocated={alloc_mb:.1f} MiB"
-    )
 
 
 def _loader_kwargs(args) -> Dict:
@@ -168,7 +146,16 @@ def prep_batch(batch, device: torch.device):
     return x1, x2, y
 
 
-def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, threshold: float):
+def train_one_epoch(
+    model,
+    loader,
+    criterion,
+    optimizer,
+    device: torch.device,
+    threshold: float,
+    use_amp: bool,
+    scaler: torch.cuda.amp.GradScaler | None,
+):
     model.train()
     losses = []
     loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
@@ -176,13 +163,20 @@ def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, t
 
     for batch in tqdm(loader, desc="Train", leave=False):
         x1, x2, y = prep_batch(batch, device)
-        main, aux2, aux3, reg_tuple = model(x1, x2)
-        loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
-        loss = loss_dict["loss"]
 
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
+        with torch.autocast(device_type=device.type, enabled=use_amp and device.type == "cuda"):
+            main, aux2, aux3, reg_tuple = model(x1, x2)
+            loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
+            loss = loss_dict["loss"]
+
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            optimizer.step()
 
         losses.append(float(loss.item()))
         loss_parts["main"].append(float(loss_dict["loss_main"].item()))
@@ -202,7 +196,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device: torch.device, t
 
 
 @torch.no_grad()
-def evaluate(model, loader, criterion, device: torch.device, threshold: float):
+def evaluate(model, loader, criterion, device: torch.device, threshold: float, use_amp: bool):
     model.eval()
     losses = []
     loss_parts = {"main": [], "aux2": [], "aux3": [], "reg": []}
@@ -210,8 +204,9 @@ def evaluate(model, loader, criterion, device: torch.device, threshold: float):
 
     for batch in tqdm(loader, desc="Val", leave=False):
         x1, x2, y = prep_batch(batch, device)
-        main, aux2, aux3, reg_tuple = model(x1, x2)
-        loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
+        with torch.autocast(device_type=device.type, enabled=use_amp and device.type == "cuda"):
+            main, aux2, aux3, reg_tuple = model(x1, x2)
+            loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
 
         losses.append(float(loss_dict["loss"].item()))
         loss_parts["main"].append(float(loss_dict["loss_main"].item()))
@@ -280,10 +275,9 @@ def build_dataloaders(args):
 
 
 def main():
-    args = parse_args()
+    args = apply_compact_preset(parse_args())
     set_seed(args.seed)
 
-    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     output_dir = Path(args.output_dir).resolve()
     ckpt_dir = output_dir / "checkpoint"
     results_dir = output_dir / "results"
@@ -296,6 +290,12 @@ def main():
     pretrained_path = args.pretrained_path
     if pretrained_path in (None, "", "None", "none"):
         pretrained_path = None
+
+    if args.compact:
+        print(
+            "Compact mode: B0 backbone, fusion C=32, LoRA r=4, "
+            "shared decoder, fp16 frozen encoders."
+        )
 
     print("Building GeoPhysicsLandslideNet on CPU...")
     model = GeoPhysicsLandslideNet(
@@ -310,6 +310,9 @@ def main():
         share_backbone=args.share_backbone,
         prithvi_snapshot=args.prithvi_snapshot,
         lora_rank=args.lora_rank,
+        fusion_channels=args.fusion_channels,
+        shared_physics_decoder=args.shared_physics_decoder,
+        fp16_frozen_encoders=args.fp16_frozen_encoders,
         mechanistic_gating=not args.no_mechanistic_gating,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
@@ -318,11 +321,24 @@ def main():
     total = sum(p.numel() for p in model.parameters())
     print(f"Model params: trainable={trainable/1e6:.2f}M total={total/1e6:.2f}M")
 
-    log_device_memory(device)
-    check_cuda_memory(device)
+    min_free = args.min_free_gb
+    device = resolve_device(
+        args.device if torch.cuda.is_available() else "cpu",
+        auto_select=args.auto_gpu,
+        min_free_gb=min_free,
+    )
+    print(f"Training pid={os.getpid()} on {device} | amp={args.amp}")
+    log_gpu_memory(prefix="[GPU] ")
+
+    if device.type == "cuda":
+        torch.cuda.empty_cache()
     print("Moving model to GPU...")
     model = model.to(device)
+    model.apply_fp16_frozen_encoders()
     set_seed(args.seed, cuda=True)
+
+    use_amp = args.amp and device.type == "cuda"
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
     criterion = DualStreamLoss(
         alpha=args.tversky_alpha,
@@ -348,9 +364,9 @@ def main():
 
     for epoch in range(start_epoch, args.epochs + 1):
         train_metrics = train_one_epoch(
-            model, train_loader, criterion, optimizer, device, threshold=args.metric_threshold
+            model, train_loader, criterion, optimizer, device, args.metric_threshold, use_amp, scaler
         )
-        val_metrics = evaluate(model, valid_loader, criterion, device, threshold=args.metric_threshold)
+        val_metrics = evaluate(model, valid_loader, criterion, device, args.metric_threshold, use_amp)
 
         row = {
             "epoch": epoch,

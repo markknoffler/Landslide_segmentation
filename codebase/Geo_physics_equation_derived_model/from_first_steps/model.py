@@ -246,8 +246,6 @@ class GeoPhysicsLandslideNet(nn.Module):
       - DualPhysicsDecoder + MechanisticPathEquilibriumFusion (MPEF)
     """
 
-    PRITHVI_CHANNELS = 64
-    FUSION_CHANNELS = 64
     LEGACY_LEVEL_FOR_EFFNET = (1, 2, 3, 4, 4)
     MAO_LEVELS = (2, 3)
     TTEB_LEVELS = (0, 1, 2, 3)
@@ -266,6 +264,9 @@ class GeoPhysicsLandslideNet(nn.Module):
         out_indices: Tuple[int, ...] = (0, 1, 2, 3, 4),
         prithvi_snapshot: Optional[str | Path] = None,
         lora_rank: int = 8,
+        fusion_channels: int = 64,
+        shared_physics_decoder: bool = False,
+        fp16_frozen_encoders: bool = False,
         enable_prithvi: bool = True,
         enable_physics_encoders: bool = True,
         mechanistic_gating: bool = True,
@@ -287,6 +288,10 @@ class GeoPhysicsLandslideNet(nn.Module):
         self.enable_prithvi = True
         self.enable_physics_encoders = True
         self.mechanistic_gating = mechanistic_gating
+        self.fp16_frozen_encoders = fp16_frozen_encoders
+        fusion_ch = int(fusion_channels)
+        if fusion_ch < 16:
+            raise ValueError("fusion_channels must be >= 16")
 
         self.encoder_rgb = build_encoder(
             name=backbone,
@@ -313,7 +318,6 @@ class GeoPhysicsLandslideNet(nn.Module):
                 f"{self.encoder_rgb.channels} vs {self.encoder_dem.channels}"
             )
         ch_list = list(self.encoder_rgb.channels)
-        fusion_ch = self.FUSION_CHANNELS
 
         self.proxy_rgb = PhysicsProxyMapper()
         self.proxy_dem = PhysicsProxyMapper()
@@ -347,7 +351,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         self.dem_to_fusion = nn.ModuleList([_to_fusion(ch) for ch in ch_list])
 
         self.encoder_fm = PrithviFoundationEncoder(
-            unified_channels=self.PRITHVI_CHANNELS,
+            unified_channels=fusion_ch,
             lora_rank=lora_rank,
             snapshot_dir=prithvi_snapshot,
             input_normalization="observed_rasters",
@@ -355,7 +359,7 @@ class GeoPhysicsLandslideNet(nn.Module):
         self.fm_align = nn.ModuleList(
             [
                 nn.Sequential(
-                    nn.Conv2d(self.PRITHVI_CHANNELS, fusion_ch, kernel_size=1, bias=False),
+                    nn.Conv2d(fusion_ch, fusion_ch, kernel_size=1, bias=False),
                     LN2d(fusion_ch),
                     nn.ReLU(inplace=True),
                 )
@@ -382,7 +386,18 @@ class GeoPhysicsLandslideNet(nn.Module):
             n_classes=n_classes,
             bottleneck_ch=ch_list[4],
             mechanistic_gating=mechanistic_gating,
+            shared_decoder=shared_physics_decoder,
         )
+        self._fp16_frozen_applied = False
+
+    def apply_fp16_frozen_encoders(self) -> None:
+        """Halve GPU memory for frozen EfficientNet + Prithvi backbones (trainable heads stay fp32)."""
+        if self._fp16_frozen_applied or not self.fp16_frozen_encoders:
+            return
+        self.encoder_rgb.net.half()
+        self.encoder_dem.net.half()
+        self.encoder_fm.model.half()
+        self._fp16_frozen_applied = True
 
     def _align_legacy_level(self, legacy_pyramid: list[torch.Tensor], ref: torch.Tensor, level_i: int) -> torch.Tensor:
         legacy_idx = self.LEGACY_LEVEL_FOR_EFFNET[level_i]
@@ -428,13 +443,21 @@ class GeoPhysicsLandslideNet(nn.Module):
         dem = _extract_dem_channel(x2)
         slope, dem_norm, ndvi = physics_proxies_from_streams(x1, x2)
 
-        rgb_feats = self.encoder_rgb(x1)
-        dem_feats = self.encoder_dem(dem)
+        enc_dtype = torch.float16 if self._fp16_frozen_applied else x1.dtype
+        x1_enc = x1.to(enc_dtype) if enc_dtype != x1.dtype else x1
+        dem_enc = dem.to(enc_dtype) if enc_dtype != dem.dtype else dem
+
+        rgb_feats = self.encoder_rgb(x1_enc)
+        dem_feats = self.encoder_dem(dem_enc)
+        rgb_feats = tuple(f.float() for f in rgb_feats)
+        dem_feats = tuple(f.float() for f in dem_feats)
         _, _, _, _, a5 = rgb_feats
         _, _, _, _, b5 = dem_feats
 
         fm_in = observed_stack_from_streams(x1, x2)
-        fm_raw = self.encoder_fm(fm_in)
+        fm_in_enc = fm_in.to(enc_dtype) if enc_dtype != fm_in.dtype else fm_in
+        fm_raw = self.encoder_fm(fm_in_enc)
+        fm_raw = [f.float() for f in fm_raw]
         _, _, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
 
         alpha_r, h_r, m_r = self.proxy_rgb(slope, dem_norm, ndvi)
