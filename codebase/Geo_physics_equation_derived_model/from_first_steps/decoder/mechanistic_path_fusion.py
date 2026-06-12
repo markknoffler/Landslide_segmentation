@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from fusion.pyramid_utils import match_spatial
+from physics.params import positive_scale
 
 
 class MechanisticPathEquilibriumFusion(nn.Module):
@@ -41,10 +42,10 @@ class MechanisticPathEquilibriumFusion(nn.Module):
         h = match_spatial(h, ref)
         m = match_spatial(m, ref)
 
-        c = torch.exp(self.w_c)
-        phi = torch.exp(self.w_phi)
-        gamma = torch.exp(self.w_gamma)
-        w_moist = torch.exp(self.w_m)
+        c = positive_scale(self.w_c)
+        phi = positive_scale(self.w_phi)
+        gamma = positive_scale(self.w_gamma)
+        w_moist = positive_scale(self.w_m)
 
         cos2 = torch.cos(alpha) ** 2
         sin_cos = torch.sin(alpha) * torch.cos(alpha)
@@ -75,5 +76,5 @@ class MechanisticPathEquilibriumFusion(nn.Module):
         out = blended + self.correction(torch.cat([logits_a, logits_b], dim=1))
 
         # Encourage decisive routing (low entropy), distinct from DiGATe gate regularizer.
-        reg = -(wa * torch.log(wa + 1e-6) + wb * torch.log(wb + 1e-6)).mean()
+        reg = -(wa * torch.log(wa.clamp(min=1e-6)) + wb * torch.log(wb.clamp(min=1e-6))).mean()
         return out, reg

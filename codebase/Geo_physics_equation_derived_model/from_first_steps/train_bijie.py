@@ -34,8 +34,8 @@ def parse_args():
     p.add_argument("--auto_gpu", action="store_true", default=True)
     p.add_argument("--no-auto_gpu", dest="auto_gpu", action="store_false")
     p.add_argument("--min_free_gb", type=float, default=4.0)
-    p.add_argument("--amp", action="store_true", default=True)
-    p.add_argument("--no-amp", dest="amp", action="store_false")
+    p.add_argument("--amp", action="store_true", default=False)
+    p.add_argument("--grad_clip", type=float, default=1.0)
     add_compact_args(p)
     p.add_argument("--seed", type=int, default=42)
 
@@ -173,7 +173,8 @@ def train_one_epoch(
     device: torch.device,
     threshold: float,
     use_amp: bool,
-    scaler: torch.cuda.amp.GradScaler | None,
+    scaler: torch.amp.GradScaler | None,
+    grad_clip: float,
 ):
     model.train()
     losses = []
@@ -189,12 +190,20 @@ def train_one_epoch(
             loss_dict = criterion(main, aux2, aux3, reg_tuple, y)
             loss = loss_dict["loss"]
 
+        if not torch.isfinite(loss):
+            print("WARNING: non-finite loss — skipping optimizer step for this batch.")
+            optimizer.zero_grad(set_to_none=True)
+            continue
+
         if scaler is not None:
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             scaler.step(optimizer)
             scaler.update()
         else:
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
 
         losses.append(float(loss.item()))
@@ -332,7 +341,15 @@ def main():
 
     for epoch in range(start_epoch, args.epochs + 1):
         train_metrics = train_one_epoch(
-            model, train_loader, criterion, optimizer, device, args.metric_threshold, use_amp, scaler
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            args.metric_threshold,
+            use_amp,
+            scaler,
+            args.grad_clip,
         )
         val_metrics = evaluate(model, val_loader, criterion, device, args.metric_threshold, use_amp)
 

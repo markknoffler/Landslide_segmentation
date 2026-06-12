@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from physics.params import positive_scale
+
 
 class PixelMechanisticCell(nn.Module):
     """Pixel-level infinite-slope stability gate (Taylor-stabilized ratio)."""
@@ -31,10 +33,10 @@ class PixelMechanisticCell(nn.Module):
         if m.shape[-2:] != target:
             m = F.interpolate(m, size=target, mode="bilinear", align_corners=False)
 
-        c = torch.exp(self.w_c)
-        phi = torch.exp(self.w_phi)
-        gamma = torch.exp(self.w_gamma)
-        w_moist = torch.exp(self.w_m)
+        c = positive_scale(self.w_c)
+        phi = positive_scale(self.w_phi)
+        gamma = positive_scale(self.w_gamma)
+        w_moist = positive_scale(self.w_m)
 
         cos2 = torch.cos(alpha) ** 2
         sin_cos = torch.sin(alpha) * torch.cos(alpha)
