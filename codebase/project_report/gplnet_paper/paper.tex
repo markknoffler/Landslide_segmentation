@@ -30,14 +30,13 @@
 \begin{document}
 \thispagestyle{empty}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig1_qualitative.png}
-\caption{Qualitative segmentation examples on randomly selected validation samples (RGB, ground-truth mask, predicted mask, and probability heatmap overlay). Red denotes landslide confidence; blue denotes background.}
-\label{fig:teaser}
-\end{figure*}
-
 \maketitle
+
+\begin{center}
+\includegraphics[width=\textwidth]{figures/fig1_qualitative.png}
+\captionof{figure}{Qualitative segmentation examples on randomly selected validation samples (RGB, ground-truth mask, predicted mask, and probability heatmap overlay). Red denotes landslide confidence; blue denotes background.}
+\label{fig:teaser}
+\end{center}
 
 \begin{abstract}
 Landslide inventory mapping from remote sensing remains brittle when models rely on purely statistical fusion of optical and topographic cues. We introduce \textbf{GeoPhysicsLandslideNet} (PS-GPLNet), a pentastream segmentation architecture in which the same Taylor-stabilized infinite-slope factor-of-safety (FS) formalism appears at the encoder inlet, fusion core, skip pathway, decoder cells, and dual-path output routing. Five parallel encoders---EfficientNet RGB/DEM, physics encoders on each modality, and Prithvi-EO with LoRA---are hybridized by Complementary Modality Bridges, fused by MAO-GeoEGCA and TTEB, decoded by dual physics decoders with PGDI, and merged by Mechanistic Path Equilibrium Fusion (MPEF). On Bijie, PS-GPLNet attains best-epoch validation F1\,$=$\,0.933 and IoU\,$=$\,0.907, exceeding strong CNN and dual-stream baselines under a unified protocol. On Landslide4Sense it reaches F1\,$=$\,0.736 and IoU\,$=$\,0.660. We argue that closing the geotechnical loop inside the network---rather than treating physics as a post-hoc regularizer---is a distinct and competitive inductive bias for landslide segmentation.

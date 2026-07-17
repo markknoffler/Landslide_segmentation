@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  17 JUL 2026 12:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  17 JUL 2026 13:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -514,19 +514,11 @@ Package microtype Info: No adjustment of character kerning.
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-ptm.cfg
 File: mt-ptm.cfg 2006/04/20 v1.7 microtype config. file: Times (RS)
 )
-<figures/fig1_qualitative.png, id=100, 2246.3925pt x 1108.14pt>
-File: figures/fig1_qualitative.png Graphic file (type png)
-<use figures/fig1_qualitative.png>
-Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 35.
-(pdftex.def)             Requested size: 505.89pt x 249.54056pt.
- [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf
--dist/fonts/enc/dvips/base/8r.enc} <./figures/fig1_qualitative.png (PNG copy)>]
-
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-cmr.cfg
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 41.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 34.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -535,7 +527,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 41.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 34.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -544,16 +536,33 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 4
-1.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 3
+4.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-(./content/paper_core.tex [2
+<figures/fig1_qualitative.png, id=100, 2246.3925pt x 1108.14pt>
+File: figures/fig1_qualitative.png Graphic file (type png)
+<use figures/fig1_qualitative.png>
+Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 36.
+(pdftex.def)             Requested size: 505.89pt x 249.54056pt.
 
 
-]
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 37.
+See the caption package documentation for explanation.
+
+
+Overfull \hbox (261.97874pt too wide) in paragraph at lines 36--37
+ [] 
+ []
+
+(./content/paper_core.tex [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}
+
+
+ <./figures/fig1_qualitative.png (PNG copy)>]
 Underfull \hbox (badness 2237) in paragraph at lines 28--29
 \OT1/ptm/m/n/10 (+20) Large-scale pre-train-ing on multi-temporal EO stacks---
  []
@@ -585,13 +594,13 @@ Underfull \hbox (badness 6445) in paragraph at lines 52--53
 m/m/n/10 (+20) DEM on Land-
  []
 
-
+[2]
 Underfull \hbox (badness 5893) in paragraph at lines 61--62
 \OT1/ptm/m/n/10 (+20) tow-ers $\OML/cmm/m/it/10 E[]; E[]$\OT1/ptm/m/n/10 (+20) 
 ; PhysicsEn-coders $\OML/cmm/m/it/10 P[]; P[]$ \OT1/ptm/m/n/10 (+20) with
  []
 
-[3]
+
 Overfull \hbox (94.4878pt too wide) detected at line 71
 [][][]\OT1/cmr/m/n/10 [\OML/cmm/m/it/10 w[]; w[]\OT1/cmr/m/n/10 ] = []([[][]\OM
 L/cmm/m/it/10 ; [][]\OT1/cmr/m/n/10 ])\OML/cmm/m/it/10 ;  O \OT1/cmr/m/n/10 = \
@@ -634,94 +643,92 @@ Underfull \hbox (badness 7273) in paragraph at lines 95--96
 \OT1/cmr/m/n/10 =$\OT1/ptm/m/n/10 (+20) 0.660, ahead of DeepLabV3+
  []
 
-<figures/fig_l4s_bars.png, id=232, 722.7pt x 361.35pt>
+[3]
+<figures/fig_l4s_bars.png, id=243, 722.7pt x 361.35pt>
 File: figures/fig_l4s_bars.png Graphic file (type png)
 <use figures/fig_l4s_bars.png>
 Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 154.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/fig_bijie_bars.png, id=234, 722.7pt x 361.35pt>
+<figures/fig_bijie_bars.png, id=245, 722.7pt x 361.35pt>
 File: figures/fig_bijie_bars.png Graphic file (type png)
 <use figures/fig_bijie_bars.png>
 Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 161.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/fig_l4s_iou_rank.png, id=235, 578.16pt x 325.215pt>
+<figures/fig_l4s_iou_rank.png, id=246, 578.16pt x 325.215pt>
 File: figures/fig_l4s_iou_rank.png Graphic file (type png)
 <use figures/fig_l4s_iou_rank.png>
 Package pdftex.def Info: figures/fig_l4s_iou_rank.png  used on input line 168.
 (pdftex.def)             Requested size: 243.91125pt x 137.19974pt.
-<figures/fig_bijie_iou_rank.png, id=236, 578.16pt x 325.215pt>
+<figures/fig_bijie_iou_rank.png, id=247, 578.16pt x 325.215pt>
 File: figures/fig_bijie_iou_rank.png Graphic file (type png)
 <use figures/fig_bijie_iou_rank.png>
 Package pdftex.def Info: figures/fig_bijie_iou_rank.png  used on input line 175
 .
 (pdftex.def)             Requested size: 243.91125pt x 137.19974pt.
-<figures/fig_l4s_heatmap.png, id=237, 433.62pt x 303.0823pt>
+<figures/fig_l4s_heatmap.png, id=248, 433.62pt x 303.0823pt>
 File: figures/fig_l4s_heatmap.png Graphic file (type png)
 <use figures/fig_l4s_heatmap.png>
 Package pdftex.def Info: figures/fig_l4s_heatmap.png  used on input line 182.
 (pdftex.def)             Requested size: 243.91125pt x 170.48337pt.
-<figures/fig_bijie_heatmap.png, id=238, 433.62pt x 289.08pt>
+<figures/fig_bijie_heatmap.png, id=249, 433.62pt x 289.08pt>
 File: figures/fig_bijie_heatmap.png Graphic file (type png)
 <use figures/fig_bijie_heatmap.png>
 Package pdftex.def Info: figures/fig_bijie_heatmap.png  used on input line 189.
 
 (pdftex.def)             Requested size: 243.91125pt x 162.60709pt.
-<figures/fig_l4s_delta_deeplab.png, id=239, 361.35pt x 252.945pt>
+<figures/fig_l4s_delta_deeplab.png, id=250, 361.35pt x 252.945pt>
 File: figures/fig_l4s_delta_deeplab.png Graphic file (type png)
 <use figures/fig_l4s_delta_deeplab.png>
 Package pdftex.def Info: figures/fig_l4s_delta_deeplab.png  used on input line 
 196.
 (pdftex.def)             Requested size: 243.91125pt x 170.73822pt.
-<figures/fig_bijie_delta_deeplab.png, id=240, 361.35pt x 252.945pt>
+<figures/fig_bijie_delta_deeplab.png, id=251, 361.35pt x 252.945pt>
 File: figures/fig_bijie_delta_deeplab.png Graphic file (type png)
 <use figures/fig_bijie_delta_deeplab.png>
 Package pdftex.def Info: figures/fig_bijie_delta_deeplab.png  used on input lin
 e 203.
 (pdftex.def)             Requested size: 243.91125pt x 170.73822pt.
-<figures/fig_l4s_curves.png, id=245, 722.7pt x 505.89pt>
+<figures/fig_l4s_curves.png, id=256, 722.7pt x 505.89pt>
 File: figures/fig_l4s_curves.png Graphic file (type png)
 <use figures/fig_l4s_curves.png>
 Package pdftex.def Info: figures/fig_l4s_curves.png  used on input line 212.
 (pdftex.def)             Requested size: 243.91125pt x 170.73436pt.
-<figures/fig_bijie_curves.png, id=246, 722.7pt x 505.89pt>
+<figures/fig_bijie_curves.png, id=257, 722.7pt x 505.89pt>
 File: figures/fig_bijie_curves.png Graphic file (type png)
 <use figures/fig_bijie_curves.png>
 Package pdftex.def Info: figures/fig_bijie_curves.png  used on input line 219.
 (pdftex.def)             Requested size: 243.91125pt x 170.73436pt.
-<figures/fig_l4s_pr.png, id=247, 397.485pt x 325.215pt>
+<figures/fig_l4s_pr.png, id=258, 397.485pt x 325.215pt>
 File: figures/fig_l4s_pr.png Graphic file (type png)
 <use figures/fig_l4s_pr.png>
 Package pdftex.def Info: figures/fig_l4s_pr.png  used on input line 226.
 (pdftex.def)             Requested size: 243.91125pt x 199.56686pt.
-<figures/fig_bijie_pr.png, id=248, 397.485pt x 325.215pt>
+<figures/fig_bijie_pr.png, id=259, 397.485pt x 325.215pt>
 File: figures/fig_bijie_pr.png Graphic file (type png)
 <use figures/fig_bijie_pr.png>
 Package pdftex.def Info: figures/fig_bijie_pr.png  used on input line 233.
 (pdftex.def)             Requested size: 243.91125pt x 199.56686pt.
-[4]
-
-LaTeX Warning: Text page 5 contains only floats.
-
-[5 <./figures/fig_l4s_bars.png> <./figures/fig_bijie_bars.png> <./figures/fig_l
-4s_iou_rank.png> <./figures/fig_bijie_iou_rank.png> <./figures/fig_l4s_heatmap.
-png> <./figures/fig_bijie_heatmap.png> <./figures/fig_l4s_delta_deeplab.png>]
-<figures/fig26_bijie_qual.png, id=286, 3032.32875pt x 1108.14pt>
+<figures/fig26_bijie_qual.png, id=263, 3032.32875pt x 1108.14pt>
 File: figures/fig26_bijie_qual.png Graphic file (type png)
 <use figures/fig26_bijie_qual.png>
 Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 243.
 (pdftex.def)             Requested size: 505.89pt x 184.86427pt.
-<figures/fig27_l4s_qual.png, id=287, 3032.32875pt x 1108.14pt>
+<figures/fig27_l4s_qual.png, id=264, 3032.32875pt x 1108.14pt>
 File: figures/fig27_l4s_qual.png Graphic file (type png)
 <use figures/fig27_l4s_qual.png>
 Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 250.
 (pdftex.def)             Requested size: 505.89pt x 184.86427pt.
-)
-[6 <./figures/fig_bijie_delta_deeplab.png> <./figures/fig_l4s_curves.png> <./fi
-gures/fig_bijie_curves.png> <./figures/fig_l4s_pr.png> <./figures/fig_bijie_pr.
-png>] (./paper.bbl
-Underfull \vbox (badness 10000) has occurred while \output is active []
+ [4 <./figures/fig_l4s_bars.png> <./figures/fig_bijie_bars.png> <./figures/fig_
+l4s_iou_rank.png> <./figures/fig_bijie_iou_rank.png> <./figures/fig_l4s_heatmap
+.png>]
 
- [7 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png>]
+LaTeX Warning: Text page 5 contains only floats.
+
+[5 <./figures/fig_bijie_heatmap.png> <./figures/fig_l4s_delta_deeplab.png> <./f
+igures/fig_bijie_delta_deeplab.png> <./figures/fig_l4s_curves.png> <./figures/f
+ig_bijie_curves.png> <./figures/fig_l4s_pr.png>]) [6 <./figures/fig_bijie_pr.pn
+g>] (./paper.bbl [7 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.
+png>]
 Underfull \hbox (badness 1939) in paragraph at lines 152--155
 \OT1/ptm/m/n/9 (+20) er-al-ist geospa-tial ar-ti-fi-cial in-tel-li-gence.  \OT1
 /ptm/m/it/9 (+20) arXiv preprint
@@ -738,13 +745,13 @@ Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 1B7514C301CC2A3D364DA984BDF33F39;4189.
  ) 
 Here is how much of TeX's memory you used:
- 15154 strings out of 476182
- 240492 string characters out of 5795596
- 1959975 words of memory out of 5000000
+ 15160 strings out of 476182
+ 240531 string characters out of 5795596
+ 1953975 words of memory out of 5000000
  36534 multiletter control sequences out of 15000+600000
- 603082 words of font info for 302 fonts, out of 8000000 for 9000
+ 603317 words of font info for 306 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,13n,79p,1327b,629s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,13n,79p,1327b,627s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texli
@@ -759,7 +766,7 @@ ols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pf
 b></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/t
 exlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-di
 st/fonts/type1/urw/times/utmri8a.pfb>
-Output written on paper.pdf (8 pages, 9633032 bytes).
+Output written on paper.pdf (8 pages, 9633286 bytes).
 PDF statistics:
  399 PDF objects out of 1000 (max. 8388607)
  328 compressed objects within 4 object streams
