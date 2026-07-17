@@ -1,0 +1,177 @@
+\documentclass[11pt,a4paper,twocolumn]{article}
+
+\usepackage[margin=0.8in]{geometry}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{pdfpages}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{microtype}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\columnsep}{0.28in}
+
+\title{Project Report:\\GeoPhysicsLandslideNet --- Physics-Closed Pentastream Architecture for Multimodal Landslide Segmentation}
+\author{Samreedh Bhuyan\\[0.4em]
+{\normalsize School of Computer Engineering\\
+Kalinga Institute of Industrial Technology (KIIT)}\\[0.6em]
+{\normalsize Guide: Dr.\ Anil Earnest\\
+CSIR Fourth Paradigm Institute (CSIR-4PI), Bengaluru}}
+\date{}
+
+\begin{document}
+
+% Official letterheads (filled DOC exports with 4PI branding)
+\includepdf[pages=-]{letterhead/thesis_certificate_filled.pdf}
+\includepdf[pages=-]{letterhead/thesis_coverpage_filled.pdf}
+
+\begin{titlepage}
+\onecolumn
+\centering
+\vspace*{2cm}
+{\Large\bfseries Project Report}\\[1.2em]
+{\LARGE\bfseries GeoPhysicsLandslideNet: Physics-Closed Pentastream Architecture for Multimodal Landslide Segmentation}\\[2em]
+Submitted in partial fulfilment of the requirements for the award of the degree of\\[0.8em]
+{\Large Bachelor of Technology}\\[1.5em]
+by\\[0.8em]
+{\Large\bfseries Samreedh Bhuyan}\\[1.5em]
+under the guidance of\\[0.5em]
+{\Large\bfseries Dr.\ Anil Earnest}\\[0.3em]
+CSIR Fourth Paradigm Institute (CSIR-4PI)\\[2em]
+{\large School of Computer Engineering\\
+Kalinga Institute of Industrial Technology (KIIT Deemed to be University)\\
+Bhubaneswar, Odisha, India}\\[2em]
+{\large CSIR Fourth Paradigm Institute\\
+NAL Belur Campus, Bengaluru -- 560037}
+\vfill
+\end{titlepage}
+
+\onecolumn
+\section*{ACKNOWLEDGEMENTS}
+I express my sincere gratitude to everyone who has directly or indirectly contributed to the successful completion of this project report titled ``GeoPhysicsLandslideNet: Physics-Closed Pentastream Architecture for Multimodal Landslide Segmentation.''
+
+I am deeply grateful to the faculty members of the School of Computer Engineering, Kalinga Institute of Industrial Technology (KIIT), for providing an excellent academic environment and the necessary resources to undertake this study.
+
+I would like to express my heartfelt gratitude to my project guide, \textbf{Dr.\ Anil Earnest}, CSIR Fourth Paradigm Institute (CSIR-4PI), for the valuable guidance, continuous encouragement, constructive suggestions, and constant support throughout the course of this work. His expertise and insightful comments greatly contributed to the successful completion of this report.
+
+I also extend my sincere thanks to the scientists, staff, and computing facilities of CSIR-4PI, Bengaluru, for their assistance and cooperation whenever required.
+
+I gratefully acknowledge the maintainers of the Bijie landslide dataset and the Landslide4Sense benchmark for providing open-access remote sensing data used in this study. I also acknowledge the developers of Prithvi-EO, EfficientNet, PyTorch, and the open-source baseline segmentation implementations that enabled fair comparative evaluation.
+
+Finally, I express my heartfelt gratitude to my parents, family members, and friends for their unwavering encouragement, patience, and moral support throughout the completion of this project.
+
+I sincerely thank everyone who has contributed, directly or indirectly, to the successful completion of this work.
+
+\vspace{1.5em}
+\hfill Samreedh Bhuyan
+
+\clearpage
+\twocolumn
+\maketitle
+\thispagestyle{empty}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_qualitative.png}
+\caption{Opening qualitative panel (RGB, ground truth, prediction, heatmap) illustrating the landslide segmentation setting.}
+\label{fig:report-teaser}
+\end{figure*}
+
+\begin{abstract}
+This report documents the design, mathematical formulation, implementation, and experimental evaluation of GeoPhysicsLandslideNet (PS-GPLNet), a pentastream physics-closed network for binary landslide segmentation from optical and topographic remote sensing inputs. The architecture embeds Taylor-stabilized infinite-slope factor-of-safety logic throughout encoding, fusion, decoding, and dual-path output equilibrium. Experiments on Bijie and Landslide4Sense demonstrate strong performance against a broad baseline ladder. Implementation lives in \texttt{codebase/Geo\_physics\_equation\_derived\_model/from\_first\_steps/}.
+\end{abstract}
+
+\section{Introduction}
+Landslide mapping from remote sensing is a central problem in hazard assessment. Purely convolutional segmenters often confuse spectrally similar terrain; dual-stream networks improve matters by separating RGB and DEM pathways, yet their fusion gates remain statistical. Physics-informed geo-AI has advanced susceptibility mapping, but dense segmentation with a closed geotechnical inductive bias spanning the full U-Net-like pipeline is still uncommon.
+
+This report presents PS-GPLNet as an independent architecture: five encoders, Complementary Modality Bridges, MAO-GeoEGCA and TTEB fusion, dual physics decoders with PGDI, and Mechanistic Path Equilibrium Fusion (MPEF). DiGATe-style dual-stream gated U-Nets are used only as baselines.
+
+\section{Related Work}
+We position PS-GPLNet against (i) classical and transformer segmentation backbones (U-Net, DeepLabV3+, TransUNet, SegFormer), (ii) dual-stream gated multimodal landslide networks, and (iii) physics-informed susceptibility models that inject Newmark/FS constraints into losses rather than into dense decode routing. The distinguishing claim is architectural closure of FS cells from inlet to outlet.
+
+\section{Methodology}
+\subsection{Factor-of-safety cell}
+\[
+\mathrm{FS}=\frac{c+\phi h\cos^2\alpha}{\gamma h\sin\alpha\cos\alpha+w_m m+\varepsilon},\quad
+\mathrm{FE}=\mathrm{ReLU}(1-\mathrm{FS}).
+\]
+Positive parameters use bounded exponentials for stability during training.
+
+\subsection{System pipeline}
+RGB and DEM EfficientNets provide appearance/topography features; physics encoders apply FS-gated cells; Prithvi-EO$+$LoRA supplies foundation context. CMB hybridizes CNN and physics per modality. MAO-GeoEGCA and TTEB fuse streams. Dual PhysicsDecoders upsample with PGDI; MPEF routes path logits by relative failure energy. Training uses deeply supervised Tversky loss plus MPEF entropy regularization.
+
+A full algorithmic and mathematical description is provided in \texttt{from\_first\_steps/model\_architecture.md}.
+
+\section{Experiments and Results}
+Tables~\ref{tab:r-l4s}--\ref{tab:r-bijie} summarize best-epoch validation metrics. PS-GPLNet achieves F1\,$=$\,0.933 / IoU\,$=$\,0.907 on Bijie and F1\,$=$\,0.736 / IoU\,$=$\,0.660 on Landslide4Sense.
+
+\begin{table}[t]
+\centering
+\caption{Landslide4Sense best-epoch validation (selected models).}
+\label{tab:r-l4s}
+\scriptsize
+\begin{tabular}{lccc}
+\toprule
+Model & F1 & IoU & Prec \\
+\midrule
+LinkNet & 0.431 & 0.359 & 0.487 \\
+Dual-Stream UNet & 0.656 & 0.581 & 0.713 \\
+DeepLabV3+ & 0.710 & 0.636 & 0.789 \\
+\textbf{PS-GPLNet} & \textbf{0.736} & \textbf{0.660} & 0.802 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Bijie best-epoch validation (selected models).}
+\label{tab:r-bijie}
+\scriptsize
+\begin{tabular}{lccc}
+\toprule
+Model & F1 & IoU & Prec \\
+\midrule
+dual\_stream\_gated & 0.897 & 0.869 & 0.928 \\
+DeepLabV3+ & 0.927 & 0.899 & 0.929 \\
+\textbf{PS-GPLNet} & \textbf{0.933} & \textbf{0.907} & \textbf{0.956} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_bijie_bars.png}
+\caption{Bijie comparative metrics including PS-GPLNet.}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_l4s_bars.png}
+\caption{Landslide4Sense comparative metrics including PS-GPLNet.}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig26_bijie_qual.png}
+\caption{Qualitative Bijie predictions.}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig27_l4s_qual.png}
+\caption{Qualitative Landslide4Sense predictions.}
+\end{figure*}
+
+\section{Conclusion}
+PS-GPLNet demonstrates that a closed geotechnical inductive bias can organize a competitive multimodal landslide segmenter. The report's companion research paper expands the related-work analysis, algorithms, and full baseline tables for conference submission.
+
+\section*{Acknowledgements}
+I thank Dr.\ Anil Earnest and CSIR-4PI for mentorship and facilities, KIIT for academic support, and open dataset/model providers for enabling reproducible comparison.
+
+\end{document}

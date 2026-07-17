@@ -1,0 +1,250 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{microtype}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\columnsep}{0.25in}
+
+\title{\vspace{-0.6em}GeoPhysicsLandslideNet: A Physics-Closed Pentastream Architecture for Multimodal Landslide Segmentation\vspace{-0.4em}}
+
+\author{
+  Samreedh Bhuyan$^{1}$\thanks{Corresponding author: samreedh.bhuyan@example.com} \quad
+  Dr.\ Anil Earnest$^{2}$\\
+  {\small $^{1}$School of Computer Engineering, Kalinga Institute of Industrial Technology (KIIT), India}\\
+  {\small $^{2}$CSIR Fourth Paradigm Institute (CSIR-4PI), Bengaluru, India}
+}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_qualitative.png}
+\caption{Qualitative segmentation examples on randomly selected validation samples (RGB, ground-truth mask, predicted mask, and probability heatmap overlay). Red denotes landslide confidence; blue denotes background. Used as an opening illustration of multimodal landslide segmentation.}
+\label{fig:teaser}
+\end{figure*}
+
+\begin{abstract}
+Landslide inventory mapping from remote sensing remains brittle when models rely on purely statistical fusion of optical and topographic cues. We introduce \textbf{GeoPhysicsLandslideNet} (PS-GPLNet), a pentastream segmentation architecture in which the same Taylor-stabilized infinite-slope factor-of-safety (FS) formalism appears at the encoder inlet, fusion core, skip pathway, decoder cells, and dual-path output routing. Five parallel encoders---EfficientNet RGB/DEM, physics encoders on each modality, and Prithvi-EO with LoRA---are hybridized by Complementary Modality Bridges, fused by MAO-GeoEGCA and TTEB, decoded by dual physics decoders with PGDI, and merged by Mechanistic Path Equilibrium Fusion (MPEF). On Bijie, PS-GPLNet attains best-epoch validation F1\,$=$\,0.933 and IoU\,$=$\,0.907, exceeding strong CNN and dual-stream baselines under a unified protocol. On Landslide4Sense it reaches F1\,$=$\,0.736 and IoU\,$=$\,0.660. We argue that closing the geotechnical loop inside the network---rather than treating physics as a post-hoc regularizer---is a distinct and competitive inductive bias for landslide segmentation.
+\end{abstract}
+
+\section{Introduction}
+Landslides threaten lives and infrastructure across mountainous terrain. Optical remote sensing and digital elevation models (DEMs) enable automated mapping, yet pixel-level segmentation remains difficult: scarps, debris, and disturbed soils share spectral signatures with dry riverbeds and construction, while landslide polygons vary strongly across biomes~\cite{ghorbanzadeh2019landslide,ghorbanzadeh2022landslide4sense}.
+
+Deep segmentation---U-Net~\cite{ronneberger2015unet}, DeepLabV3+~\cite{chen2018deeplab}, transformers~\cite{xie2021segformer,chen2021transunet}---improves over classical classifiers, and multimodal RGB$+$DEM streams further help~\cite{islam2024digate}. Dual-stream gated designs such as DiGATe-style networks learn to weigh spectral versus topographic evidence, but the fusion and decoding rules remain statistically defined: gates are free parameters, not statements of slope stability.
+
+Physics-informed approaches for landslides have largely targeted \emph{susceptibility} mapping with Newmark or FS constraints in the loss or sampling~\cite{dahal2024pinn,liu2023physics,maurya2024pgml}. Pixel-accurate \emph{segmentation} still seldom embeds infinite-slope mechanics as a first-class architectural primitive spanning encoding, fusion, and decoding.
+
+We ask: can a single closed-loop FS inductive bias organize a multimodal segmentation network end-to-end? Our answer is PS-GPLNet. Contributions:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item A \textbf{pentastream} encoder with Complementary Modality Bridge (CMB) hybridization of CNN and physics features per modality, plus a Prithvi foundation stream.
+\item \textbf{MAO-GeoEGCA} and \textbf{TTEB} fusion that keep a physics-aware equilibrium signal in the attention path.
+\item A \textbf{dual physics decoder} with PGDI skips and \textbf{MPEF} path routing driven by relative failure energy---not scalar learned gates.
+\item Strong empirical results on Bijie~\cite{ji2020bijie} and Landslide4Sense~\cite{ghorbanzadeh2022landslide4sense} against a broad baseline ladder.
+\end{enumerate}
+
+\section{Related Work}
+\paragraph{Landslide segmentation.}
+Early CNN detectors and U-Net variants established pixel-wise landslide mapping~\cite{ghorbanzadeh2019landslide,ronneberger2015unet}. Attention and transformer hybrids (TransUNet, SegFormer) improve long-range context but remain data-driven~\cite{chen2021transunet,xie2021segformer}. Multi-source fusion of optical imagery with DEM/slope is repeatedly shown beneficial on Bijie and Landslide4Sense~\cite{ji2020bijie,ghorbanzadeh2022landslide4sense}.
+
+\paragraph{Dual-stream gated fusion.}
+DiGATe and related dual-stream gated U-Nets separate RGB and DEM encoders and blend them with learned gates and cross-attention~\cite{islam2024digate}. We use such models only as \emph{empirical baselines}. PS-GPLNet does not inherit GateFuse or DiGATe's adaptive decoder as its organizing principle; shared elements (two inputs, deep supervision) are field conventions, not DiGATe-specific novelty.
+
+\paragraph{Physics-informed geo-AI.}
+PINNs and physics-guided ML for landslide susceptibility inject Newmark or FS constraints into losses or latent geotechnical parameters~\cite{dahal2024pinn,liu2023physics,maurya2024pgml}. These works rarely produce dense segmentation masks with foundation-model context and dual mechanistic decode paths. PS-GPLNet differs by placing the same FS cell family at inlet, fusion, skips, decoder, and output equilibrium---a closed architectural loop rather than a susceptibility head.
+
+\paragraph{Foundation models for EO.}
+Prithvi-EO provides planetary-scale representations~\cite{szink2024prithvi}. We adapt it with LoRA~\cite{houlsby2019lora} as one of five streams, projected into a unified fusion width.
+
+\section{Method}
+\subsection{Problem and notation}
+Given streams $x_1\in\mathbb{R}^{B\times 3\times H\times W}$ (RGB) and $x_2\in\mathbb{R}^{B\times 3\times H\times W}$ (NDVI$+$slope$+$DEM on Landslide4Sense; replicated DEM on Bijie), predict a binary mask $y\in\{0,1\}^{B\times 1\times H\times W}$. Proxies $(\alpha,h,m)$---slope angle, elevation/soil-column proxy, moisture/vegetation---are derived inside the forward pass.
+
+The infinite-slope factor of safety is
+\begin{equation}
+\mathrm{FS}=\frac{c+\phi\, h\cos^{2}\alpha}{\gamma\, h\sin\alpha\cos\alpha + w_m m+\varepsilon},
+\end{equation}
+with positive material parameters obtained via bounded exponentials $c=\exp(\mathrm{clip}(w_c))$ (and likewise for $\phi,\gamma,w_m$) for numerical stability. Failure energy $\mathrm{FE}=\mathrm{ReLU}(1-\mathrm{FS})$ drives gating and path routing.
+
+\subsection{Pentastream encoding}
+Five encoders run in parallel: EfficientNet~\cite{tan2019efficientnet} RGB/DEM towers $E_{\mathrm{rgb}},E_{\mathrm{dem}}$; PhysicsEncoders $P_{\mathrm{rgb}},P_{\mathrm{dem}}$ with pixel/latent mechanistic cells; Prithvi$+$LoRA $T_{\mathrm{fm}}$. At each EfficientNet level $i$, Complementary Modality Bridge (CMB) merges CNN features with spatially aligned physics features into hybrid streams $H_{\mathrm{rgb}}^i,H_{\mathrm{dem}}^i$.
+
+\subsection{Fusion: MAO-GeoEGCA and TTEB}
+At neck/bottleneck levels, MAO-GeoEGCA performs gated cross-attention between Prithvi and hybrid RGB/DEM maps. TTEB builds skip tensors by mixing neighbouring pyramid levels across three streams with a softplus stability residual $\delta=|\psi-R/(D+\varepsilon)|$.
+
+\subsection{Dual physics decoder and MPEF}
+Two PhysicsDecoders share fused context but use stream-specific $(\alpha,h,m)$ and bottleneck residuals. PGDI injects TTEB skips through a learned $\beta$ gate on a latent mechanistic cell. Path logits are merged by MPEF:
+\begin{equation}
+[w_A,w_B]=\mathrm{softmax}([\mathrm{FE}_A,\mathrm{FE}_B]),\quad
+O=w_A O_A+w_B O_B+\mathrm{Conv}_{1\times1}([O_A\|O_B]),
+\end{equation}
+with entropy regularizer $\mathcal{R}_{\mathrm{MPEF}}=-\mathbb{E}[w_A\log w_A+w_B\log w_B]$.
+
+\paragraph{Forward sketch.}
+(1) Derive $(\alpha,h,m)$; encode five streams.
+(2) CMB hybrids; align Prithvi.
+(3) MAO at levels $2,3$; TTEB skips at $0..3$.
+(4) Dual PhysicsDecoder $\rightarrow (O_A,O_B)$.
+(5) MPEF $\rightarrow$ (main, aux2, aux3, reg).
+
+\subsection{Closed-loop inductive bias}
+The pixel cell $g_{\mathrm{pix}}(x;\alpha,h,m)=f(x)\odot\sigma(\psi-\mathrm{FS}(\alpha,h,m))$ and MPEF weights $w=\mathrm{softmax}(\mathrm{FE})$ share the same $\mathrm{FS}$ skeleton, so proxies gate both features and path routing. Bounded $\exp(\mathrm{clip}(w))$ keeps FS finite during training.
+
+\subsection{Objective}
+Deeply supervised Tversky loss~\cite{salehi2017tversky} on main/aux heads with weights $(1.0,0.6,0.4)$ plus $\lambda_{\mathrm{reg}}\sum_h\mathcal{R}_{\mathrm{MPEF}}^{(h)}$.
+
+\section{Experiments}
+\subsection{Datasets and protocol}
+\textbf{Bijie}~\cite{ji2020bijie}: high-resolution optical$+$DEM landslide/non-landslide tiles. \textbf{Landslide4Sense}~\cite{ghorbanzadeh2022landslide4sense}: multi-region Sentinel patches with RGB--NDVI--slope--DEM. Inputs resized to $256\times256$. Optimizer Adam ($3\cdot10^{-4}$, weight decay $10^{-4}$), Tversky $\alpha{=}0.3,\beta{=}0.7$, batch size up to 32, 100 epochs, threshold $0.5$. EfficientNet backbones frozen when pretrained; Prithvi frozen with LoRA. Metrics: accuracy, precision, recall, F1, IoU on the main head.
+
+\subsection{Baselines}
+We compare against LinkNet, DEP-UNet, GMNet, RMAU-Net, TransUNet, EMR-HRNet, ShapeFormer, Dual-Stream UNet, U-Net, DeepLabV3+, and dual\_stream\_gated under the same ablation harness used in our prior comparative study. TriEncoderCFMNet is \emph{not} included (unpublished). PS-GPLNet numbers are best validation epoch from \texttt{outputs\_final\_bijie} and \texttt{outputs\_final\_l4s}.
+
+\subsection{Quantitative results}
+Table~\ref{tab:l4s} and Table~\ref{tab:bijie} report best-epoch validation scores. On Bijie, PS-GPLNet reaches F1\,$=$\,0.933 and IoU\,$=$\,0.907, surpassing DeepLabV3+ (0.927/0.899) and dual\_stream\_gated (0.897/0.869). On Landslide4Sense, PS-GPLNet achieves F1\,$=$\,0.736 and IoU\,$=$\,0.660, competitive with the strongest CNN baselines and ahead of most dual-stream and transformer variants in our harness.
+
+\begin{table}[t]
+\centering
+\caption{Landslide4Sense best-epoch validation summary. PS-GPLNet (ours) at bottom.}
+\label{tab:l4s}
+\setlength{\tabcolsep}{3.5pt}
+\scriptsize
+\begin{tabular}{lccccc}
+\toprule
+Model & Acc & Prec & Rec & F1 & IoU \\
+\midrule
+LinkNet & 0.973 & 0.487 & 0.735 & 0.431 & 0.359 \\
+DEP-UNet & 0.977 & 0.669 & 0.770 & 0.603 & 0.535 \\
+GMNet & 0.978 & 0.669 & 0.779 & 0.616 & 0.545 \\
+RMAU-Net & 0.977 & 0.691 & 0.756 & 0.618 & 0.548 \\
+TransUNet & 0.976 & 0.714 & 0.750 & 0.619 & 0.551 \\
+EMR-HRNet & 0.975 & 0.674 & 0.784 & 0.627 & 0.557 \\
+ShapeFormer & 0.975 & 0.675 & 0.802 & 0.632 & 0.560 \\
+Dual-Stream UNet & 0.986 & 0.713 & 0.779 & 0.656 & 0.581 \\
+dual\_stream\_gated & 0.984 & 0.822 & 0.673 & 0.646 & 0.573 \\
+U-Net & 0.984 & 0.795 & 0.719 & 0.680 & 0.611 \\
+DeepLabV3+ & 0.984 & 0.789 & 0.749 & 0.710 & 0.636 \\
+\midrule
+\textbf{PS-GPLNet (ours)} & \textbf{0.986} & 0.802 & \textbf{0.788} & \textbf{0.736} & \textbf{0.660} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Bijie best-epoch validation summary. PS-GPLNet (ours) at bottom.}
+\label{tab:bijie}
+\setlength{\tabcolsep}{3.5pt}
+\scriptsize
+\begin{tabular}{lccccc}
+\toprule
+Model & Acc & Prec & Rec & F1 & IoU \\
+\midrule
+DEP-UNet & 0.982 & 0.850 & 0.934 & 0.831 & 0.799 \\
+RMAU-Net & 0.981 & 0.859 & 0.924 & 0.830 & 0.798 \\
+ShapeFormer & 0.984 & 0.892 & 0.899 & 0.840 & 0.810 \\
+TransUNet & 0.983 & 0.889 & 0.908 & 0.845 & 0.815 \\
+EMR-HRNet & 0.983 & 0.903 & 0.905 & 0.846 & 0.818 \\
+GMNet & 0.983 & 0.900 & 0.909 & 0.855 & 0.825 \\
+U-Net & 0.987 & 0.891 & 0.933 & 0.873 & 0.842 \\
+Dual-Stream UNet & 0.986 & 0.902 & 0.928 & 0.875 & 0.843 \\
+dual\_stream\_gated & 0.988 & 0.928 & 0.929 & 0.897 & 0.869 \\
+DeepLabV3+ & 0.989 & 0.929 & 0.966 & 0.927 & 0.899 \\
+\midrule
+\textbf{PS-GPLNet (ours)} & \textbf{0.991} & \textbf{0.956} & 0.946 & \textbf{0.933} & \textbf{0.907} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_l4s_bars.png}
+\caption{Landslide4Sense grouped metrics at each model's best validation epoch.}
+\label{fig:l4s_bars}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_bijie_bars.png}
+\caption{Bijie grouped metrics at each model's best validation epoch.}
+\label{fig:bijie_bars}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_l4s_curves.png}
+\caption{PS-GPLNet training dynamics on Landslide4Sense.}
+\label{fig:l4s_curves}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_bijie_curves.png}
+\caption{PS-GPLNet training dynamics on Bijie (best F1 at epoch 92).}
+\label{fig:bijie_curves}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_l4s_pr.png}
+\caption{Precision--Recall comparison on Landslide4Sense.}
+\label{fig:l4s_pr}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_bijie_pr.png}
+\caption{Precision--Recall comparison on Bijie.}
+\label{fig:bijie_pr}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig26_bijie_qual.png}
+\caption{Qualitative results on Bijie validation samples: RGB, ground truth, prediction, and probability heatmap.}
+\label{fig:bijie_qual}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig27_l4s_qual.png}
+\caption{Qualitative results on Landslide4Sense validation samples.}
+\label{fig:l4s_qual}
+\end{figure*}
+
+\subsection{Qualitative results}
+Figures~\ref{fig:bijie_qual}--\ref{fig:l4s_qual} show representative predictions. Bijie polygons are large and coherent; heatmaps concentrate on scarps and deposits. Landslide4Sense patches are smaller and cross-region; PS-GPLNet still recovers the dominant deposit extent while suppressing clear terrain.
+
+\section{Discussion}
+\paragraph{Novelty.}
+Unlike susceptibility PINNs~\cite{dahal2024pinn}, PS-GPLNet produces dense masks with foundation-model context. Unlike DiGATe~\cite{islam2024digate}, routing is failure-energy equilibrium (MPEF), and encoding is pentastream with CMB---not two EfficientNets plus GateFuse.
+
+\paragraph{Limitations.}
+Compact training (smaller backbone/width) trades capacity for memory; full-width B4 runs need ample GPU free memory on shared nodes. AUROC logging was not exported for all baseline harness runs; we report thresholded F1/IoU consistently.
+
+\section{Conclusion}
+We presented GeoPhysicsLandslideNet, a physics-closed pentastream landslide segmenter. Closing FS logic through encoding, fusion, decoding, and MPEF yields state-of-the-art Bijie F1/IoU in our unified comparison and competitive Landslide4Sense scores. Future work includes stronger ablations of each physics block and multi-temporal EO conditioning.
+
+\section*{Acknowledgements}
+We thank CSIR-4PI for compute and research environment, and the maintainers of Landslide4Sense, Bijie, Prithvi-EO, and open baseline implementations.
+
+{\small
+\bibliographystyle{unsrt}
+\bibliography{bib/refs}
+}
+
+\end{document}
