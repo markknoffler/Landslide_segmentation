@@ -30,7 +30,7 @@ Large-scale pretraining on multi-temporal EO stacks---exemplified by Prithvi-EO~
 \subsection{Positioning}
 Table~\ref{tab:positioning} summarizes how PS-GPLNet relates to representative lines of work. The novelty claim is architectural closure: the same FS formalism at inlet, fusion, skips, decoder cells, and output equilibrium---implemented in \texttt{from\_first\_steps/} and documented in \texttt{model\_architecture.md}.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Conceptual positioning (dense segmentation setting).}
 \label{tab:positioning}
@@ -45,7 +45,7 @@ Susceptibility PINN / PGML & often raster & loss / head & rare \\
 \textbf{PS-GPLNet (ours)} & \checkmark & \checkmark & Prithvi+LoRA \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \section{Method}
 \subsection{Problem and notation}
@@ -94,7 +94,7 @@ We compare against LinkNet, DEP-UNet, GMNet, RMAU-Net, TransUNet, EMR-HRNet, Sha
 \subsection{Quantitative results}
 Table~\ref{tab:l4s} and Table~\ref{tab:bijie} report best-epoch validation scores. On Bijie, PS-GPLNet reaches F1\,$=$\,0.933 and IoU\,$=$\,0.907, surpassing DeepLabV3+ (0.927/0.899) and dual\_stream\_gated (0.897/0.869). On Landslide4Sense, PS-GPLNet achieves F1\,$=$\,0.736 and IoU\,$=$\,0.660, ahead of DeepLabV3+ (0.710/0.636) and the dual-stream variants in our ladder.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Landslide4Sense best-epoch validation summary. PS-GPLNet (ours) at bottom.}
 \label{tab:l4s}
@@ -119,9 +119,9 @@ DeepLabV3+ & 0.984 & 0.789 & 0.749 & 0.710 & 0.636 \\
 \textbf{PS-GPLNet (ours)} & \textbf{0.986} & 0.802 & \textbf{0.788} & \textbf{0.736} & \textbf{0.660} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \caption{Bijie best-epoch validation summary. PS-GPLNet (ours) at bottom.}
 \label{tab:bijie}
@@ -145,7 +145,7 @@ DeepLabV3+ & 0.989 & 0.929 & 0.966 & 0.927 & 0.899 \\
 \textbf{PS-GPLNet (ours)} & \textbf{0.991} & \textbf{0.956} & 0.946 & \textbf{0.933} & \textbf{0.907} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 Figure~\ref{fig:l4s_bars} and Figure~\ref{fig:bijie_bars} visualize the F1/IoU spread across all harness models; the IoU ranking charts in Figure~\ref{fig:l4s_iou_rank} and Figure~\ref{fig:bijie_iou_rank} highlight that PS-GPLNet tops the L4S ladder and matches or exceeds the strongest CNN on Bijie. Heatmaps in Figure~\ref{fig:l4s_heatmap} and Figure~\ref{fig:bijie_heatmap} show precision--recall--F1--IoU jointly, where our model trades slightly lower recall on Bijie for higher precision relative to DeepLabV3+. Figure~\ref{fig:l4s_delta} and Figure~\ref{fig:bijie_delta} quantify gains over DeepLabV3+ at the best epoch.
 
@@ -238,20 +238,23 @@ Training curves for PS-GPLNet are shown in Figure~\ref{fig:l4s_curves} and Figur
 \subsection{Qualitative results}
 Representative Bijie and Landslide4Sense patches are shown in Figure~\ref{fig:bijie_qual} and Figure~\ref{fig:l4s_qual}. On Bijie, polygons are large and coherent; PS-GPLNet heatmaps concentrate on scarps and debris fans while suppressing homogeneous steep slopes. On Landslide4Sense, scars are smaller and more variable across regions; the model still recovers deposit extent but confuses some spectrally similar bare soil in shadowed valleys---consistent with the precision--recall trade-off in Table~\ref{tab:l4s}.
 
-\begin{figure*}[!ht]
-\centering
-\includegraphics[width=\textwidth]{figures/fig26_bijie_qual.png}
-\caption{Qualitative results on Bijie validation samples: RGB, ground truth, prediction, and probability heatmap.}
+\onecolumn
+\vspace{0.4em}
+{\centering
+\includegraphics[width=\textwidth]{figures/fig26_bijie_qual.png}\par
+\vspace{0.35em}
+\captionof{figure}{Qualitative results on Bijie validation samples: RGB, ground truth, prediction, and probability heatmap.}
 \label{fig:bijie_qual}
-\end{figure*}
-
-\begin{figure*}[!ht]
-\centering
-\includegraphics[width=\textwidth]{figures/fig27_l4s_qual.png}
-\caption{Qualitative results on Landslide4Sense validation samples.}
+\vspace{0.8em}
+\includegraphics[width=\textwidth]{figures/fig27_l4s_qual.png}\par
+\vspace{0.35em}
+\captionof{figure}{Qualitative results on Landslide4Sense validation samples.}
 \label{fig:l4s_qual}
-\end{figure*}
+\par}
+\vspace{0.6em}
+\twocolumn
 
+\FloatBarrier
 \section{Discussion}
 \paragraph{Novelty.}
 Unlike susceptibility PINNs~\cite{dahal2024pinn}, PS-GPLNet produces dense masks with foundation-model context. Unlike DiGATe~\cite{islam2024digate}, routing is failure-energy equilibrium (MPEF), and encoding is pentastream with CMB---not two EfficientNets plus scalar GateFuse.

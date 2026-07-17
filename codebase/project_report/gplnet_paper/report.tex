@@ -11,8 +11,15 @@
 \usepackage{microtype}
 \usepackage{enumitem}
 \usepackage{placeins}
+\usepackage{dblfloatfix}
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\setcounter{topnumber}{6}
+\setcounter{bottomnumber}{6}
+\setcounter{totalnumber}{12}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.92}
+\renewcommand{\textfraction}{0.07}
 \captionsetup{font=small,labelfont=bf}
 \setlength{\columnsep}{0.28in}
 
@@ -78,20 +85,23 @@ I sincerely thank everyone who has contributed, directly or indirectly, to the s
 \hfill Samreedh Bhuyan
 
 \clearpage
-\twocolumn
 \thispagestyle{empty}
 
-\maketitle
-
-\begin{center}
-\includegraphics[width=\textwidth]{figures/fig1_qualitative.png}
-\captionof{figure}{Opening qualitative panel (RGB, ground truth, prediction, heatmap) illustrating the landslide segmentation setting.}
-\label{fig:report-teaser}
-\end{center}
-
-\begin{abstract}
-This report presents the full research study on GeoPhysicsLandslideNet (PS-GPLNet), a pentastream physics-closed network for binary landslide segmentation from optical and topographic remote sensing inputs. The document includes the complete conference-style treatment: extended related work, mathematical formulation, implementation notes, quantitative and qualitative experiments on Bijie and Landslide4Sense, and discussion. The architecture embeds Taylor-stabilized infinite-slope factor-of-safety logic throughout encoding, fusion, decoding, and dual-path output equilibrium. Source code and model documentation reside in \texttt{codebase/Geo\_physics\_equation\_derived\_model/from\_first\_steps/}.
-\end{abstract}
+\twocolumn[
+  \maketitle
+  \vspace{0.4em}
+  {\centering
+  \includegraphics[width=\linewidth]{figures/fig1_qualitative.png}\par
+  \vspace{0.35em}
+  \captionof{figure}{Opening qualitative panel (RGB, ground truth, prediction, heatmap) illustrating the landslide segmentation setting.}
+  \label{fig:report-teaser}
+  \par}
+  \vspace{0.8em}
+  \begin{abstract}
+  This report presents the full research study on GeoPhysicsLandslideNet (PS-GPLNet), a pentastream physics-closed network for binary landslide segmentation from optical and topographic remote sensing inputs. The document includes the complete conference-style treatment: extended related work, mathematical formulation, implementation notes, quantitative and qualitative experiments on Bijie and Landslide4Sense, and discussion. The architecture embeds Taylor-stabilized infinite-slope factor-of-safety logic throughout encoding, fusion, decoding, and dual-path output equilibrium. Source code and model documentation reside in \texttt{codebase/Geo\_physics\_equation\_derived\_model/from\_first\_steps/}.
+  \end{abstract}
+  \vspace{1.2em}
+]
 
 \input{content/paper_core.tex}
 
