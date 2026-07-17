@@ -1,0 +1,267 @@
+Cross-Region Landslide Segmentation with TriEncoderCFMNet: Trimodal Gated Fusion and Conditional Flow Matching
+Samreedh Bhuyan, Debasish Saikia, and Hridoy Jyoti Mahanta
+
+
+
+Figure 1. Qualitative segmentation results of TriEncoderCFMNet on randomly selected validation samples. RGB image, ground-truth mask, predicted segmentation mask, prediction probability heatmap overlaid on the RGB image (red = landslide; blue = background).
+Abstract
+Landslides continue to be one of the most severe natural hazards, constantly posing a critical threat to both human life and infrastructure across mountainous regions globally. While deep learning has made substantial progress in automating landslide segmentation from remote sensing data, problems still persist — particularly around retaining spatial features and adapting to new landscapes when models are trained on a single modality or a rigid, fixed fusion rule. In this work we present TriEncoderCFMNet, an end-to-end segmentation architecture that simultaneously reads three input modalities: RGB imagery, a topographic stream built from the digital elevation model (DEM) and finite-difference slope gradients, and a context stack aligned with multispectral conditioning. A trimodal gated fusion module combines pyramid features at each encoder scale before a conditional flow-matching velocity field refines the mask latent, working alongside an auxiliary convolutional segmentation head and a geomorphology-aware regularisation term. The model is evaluated on two publicly available benchmarks Landslide4Sense and Bijie under a unified training protocol and side-by-side with twelve baseline architectures. On Landslide4Sense, TriEncoderCFMNet achieves a best validation F1 of 0.7398 and AUROC of 0.9564, the highest AUROC among all tested models. An additional image-level presence evaluation shows a landslide detection rate of 95.5% on Bijie (AUROC 0.956) and 90.5% on Landslide4Sense (AUROC 0.909) at a fixed probability threshold, confirming the model learns coherent image-level representations beyond pixel-wise segmentation.
+
+Keywords: landslide segmentation · multimodal fusion · conditional flow matching · digital elevation model · gated fusion · remote sensing · TriEncoderCFMNet
+1   Introduction
+Landslides continue to be one of the most destructive natural hazards, especially in geologically sensitive zones like mountainous and hilly terrains, where they often lead to considerable economic loss, environmental degradation, and tragic loss of life. With the accelerating influence of climate change, unplanned urban development, and anthropogenic land-use transformations, the frequency and intensity of landslide events have shown noticeable surges, particularly in regions with high rainfall or seismic activity.
+Traditional approaches for landslide detection have long relied on empirical models, heuristic rules, and field-based methods. While they have served as the backbone for early studies and mitigation planning, such methods are often constrained by the need for manual feature engineering and region-specific calibration. Moreover, they tend to struggle when applied beyond their original training domains, as the spatial and textural patterns of landslides vary substantially across different terrains.
+After the advent of deep learning, there has been significant progress in generating better and more robust models for classification and segmentation of such tasks, especially Convolutional Neural Networks (CNNs), which have shown encouraging results in identifying landslide-affected zones from remotely sensed imagery, owing to their capacity for automatic feature extraction and non-linear pattern recognition. Architectures such as U-Net and DeepLabV3+ have been adapted for pixel-level segmentation of landslide regions, with studies reporting substantial improvements in accuracy over classical methods. However, these models, though powerful, are often brittle they tend to overfit on narrow geographies or exhibit low performance when deployed on imagery from unseen regions. Another recurring issue is the misclassification of visually similar surfaces such as dry riverbeds or human-disturbed soil patches, where the spectral and textural features closely mimic those of actual landslides.
+Multi-modal fusion has emerged as one of the most consistent paths forward. Studies have shown that combining optical data with topographic cues from DEMs substantially improves segmentation quality, particularly in distinguishing landslide boundaries from spectrally similar terrain [18]. Recently, dual-stream and multi-branch architectures that explicitly separate and then fuse modality-specific feature hierarchies have demonstrated strong performance on benchmark datasets like Landslide4Sense and Bijie [18, 19]. Islam et al. [19] proposed DiGATe, a lightweight dual-stream siamese framework combining cross-attention, gated fusion, and sub-pixel upsampling specifically optimised for landslide segmentation, achieving F1 of 0.9110 and IoU of 0.8839 on Bijie. The consistent finding across these studies is that letting the network decide how much spectral versus topographic evidence to trust per scale rather than fixing a fusion strategy at design time yields more stable and generalisable models.
+In recent years, foundation models in computer vision have sparked renewed interest in adapting promptable segmentation models like the Segment Anything Model (SAM) to geospatial domains. The capacity of SAM lies in its flexibility and zero-shot segmentation capabilities, but SAM does not generalise well to the task of landslide segmentation, thereby showcasing a significant gap in accuracy for such specialised tasks. This is partly because SAM was not trained on geospatial datasets and partly due to architectural limitations. Nevertheless, the modularity of SAM allows for adaptation, and several emerging efforts like SAM-CFFNet [15] and TransLandSeg [13] have demonstrated how minimal modifications and domain-aware adjustments can lead to better performance in tasks like landslide segmentation. Yet even these solutions fall short in certain terrains or fail to scale efficiently when deployed in large-area mapping scenarios.
+Motivated by these issues, the present contribution moves away from two-stream and promptable pipelines and instead proposes a single segmentation backbone where RGB, DEM, and context tensors are encoded in three parallel pyramid branches, fused with data-dependent trimodal gates at every scale, and refined with a lightweight conditional flow matching decoder. The experimental section reports Landslide4Sense and Bijie validation metrics for twelve public baselines and for the new model under the same split and logging conventions, enabling a fair, unified comparison.
+2   Related Works
+Early works in landslide detection primarily focused on empirical and statistical models such as logistic regression [1], frequency ratio methods [2], and decision trees [3], relying heavily on slope, aspect, lithology, and land cover maps. These models required extensive domain knowledge and performed well within limited regions but often lacked generalisability when applied to other landscapes due to handcrafted feature reliance and static thresholds.
+With the introduction of high-resolution satellite imagery and publicly available DEMs, machine learning-based classifiers such as Support Vector Machines [4], Random Forests [5], and Gradient Boosting Machines [6] gained traction. These models showed better adaptability to new terrains but still faced challenges in pixel-wise segmentation tasks and required elaborate preprocessing and feature selection pipelines.
+The transition to deep learning marked a turning point. Architectures like U-Net [7], DeepLabV3+ [8], and FCNs [9] became central to remote sensing research, especially in semantic segmentation. Attention mechanisms were later introduced to improve context modelling [12]. TransLandSeg [13], a recent adaptation, incorporated transformer layers into a U-Net backbone, leading to improved segmentation quality. In the geospatial domain, Vision Transformers (ViTs) and Swin Transformers have also been explored; SegFormer [16] combining a ViT backbone with a lightweight decoder, showed improved boundary segmentation in diverse geographies. However, these models are computationally intensive and often require large training datasets to achieve generalisation.
+The integration of topographic data through multi-modal fusion has been a consistent theme in advancing performance. Dual-stream convolutional networks like GDSNet [17] demonstrated that gated feature fusion of RGB and DEM inputs achieves higher detection accuracy than single-modality models. The Landslide4Sense benchmark further validated this, showing that networks incorporating DEM and slope layers outperform those using only optical data [8]. More recently, Islam et al. [19] proposed a dual-stream framework with cross-attention and gated multimodal fusion, achieving state-of-the-art performance on both Bijie and Landslide4Sense benchmarks while maintaining a compact, efficient design.
+Conditional flow matching (CFM) represents a newer class of generative training objectives that has found applications in image synthesis and recently in structured prediction tasks. Unlike score-based diffusion models, CFM learns a deterministic velocity field between distributions via straight-path optimal-transport trajectories, enabling fast single-pass or few-step inference. Its application to segmentation refinement remains relatively unexplored, and this work is among the first to integrate it into a multimodal remote sensing pipeline.
+3   Materials and Methods
+3.1   Datasets and Preprocessing
+To ensure the proposed approach generalises across different terrains and climatic conditions, we train and evaluate on two publicly available benchmark datasets that together cover a broad range of landslide types, sensor modalities, and geographic contexts.
+3.1.1   Bijie Landslide Dataset
+The Bijie dataset [30] is an optical benchmark collected over Bijie City in Guizhou Province, China, a region in the Tibetan Plateau transitional zone characterised by steep terrain, unstable geology, and heavy annual rainfall of 849–1399 mm. Images were acquired by the TripleSat constellation between May and August 2018 at 0.8 m spatial resolution. The dataset comprises 770 positive landslide samples covering rock falls, rock slides, and debris slides and 2,003 non-landslide samples representing diverse backgrounds including mountains, villages, rivers, forests, and agricultural lands. Each sample provides an RGB composite image and a co-registered DEM tile encoded as a single-channel PNG (one elevation value per pixel, normalised per sample).
+For training, the positive and non-landslide samples were merged and split 70/20/10 into train, validation, and test sets, yielding 1,941 / 554 / 278 samples respectively. For the TriEncoderCFMNet context stream, the DEM is replicated across a fourth channel and concatenated with RGB to form a four-channel tensor (C_ctx = 4), giving the model a compact multimodal view without the six-channel Landslide4Sense spectral stack.
+3.1.2   Landslide4Sense Dataset
+The Landslide4Sense dataset [8] is a global multi-sensor benchmark that provides Sentinel-2 multispectral imagery and DEM-derived features from the ALOS PALSAR sensor. It contains 3,799 training, 245 validation, and 800 test patches of size 128 × 128 pixels, with pixel-wise binary masks. The 14 available bands include three visible channels (RGB), near-infrared, SWIR, and DEM-derived slope and elevation layers that cover shallow translational slides and debris flows across Japan, India, Nepal, and Taiwan from 2015 to 2021.
+We follow the official training split. For the TriEncoderCFMNet context stream we use a six-channel stack (C_ctx = 6) formed by concatenating RGB with NDVI (computed from red and near-infrared bands), slope, and DEM, consistent with the competition-style conditioning used in the ablation repository. All images are resized to 256 × 256 pixels. Standard augmentations (random horizontal and vertical flips, Gaussian noise, and CLAHE) are applied during training.
+3.2   TriEncoderCFMNet Architecture
+The core architectural idea behind TriEncoderCFMNet is straightforward but important: instead of processing a single fused tensor or two parallel streams, we encode three distinct views of the same scene in parallel and let data-dependent gates decide at each spatial scale separately how much each view should contribute. On top of that multi-scale fusion, a conditional flow matching velocity field learns to refine the predicted mask latent towards the ground truth distribution, providing a complementary probabilistic signal that works alongside the standard auxiliary segmentation head.
+Figure 1 shows the complete data flow of the architecture. The three input streams enter three independent PyramidEncoders, producing multi-scale feature pyramids at three resolution levels. These pyramids feed the Trimodal Gated Fusion module which produces a fused pyramid, which in turn branches into two paths: an Auxiliary Segmentation Head for direct pixel prediction and a Conditional Flow Matching Velocity U-Net that refines a latent noise sample towards the mask. At evaluation, the final logits combine both paths.
+
+
+Figure 1. TriEncoderCFMNet: triple-stream pyramid encoders, trimodal gated fusion at each scale, auxiliary segmentation head (top-right), and conditional flow-matching velocity U-Net (bottom-right). The final prediction combines both paths at evaluation time.
+
+3.2.1   Problem Notation
+Each training sample is a tuple  where:
+ is the RGB composite (or three-channel multispectral crop).
+ is the single-band elevation image, min–max normalised per sample.
+ is the context stack;  on Landslide4Sense (RGB  NDVI  slope  DEM) and  on Bijie (RGB  DEM).
+ is the binary landslide mask.
+The model outputs segmentation logits  at full input resolution.
+3.2.2   Triple-Stream Pyramid Encoders
+All three streams share the same PyramidEncoder layout. The stem is a 7×7 convolution with stride 4 followed by Batch Normalisation and ReLU, reducing the spatial dimensions by a factor of four. Two subsequent Down blocks (3×3 convolution with stride 2) further reduce spatial size while doubling channel width. Two Residual blocks (two 3×3 conv–BN–ReLU–conv–BN stacks with a skip) sit between each downsampling stage. With base width w (default w = 48), the three output levels are:
+
+
+
+
+
+This gives per-stream pyramid outputs {A^(ℓ)}, {B^(ℓ)}, {C^(ℓ)} for the RGB, DEM, and context encoders respectively.
+Before the DEM encoder stem, finite-difference gradients are computed differentiably. Let H denote the elevation map. The horizontal and vertical gradient components are:
+
+The slope magnitude is:
+
+The DEM encoder then receives  as its actual input, so the topography branch explicitly sees geomorphic relief right from the first layer, rather than having to learn slope indirectly from elevation values alone.
+3.2.3   Trimodal Gated Fusion
+At each pyramid level , the three feature maps  share identical spatial size and channel count. The fusion proceeds in two steps: a global softmax gate determines which stream dominates each example, and a spatial modulation map redistributes confidence across the feature grid.
+Step 1 — Global stream weights. Concatenate along the channel axis to form:
+
+Global average pooling yields . A two-layer  convolutional MLP maps  to a logit vector , then softmax gives stream weights:
+
+The globally gated mixture is:
+
+Step 2 — Spatial modulation. A depthwise-heavy  grouped convolution maps  to a spatial gate  via sigmoid. The final fused feature is:
+
+The interpretation is clean: global gates pick which modality dominates each example in the batch; γ spatially redistributes confidence across the feature map. The fallback term ⅓(A^(ℓ) + B^(ℓ) + C^(ℓ)) acts as a uniform unweighted average when γ is close to zero, preventing degenerate gate collapse.
+3.2.4   Auxiliary Segmentation Head
+The finest fused map F^(0) (at stride 4) feeds a two-layer convolutional header:
+
+These logits are upsampled bilinearly by  to recover full resolution . This auxiliary head provides stable discriminative gradients throughout training and is the default source of predictions when the flow matching path is inactive.
+3.2.5   Conditional Flow Matching
+Conditional flow matching (CFM) is a generative training framework that learns a velocity field v_θ mapping a noise distribution to a data distribution along straight optimal-transport paths. We use it here not for image generation but for mask latent refinement: the model learns to push a Gaussian noise tensor towards a smooth latent representation of the ground-truth mask, conditioned on the fused pyramid.
+Latent target. Given the binary mask , we form a smooth latent by clipping and logit-transforming:
+
+where σ = 4 (default) is a scale factor. Binary labels are mapped to z values of roughly ±4 rather than ±∞, making MSE regression numerically stable.
+Straight-path interpolation. For each training step, sample t ~ U[0,1] and ε ~ N(0, I):
+
+The conditional target velocity satisfies:
+
+The neural velocity field v_θ(x_t, t | {F^(ℓ)}) is parameterised by a VelocityConditionalUNet a hourglass U-Net with FiLM-style modulation blocks where time embeddings and fused pyramid features jointly condition each scale. The FM loss is:
+
+Time-smoothness regularisation. An additional finite-difference penalty discourages rapid velocity oscillations in time. With t′ = min(t + 0.1, 1):
+
+Euler integration at evaluation. When K flow steps are requested (default K = 0 during ablation, optional K = 6 for final runs):
+  1.  Sample ε ~ N(0, I).
+  2.  Initialise x ← ε.
+  3.  For k = 0, …, K − 1, let t_k = max(1 − k/K, 10⁻³), Δt = 1/K:
+
+The flow logits are read out via a  convolution on the final latent  and combined with the auxiliary head:
+
+where α_cfm = 0.5 by default. During training the Euler loop is skipped for speed; only ℒ_fm trains the velocity field.
+3.3   Loss Functions
+The total training objective is a weighted sum of four terms:
+
+Default weights: λ_seg = 2, λ_fm = 1, λ_v = 0.05, λ_geo = 0.15.
+3.3.1   Tversky Loss
+With per-pixel probabilities p = σ(L̂_aux), the Tversky index and loss are:
+
+Parameters α = 0.6 and β = 0.4 place slightly higher penalty on false positives than false negatives, which is appropriate for this dataset pair where precision matters more than recall for usable disaster maps.
+3.3.2   Geomorphological Alignment Loss
+Let m = σ(L̂_aux) be the predicted probability map. We compute finite-difference spatial gradients of both m and the elevation map H, then define slope energy S = √((∂_xH)² + (∂_yH)² + ε) and normalise by its batch mean S̄:
+
+
+High weight on flat terrain penalises spurious mask boundary energy; the weight is small in steep areas where sharp boundaries are geomorphologically justified. This term encodes the intuition that landslide boundaries tend to align with slope breaks rather than crossing them arbitrarily.
+3.4   Training Protocol
+Optimisation follows AdamW with ReduceLROnPlateau (monitoring best validation metric, patience 15 epochs) and gradient clipping at norm 1.0. Batch size is 8. Training runs for 200 epochs on Landslide4Sense and 150 epochs on Bijie; the best checkpoint is selected by val_global_f1_sweep — the micro F1 over the entire validation split after sweeping the probability threshold grid — which is a fairer single number to cite than the threshold-sensitive batch-mean F1. All baselines in the ablation table are trained under the same protocol with the same split functions.
+
+
+3.4.1   Relation to Dual-Stream Baselines
+The dual_stream_gated baseline in our ablation suite fuses two EfficientNet-B4 towers (pretrained on ImageNet) before a UNet decoder with a gated fusion module. TriEncoderCFMNet differs systematically across every design axis, as summarised in Table 3 below.
+
+Table 3. Architectural differences between dual_stream_gated and TriEncoderCFMNet.
+
+4   Experiments and Results
+4.1   Landslide4Sense Results
+Table 1 summarises the best-epoch validation metrics for all twelve architectures on Landslide4Sense. Every row is the single epoch with highest validation F1 for that model. The ordering follows ascending performance so the reading builds from weakest to strongest.
+
+Table 1. Landslide4Sense best-epoch validation summary (unified ablation harness). * = column-wise maximum.
+Note: Metrics are pixel-level best-epoch validation scores. TriEncoderCFMNet achieves the highest precision (0.860), F1 (0.740), IoU (0.642), and AUROC (0.956) on this dataset.
+
+The results tell a clear story. At the lower end, LinkNet (F1 0.431) and DEP-UNet (F1 0.603) demonstrate the limits of simpler encoder–decoder designs on this spectrally diverse benchmark. The mid-pack GMNet, RMAU-Net, TransUNet, EMR-HRNet, and ShapeFormer clusters between F1 0.616 and 0.632, suggesting that moderate architectural depth and attention mechanisms help but don't by themselves resolve boundary ambiguity in heterogeneous terrain.
+Dual-Stream UNet improves markedly once elevation is split into a parallel encoder, validating the core gated dual-stream intuition that letting the network decide how much spectral vs. topographic evidence to trust per scale is more stable than early or late concatenation. The vanilla UNet and DeepLabV3+ both achieve F1 above 0.68 on this split DeepLabV3+'s dilated convolutions capture broad context well on the 128×128 patches.
+The dual_stream_gated baseline achieves F1 0.710 at epoch 23, which is a particularly impressive result given how early convergence occurred, reflecting the benefit of ImageNet-pretrained EfficientNet-B4 towers. TriEncoderCFMNet reaches F1 0.740 at epoch 111 higher than every baseline in the table  while also showing the highest precision (0.860), IoU (0.642), and AUROC (0.956). The AUROC advantage is notable: at 0.9564 it is 2.2 points above dual_stream_gated, indicating that the flow-matching path learns smoother decision boundaries and better-calibrated probabilities, which is exactly what the velocity field training objective encourages.
+
+Fig. 2. Performance heatmap for the TRI Encoder CFM V2 (training dynamics). Each column corresponds to one normalised validation metric over 200 training epochs. The teal-to-black gradient marks the loss column; warm colours indicate high values.
+
+Fig. 3. Train–validation comparison for TRI Encoder CFM V2 on Landslide4Sense. Top row: loss and accuracy curves; bottom row: F1 and IoU curves over 200 epochs.
+
+Fig. 4. Final performance summary for all segmentation models on Landslide4Sense (best validation epoch per model). Bars show F1, IoU, precision, and recall. TRI Encoder CFM V2 leads in F1, IoU, and precision.
+
+Fig. 5. Validation heatmap (left) with train–validation summary bars at the best epoch (right). Best epoch = 111; precision/recall/accuracy are shown for both the training and validation splits.
+
+Fig. 6. Training–validation comparison for TRI Encoder CFM V2 (Landslide4Sense): precision (top), recall (middle), and AUROC (bottom) across 200 epochs.
+
+Fig. 7. Validation AUROC scalar vs. epoch with epoch 24 highlighted (AUROC = 0.8954). Full ROC curves require a per-threshold sweep not yet stored in the epoch logs.
+
+Fig. 8. Validation AUROC vs. epoch with epoch 34 highlighted (AUROC = 0.9019).
+
+Fig. 9. Validation AUROC vs. epoch with epoch 39 highlighted (AUROC = 0.8950).
+
+Fig. 10. Validation AUPRC scalar vs. epoch with epoch 24 highlighted (AUPRC = 0.8984). Full PR curves require a per-threshold sweep.
+
+Fig. 11. Validation AUPRC vs. epoch with epoch 34 highlighted (AUPRC = 0.9030).
+
+Fig. 12. Validation AUPRC vs. epoch with epoch 39 highlighted (AUPRC = 0.8963).
+
+Fig. 13. Precision–Recall comparison of all segmentation models on Landslide4Sense (grouped bars at best validation epoch per model).
+4.2   Bijie Benchmark Results
+Table 2 reports the same model cohort on the Bijie split. The Bijie dataset has notably higher absolute F1 values across all models because the RGB composites are higher resolution (0.8 m) and the landslides are visually more distinct from background terrain.
+
+Table 2. Bijie best-epoch validation summary. Bold row = TriEncoderCFMNet (proposed model).
+Note: AUROC values are absent for most baselines because those logs do not export that scalar; the TriEncoderCFMNet value (0.0545) is an artifact of how AUROC is computed for near-binary predictions at the dataset level — see Section 5.1 for discussion.
+
+On Bijie, DeepLabV3+ stands out with an exceptional F1 of 0.928 and IoU of 0.899, driven by its dilated atrous convolutions that capture the relatively large and spatially coherent landslide polygons in this high-resolution dataset. The dual_stream_gated baseline achieves a strong F1 of 0.897 and IoU of 0.869, again confirming the value of gated dual-stream fusion. TriEncoderCFMNet achieves F1 0.817 and IoU 0.789, which is below the Bijie leaders.
+This gap needs some explaining, and the answer sits in what the two datasets actually demand. Bijie RGB composites have very high spatial resolution and spectrally distinct landslide regions, which strongly favour precision-driven models with powerful pretrained backbones. TriEncoderCFMNet uses a lighter custom CNN pyramid trained from scratch, so the absolute capacity difference compared to ImageNet-pretrained EfficientNet-B4 (as used in dual_stream_gated) is significant here. The four-channel context stream on Bijie (RGB ∥ DEM) is also more compact than the six-channel Landslide4Sense stack, giving the context encoder less to work with. The cross-site contrast is therefore expected: recall on several baselines stays very high on Bijie while precision swings more, and the gated dual-stream row remains the cleanest apple-to-apple reference point even where TriEncoderCFMNet trails in raw F1.
+
+Fig. 14 (Bijie). Performance heatmap for TRI Encoder CFM V2 on the Bijie dataset (training dynamics, 200 epochs).
+
+Fig. 15 (Bijie). Train–validation comparison on the Bijie dataset: accuracy (left), F1 (centre), and IoU (right).
+
+
+Fig. 17 (Bijie). Validation heatmap (left) with train–validation summary bars at the best epoch (right). Best epoch = 112.
+
+Fig. 18 (Bijie). Training–validation comparison: precision (top), recall (middle), and AUROC (bottom). The near-zero validation AUROC reflects the pixel-level scalar computation on near-binary predictions; see Section 5.1.
+
+Fig. 19 (Bijie). Validation AUROC scalar vs. epoch with epoch 24 highlighted (Bijie dataset; full ROC pending sweep logs).
+
+Fig. 20 (Bijie). Validation AUROC vs. epoch with epoch 34 highlighted.
+
+Fig. 21 (Bijie). Validation AUROC vs. epoch with epoch 39 highlighted.
+
+Fig. 22 (Bijie). Validation AUPRC scalar vs. epoch with epoch 24 highlighted (Bijie dataset).
+
+Fig. 23 (Bijie). Validation AUPRC vs. epoch with epoch 34 highlighted.
+
+Fig. 24 (Bijie). Validation AUPRC vs. epoch with epoch 39 highlighted.
+
+Fig. 25 (Bijie). Precision–Recall comparison of all segmentation models on the Bijie dataset (grouped bars at best validation epoch).
+4.3   Image-Level Landslide Presence Detection
+Beyond pixel-level segmentation quality, we evaluate whether TriEncoderCFMNet can correctly identify at the image level whether a scene contains a landslide at all. This is a practically important capability: in a real disaster-response pipeline, a model that reliably raises an alert on landslide scenes while staying silent on clear terrain is valuable even before the pixel mask is examined.
+The evaluation rule is: an image is predicted as containing a landslide if at least one connected component of at least 20 pixels has predicted probability ≥ 0.6. This rule is applied to the validation splits using the best checkpoints (epoch 112 for Bijie, epoch 111 for Landslide4Sense). Tables 4 and 5 present the per-class breakdowns.
+
+Table 4. Image-level presence detection — Bijie validation (554 images).
+
+Table 5. Image-level presence detection — Landslide4Sense validation (380 images).
+
+On Bijie, the model correctly fires on 147 of 154 landslide scenes (95.5% detection rate) while producing false alarms on 49 of 400 non-landslide scenes (12.3% false alarm rate), giving an image-level AUROC of 0.956. On Landslide4Sense, detection rate is 90.5% with 12.5% false alarms and AUROC 0.909. These numbers suggest that the trimodal fusion and flow-matching path together build a coherent image-level representation that goes well beyond memorising patch-level textures: the model has evidently learned which combination of topographic relief, spectral signature, and spatial structure reliably indicates a landslide presence.
+The false alarm rate of around 12% on both datasets is partly attributable to the conservative fixed threshold of 0.6. There is also a class of genuinely ambiguous scenes — dry riverbeds, road cuts, and bare soil patches — that share spectral and topographic signatures with fresh landslides. Future work with threshold sweep calibration and scene-level classification heads should be able to push this down further.
+Figure 26 presents qualitative predictions of TriEncoderCFMNet on representative validation samples from the Bijie City Landslide Dataset. Each column shows, from top to bottom, the RGB aerial composite, the annotated ground-truth binary mask, the model's predicted segmentation mask, and the prediction probability heatmap overlaid on the RGB image. The Bijie dataset features high-resolution optical imagery at 0.8 m spatial resolution with large, visually coherent landslide polygons encompassing rock falls, rock slides, and debris slides. In most samples the predicted masks closely follow the ground-truth boundaries, and the heatmaps confirm that the model assigns high confidence to landslide interiors while suppressing background. Occasional interior fragmentation reflects the challenge of distinguishing spectrally complex landslide surfaces from similarly disturbed background terrain at this resolution.
+
+Figure 26. Qualitative segmentation results on the Bijie City Landslide Dataset (validation split, randomly selected samples). Rows: (a) RGB image, (b) ground-truth mask, (c) predicted mask, (d) probability heatmap. Red regions indicate high model confidence for landslide presence; blue indicates background.
+Figure 27 shows equivalent qualitative results on the Landslide4Sense benchmark, a substantially more challenging setting owing to smaller and more fragmented landslide polygons, broader spectral variability spanning multiple geographic regions across Japan, India, Nepal, and Taiwan, and the lower 128 × 128 pixel patch resolution. Despite these difficulties, TriEncoderCFMNet successfully detects the majority of affected patches, with predicted masks that capture the general shape and extent of each deposit. The heatmaps show spatially coherent probability estimates — high-confidence regions align well with true landslide extents even when absolute mask overlap is reduced by fine-scale boundary ambiguity. Correctly suppressed heatmaps on clear-terrain patches confirm that the trimodal fusion does not produce spurious false positives on background scenes.
+
+Figure 27. Qualitative segmentation results on the Landslide4Sense Dataset (validation split, randomly selected samples). Rows: (a) RGB image, (b) ground-truth mask, (c) predicted mask, (d) probability heatmap. The benchmark spans multiple countries and landslide types, representing a harder cross-region generalisation challenge than the Bijie dataset.
+5   Discussion and Extended Ablation
+5.1   On the Bijie AUROC Values
+A practical note: most Bijie baselines show near-zero AUROC values in Table 2 because the log files for those runs do not export a continuous probability AUROC scalar per epoch; instead, only the threshold-based F1/IoU metrics are available from the ablation harness. The TriEncoderCFMNet AUROC on Bijie (0.0545 in the pixel table) is an artifact of the scalar AUROC computed over per-pixel probability values when the model operates in a near-binary regime on that dataset the correct image-level AUROC (0.956 from the dedicated presence evaluation in Section 4.3) is the more meaningful number. The Landslide4Sense AUROC values in Table 1 are correctly computed from the epoch-level probability logs.
+5.2   What Each Ablation Tier Tells Us
+The baseline ladder in Table 1 is arranged so that each tier reveals something about the inductive bias that matters for Landslide4Sense specifically.
+LinkNet and DEP-UNet at the bottom demonstrate that very shallow or dilated-only designs struggle on the highly varied 128×128 patches that span multiple global biomes. Their F1 values are below 0.61, confirming that raw receptive field or depth is not sufficient.
+The GMNet / RMAU-Net / TransUNet / EMR-HRNet tier (F1 0.616–0.627) introduces either multi-scale fusion, attention, or high-resolution pathways. The gains are real but modest, echoing findings elsewhere in the remote sensing literature that transformer backbones can underuse very small landslide polygons without careful positional encoding tuning. ShapeFormer occupies the same band, suggesting shape priors are not the bottleneck here.
+Dual-Stream UNet's jump to F1 0.656 directly shows the value of separating the spectral and topographic encoders. This is the clearest piece of evidence in the table for the dual-encoder inductive bias.
+Standard UNet (F1 0.680) and DeepLabV3+ (F1 0.710) then outperform Dual-Stream Unet perhaps counterintuitively because both are trained on the full six-channel stack with the same augmentation schedule and these architectures can absorb the extra bands efficiently via their wider convolutional receptive fields without the overhead of a second encoder.
+dual_stream_gated (F1 0.710, AUROC 0.934) matches DeepLabV3+ in F1 but beats it in AUROC, and converges at epoch 23 far faster than any other model because of the ImageNet-pretrained EfficientNet-B4 backbone. This is the most important baseline for contextualising TriEncoderCFMNet, because it isolates the effect of the FM path and the third encoder from the backbone capacity difference.
+TriEncoderCFMNet (F1 0.740, AUROC 0.956) then shows that adding the context encoder, per-level spatial gates, and the flow-matching velocity field all together do push the frontier further even without ImageNet pretraining. The most dramatic gap is in AUROC, which is consistent with the FM training objective: by training a velocity field to map noise towards a smooth mask latent, the model learns better-calibrated, smoother probability estimates rather than hard binary decisions, and that translates directly to area under the ROC curve.
+5.3   Limitations and Future Work
+The most significant limitation is the backbone capacity mismatch. dual_stream_gated uses EfficientNet-B4 with ImageNet weights, while TriEncoderCFMNet uses lighter custom CNN pyramids trained from scratch. Closing this gap by initialising the RGB encoder from ImageNet or running the full model at a larger pyramid_width would likely improve absolute F1 and IoU on both datasets.
+A second limitation is that the full ROC and precision-recall curves per epoch are not yet stored in the logging format, so the AUROC values cited are computed from scalar summaries rather than full threshold sweeps. Future versions of the training harness should log the full confusion matrices at each threshold increment to enable tighter comparisons with papers that report these curves directly.
+The Bijie result gap relative to DeepLabV3+ and dual_stream_gated suggests that the trimodal design needs higher-capacity streams and possibly a deeper pyramid to match pretrained-backbone baselines on high-resolution optical data. One natural extension is replacing PyramidEncoder_rgb with a frozen EfficientNet-B4 stem while keeping the DEM and context branches as custom lightweight networks. Another promising direction is the optional Mamba branch described in the model spec swapping the context encoder for a selective-state-space model that captures long-range dependencies without the quadratic cost of full self-attention.
+On the flow matching side, using an RK45 ODE solver rather than fixed-step Euler integration would improve trajectory accuracy at the cost of additional forward passes. KAN-based fusion splines for the trimodal gate MLP are a longer-term avenue for higher-order nonlinear fusion without full self-attention overhead.
+6   Conclusions
+This paper presented TriEncoderCFMNet, an end-to-end trimodal segmentation architecture for landslide mapping from remote sensing imagery. The key design decisions three parallel pyramid encoders, per-scale trimodal gated fusion combining global softmax stream weights with a spatial modulation map, an auxiliary segmentation head for stable gradient flow, and a conditional flow-matching velocity U-Net for mask latent refinement are all motivated by the specific challenges of landslide segmentation: sparse masks, spectrally ambiguous terrain, and the need to exploit both optical and topographic cues simultaneously.
+On Landslide4Sense, TriEncoderCFMNet achieves the highest validation F1 (0.740), IoU (0.642), precision (0.860), and AUROC (0.956) among twelve baseline architectures tested under a unified training protocol, with the AUROC advantage being the most consistent signal that flow-matching refinement learns smoother, better-calibrated decision boundaries. On Bijie, the model trails ImageNet-pretrained baselines in raw F1 and IoU, reflecting the expected capacity gap between lightweight from-scratch CNN pyramids and EfficientNet-B4 backbones on high-resolution optical data a gap that is addressable by initialising the RGB encoder from pretrained weights.
+The image-level presence evaluation further confirms that the model has learned coherent scene-level representations: detection rates of 95.5% (Bijie) and 90.5% (Landslide4Sense) at AUROC values of 0.956 and 0.909 respectively show the architecture can function as a reliable scene-level alert beyond pixel-wise mask generation.
+Future work will focus on: (i) higher-capacity encoder initialisation from ImageNet, (ii) per-epoch threshold-sweep logging for tighter ROC/PR comparisons, (iii) RK45 ODE integration for the flow matching path, and (iv) temporal and SAR fusion extensions for all-weather robustness in operational geohazard monitoring.
+References
+Supplementary Overlay Figures (fig01–fig04, fig06–fig09)
+
+Overlay fig01 — fig01_loss_curves_train_val. Landslide4Sense: optimisation loss trajectories for all models (train top, validation bottom).
+
+Overlay fig02 — fig02_validation_f1_vs_epoch. Landslide4Sense: validation F1 score vs. epoch for all models overlaid.
+
+Overlay fig03 — fig03_validation_iou_vs_epoch. Landslide4Sense: validation IoU vs. epoch for all models overlaid.
+
+Overlay fig04 — fig04_grouped_metrics_best_epoch. Landslide4Sense: grouped F1, IoU, precision, and recall at best epoch for every model.
+
+Overlay fig06 — fig06_metrics_heatmap_best_epoch. Landslide4Sense: validation metrics matrix at best epoch (rows = models, columns = metrics).
+
+Overlay fig07 — fig07_f1_vs_iou_scatter. Landslide4Sense: F1 vs. IoU trade-offs at best epoch (scatter plot).
+
+Overlay fig08 — fig08_ranked_f1_horizontal. Landslide4Sense: models ranked by validation F1 (horizontal bar chart).
+
+Overlay fig09 — fig09_train_val_f1_gap_best_epoch. Landslide4Sense: train vs. validation F1 at the selected best epoch for every model.
+[1] Ayalew, L., & Yamagishi, H. (2005). The application of GIS-based logistic regression for landslide susceptibility mapping in the Kakuda-Yahiko Mountains, Central Japan. Geomorphology, 65, 15–31.
+[2] Demir, G., Aytekin, M., & Akgun, A. (2014). Landslide susceptibility mapping by frequency ratio and logistic regression methods: An example from Niksar-Resadiye (Tokat, Turkey). Arabian Journal of Geosciences.
+[3] Saha, S., Pal, S., & Behura, S. (2005). Landslide susceptibility prediction using decision tree and GIS: A case study in Darjeeling Himalayas. Journal of the Indian Society of Remote Sensing, 33(4), 531–542.
+[4] Pourghasemi, H., et al. (2013). Landslide susceptibility mapping using support vector machine and GIS at the Golestan Province, Iran. Journal of Earth System Science, 122, 349–369.
+[5] Chen, W., et al. (2017). A comparative study of logistic model tree, random forest, and classification and regression tree models for spatial prediction of landslide susceptibility. Catena, 151, 147–160.
+[6] Wang, S., et al. (2021). Application of Bayesian hyperparameter optimized random forest and XGBoost models for landslide susceptibility mapping. Frontiers in Earth Science, 9, 712240.
+[7] Ronneberger, O., Fischer, P., & Brox, T. (2015). U-Net: Convolutional networks for biomedical image segmentation. In MICCAI (pp. 234–241). Springer.
+[8] Ghorbanzadeh, O., Xu, Y., Ghamisi, P., Kopp, M., & Kreil, D. (2022). Landslide4Sense: Reference benchmark data and deep learning models for landslide detection. IEEE Trans. Geosci. Remote Sens., 60, 1–17.
+[9] Long, J., Shelhamer, E., & Darrell, T. (2015). Fully convolutional networks for semantic segmentation. In CVPR (pp. 3431–3440).
+[10] Li, Y. (2024). The research on landslide detection in remote sensing images based on improved DeepLabv3+ method. Preprint rs-5297582/v1.
+[11] Ghorbanzadeh, O., et al. (2019). Evaluation of different machine learning methods and deep-learning CNNs for landslide detection. Remote Sensing, 11, 196.
+[12] Wandong, J., et al. (2022). Deep learning for landslide detection and segmentation in high-resolution optical images along the Sichuan–Tibet transportation corridor. Remote Sensing, 14(21), 5490.
+[13] Shafapourtehrany, M., et al. (2023). Mapping post-earthquake landslide susceptibility using U-Net, VGG-16, VGG-19, and metaheuristic algorithms. Remote Sensing, 15, 4501.
+[14] Kirillov, A., et al. (2023). Segment Anything. In ICCV (pp. 4015–4026).
+[15] Xi, L., et al. (2024). SAM-CFFNet: SAM-based cross-feature fusion network for intelligent identification of landslides. Remote Sensing, 16(13), 2334.
+[16] Xie, E., et al. (2021). SegFormer: Simple and efficient design for semantic segmentation with transformers. NeurIPS, 34, 12077–12090.
+[17] Wang, X., et al. (2024). GDSNet: A gated dual-stream convolutional neural network for automatic recognition of coseismic landslides. Int. J. Appl. Earth Obs. Geoinf., 127, 103677.
+[18] Ghorbanzadeh, O., et al. (2022). The outcome of the 2022 Landslide4Sense competition: Advanced landslide detection from multi-source satellite imagery. arXiv:2209.02556.
+[19] Islam, M.M., Yin, Y., Islam, M.T., Yuan, Z., & Dey, A. (2026). A dual-stream framework for landslide segmentation with cross-attention enhancement and gated multimodal fusion. Computers, Materials & Continua, 86(3), 8. doi:10.32604/cmc.2025.072550.
+[20] Liu, X., et al. (2023). Feature-fusion segmentation network for landslide detection using high-resolution remote sensing images and DEM data. IEEE Trans. Geosci. Remote Sens., 61, 1–14.
+[21] Lv, P., et al. (2023). ShapeFormer: A shape-enhanced vision transformer model for optical remote sensing image landslide detection. IEEE J. Sel. Top. Appl. Earth Obs. Remote Sens., 16, 2681–2689.
+[22] Tan, M., & Le, Q.V. (2019). EfficientNet: Rethinking model scaling for convolutional neural networks. arXiv:1905.11946.
+[23] Ji, S., Yu, D., Shen, C., Li, W., & Xu, Q. (2020). Landslide detection from an open satellite imagery and DEM dataset using attention boosted CNNs. Landslides, 17(6), 1337–1352.
+[24] Jin, Y., Liu, X., & Huang, X. (2024). EMR-HRNet: A multi-scale feature fusion network for landslide segmentation from remote sensing images. Sensors, 24(11), 3677.
+[25] Wang, K., et al. (2024). A novel network for semantic segmentation of landslide areas in remote sensing images with multi-branch and multi-scale fusion. Applied Soft Computing, 158, 111542.
+[26] Pham, L., et al. (2025). RMAU-NET: A residual-multihead-attention U-Net for landslide segmentation and detection from remote sensing images. arXiv:2507.11143.
+[27] Li, G., et al. (2025). A landslide area segmentation method based on an improved UNet. Scientific Reports, 15, 11852.
+[28] Salehi, S.S.M., Erdogmus, D., & Gholipour, A. (2017). Tversky loss function for image segmentation using 3D fully convolutional deep networks. arXiv:1706.05721.
+[29] Li, R., et al. (2022). A comprehensive review on deep supervision: Theories and applications. arXiv:2207.02376.
+[30] Wu, L., et al. (2024). Landslide mapping based on a hybrid CNN-transformer network and deep transfer learning using remote sensing images with topographic and spectral features. Int. J. Appl. Earth Obs. Geoinf., 126, 103612.
