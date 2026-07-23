@@ -1,0 +1,100 @@
+WRN 2026-07-23T14:59:29.837 ui.1956    tui_handle_term_mode:226: TUI: terminal mode 69 unavailable, state 0
+WRN 2026-07-23T14:59:29.837 ui.1956    tui_handle_term_mode:239: TUI: terminal mode 2026 detected, state 2
+WRN 2026-07-23T14:59:29.837 ui.1956    tui_handle_term_mode:226: TUI: terminal mode 2027 unavailable, state 0
+WRN 2026-07-23T14:59:29.837 ui.1956    tui_handle_term_mode:239: TUI: terminal mode 2031 detected, state 2
+WRN 2026-07-23T14:59:29.837 ui.1956    tui_handle_term_mode:239: TUI: terminal mode 2048 detected, state 2
+ERR 2026-07-23T14:59:30.035 nvim.1957.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0100cd7134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>
+ERR 2026-07-23T14:59:30.038 nvim.1957.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0100cd7134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>
+ERR 2026-07-23T14:59:30.040 nvim.1957.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0100cd7134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>
+WRN 2026-07-23T14:59:44.587 ui.3325    tui_handle_term_mode:226: TUI: terminal mode 69 unavailable, state 0
+WRN 2026-07-23T14:59:44.587 ui.3325    tui_handle_term_mode:239: TUI: terminal mode 2026 detected, state 2
+WRN 2026-07-23T14:59:44.587 ui.3325    tui_handle_term_mode:226: TUI: terminal mode 2027 unavailable, state 0
+WRN 2026-07-23T14:59:44.587 ui.3325    tui_handle_term_mode:239: TUI: terminal mode 2031 detected, state 2
+WRN 2026-07-23T14:59:44.587 ui.3325    tui_handle_term_mode:239: TUI: terminal mode 2048 detected, state 2
+ERR 2026-07-23T14:59:44.737 nvim.3326.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0102c27134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>
+ERR 2026-07-23T14:59:44.738 nvim.3326.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0102c27134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>
+ERR 2026-07-23T14:59:44.739 nvim.3326.0 decor_provider_error:29: Error in decoration provider "conceal_line" (ns=nvim.treesitter.highlighter):
+Lua: .../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: attempt to call method 'range' (a nil value)
+stack traceback:
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:196: in function 'get_range'
+	.../neovim/0.12.2/share/nvim/runtime/lua/vim/treesitter.lua:231: in function 'get_node_text'
+	...nvim-treesitter/lua/nvim-treesitter/query_predicates.lua:141: in function 'handler'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:868: in function '_apply_directives'
+	...m/0.12.2/share/nvim/runtime/lua/vim/treesitter/query.lua:1089: in function '(for generator)'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:1123: in function '_get_injections'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:690: in function '_parse'
+	...2/share/nvim/runtime/lua/vim/treesitter/languagetree.lua:639: in function 'parse'
+	....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:529: in function <....2/share/nvim/runtime/lua/vim/treesitter/highlighter.lua:521>
+	[C]: at 0x0102c27134
+	[C]: in function 'pcall'
+	.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:48: in function <.../share/nvim/lazy/LazyVim/lua/lazyvim/config/autocmds.lua:38>

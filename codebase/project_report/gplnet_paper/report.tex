@@ -10,8 +10,7 @@
 \usepackage{caption}
 \usepackage{microtype}
 \usepackage{enumitem}
-\usepackage{placeins}
-\usepackage{dblfloatfix}
+
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
 \setcounter{topnumber}{6}
@@ -48,7 +47,7 @@ CSIR Fourth Paradigm Institute (CSIR-4PI), Bengaluru}}
 
 \begin{titlepage}
 \onecolumn
-\centering
+\begin{center}
 \vspace*{2cm}
 {\Large\bfseries Project Report}\\[1.2em]
 {\LARGE\bfseries GeoPhysicsLandslideNet: Physics-Closed Pentastream Architecture for Multimodal Landslide Segmentation}\\[2em]
@@ -64,6 +63,7 @@ Kalinga Institute of Industrial Technology (KIIT Deemed to be University)\\
 Bhubaneswar, Odisha, India}\\[2em]
 {\large CSIR Fourth Paradigm Institute\\
 NAL Belur Campus, Bengaluru -- 560037}
+\end{center}
 \vfill
 \end{titlepage}
 
@@ -98,14 +98,14 @@ I sincerely thank everyone who has contributed, directly or indirectly, to the s
   \par}
   \vspace{0.8em}
   \begin{abstract}
-  This report presents the full research study on GeoPhysicsLandslideNet (PS-GPLNet), a pentastream physics-closed network for binary landslide segmentation from optical and topographic remote sensing inputs. The document includes the complete conference-style treatment: extended related work, mathematical formulation, implementation notes, quantitative and qualitative experiments on Bijie and Landslide4Sense, and discussion. The architecture embeds Taylor-stabilized infinite-slope factor-of-safety logic throughout encoding, fusion, decoding, and dual-path output equilibrium. Source code and model documentation reside in \texttt{codebase/Geo\_physics\_equation\_derived\_model/from\_first\_steps/}.
+  Deep segmentation models for landslide mapping often treat spectral and topographic modalities as structurally equivalent, relying on unconstrained statistical fusion that ignores the underlying geomorphological mechanics of slope failure. In this work, we introduce \textbf{GeoPhysicsLandslideNet} (PS-GPLNet), a novel pentastream architecture that deeply embeds the infinite-slope factor-of-safety (FS) physical prior as a first-class inductive bias. Rather than relegating physics to a post-hoc loss penalty, PS-GPLNet enforces Taylor-stabilized FS logic continuously across the entire forward pass: from pixel-level encoding and Complementary Modality Bridges, through multi-scale gated cross-attention (MAO-GeoEGCA) integrated with large-scale earth observation foundation models (Prithvi-EO), to dual-path physics decoders constrained by PGDI. Finally, predictions are unified via Mechanistic Path Equilibrium Fusion (MPEF), which routes spatial logic based on physically derived failure energy rather than arbitrary learned gates. Extensive evaluations on the Bijie and Landslide4Sense benchmarks demonstrate that this closed-loop geotechnical constraint significantly reduces structural hallucinations on stable steep slopes. PS-GPLNet establishes a highly competitive standard for physics-informed landslide detection, achieving a best-epoch F1 score of 0.933 and IoU of 0.907 on Bijie, strongly outperforming contemporary CNN, transformer, and dual-stream baselines.
   \end{abstract}
   \vspace{1.2em}
 ]
 
 \input{content/paper_core.tex}
 
-\FloatBarrier
+
 {\small
 \bibliographystyle{unsrt}
 \bibliography{bib/refs}
