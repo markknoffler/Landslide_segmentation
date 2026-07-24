@@ -1,0 +1,58 @@
+{
+  "bijie_final": {
+    "epoch": 92,
+    "val_f1": 0.933289256456087,
+    "val_iou": 0.9070868781573481,
+    "val_precision": 0.9562024735718322,
+    "val_recall": 0.9464519521315321,
+    "val_acc": 0.9913339683477828
+  },
+  "l4s_final": {
+    "epoch": 70,
+    "val_f1": 0.7356446633736292,
+    "val_iou": 0.660148024559021,
+    "val_precision": 0.8015314737955729,
+    "val_recall": 0.7883240928252538,
+    "val_acc": 0.985804463426272
+  },
+  "checkpoint": {
+    "ckpt_type": "<class 'dict'>",
+    "path": "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/prev_legacy_results/outputs_bijie/checkpoint/best.pt",
+    "keys": [
+      "epoch",
+      "model",
+      "optimizer",
+      "best_f1"
+    ],
+    "epoch": 99,
+    "best_f1": 0.8970915079116821,
+    "n_params_in_sd": 18101460,
+    "n_tensors": 871
+  },
+  "device": "cuda:0",
+  "material_bounds": {
+    "min": 0.000335462624207139,
+    "max": 2980.9580078125
+  },
+  "mpef_softmax_dominates_random": 1.0,
+  "fs_gate_local_lip": {
+    "median": 0.2835431694984436,
+    "p95": 0.6778044104576111,
+    "max": 0.7661514282226562,
+    "mean": 0.3118676245212555
+  },
+  "deltas": {
+    "bijie": {
+      "vs_deeplab_f1": 0.005804240798873983,
+      "vs_deeplab_iou": 0.008501568572412577,
+      "vs_dualgated_f1": 0.03619774854440483,
+      "vs_dualgated_iou": 0.03855953528154954
+    },
+    "l4s": {
+      "vs_deeplab_f1": 0.025793666640917423,
+      "vs_deeplab_iou": 0.023766696453094482,
+      "vs_dualgated_f1": 0.08914889891942335,
+      "vs_dualgated_iou": 0.087310237189134
+    }
+  }
+}

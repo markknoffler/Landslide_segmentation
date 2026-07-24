@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "ckpt_epoch": 4,
+    "ckpt_best_f1": 0.8613282281288998,
+    "checkpoint": "./outputs_tpami_studies_interim/best_snapshot.pt",
+    "compact": false,
+    "backbone": "tf_efficientnet_b4",
+    "fusion_channels": 64
+  },
+  "device": "cuda:0",
+  "clean_metrics": {
+    "iou": 0.515824383145583,
+    "f1": 0.6805859423835936,
+    "precision": 0.7518864771742026,
+    "recall": 0.6216368324515719,
+    "n_images": 554.0
+  },
+  "boundary": {
+    "bf_score_mean": 0.7438876918754109,
+    "bf_score_std": 0.3878687438392214,
+    "hausdorff_mean": 25.232418263821327,
+    "hausdorff_median": 0.0,
+    "hausdorff_std": 65.48396733786727,
+    "n": 554,
+    "bf_score_mean_landslide": 0.2280115668764781,
+    "hausdorff_mean_landslide": 52.53740076725335,
+    "hausdorff_median_landslide": 24.400233683311257,
+    "n_landslide": 154
+  },
+  "tsne": {
+    "hook": "fuse3",
+    "n": 300,
+    "centroid_separation": 0.1892533366614252,
+    "figure": "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/outputs_tpami_studies_interim/figures/latent_manifold_tsne.png"
+  },
+  "baseline_robustness": {
+    "U-Net": {
+      "f1": [
+        0.7364840890731337,
+        0.7328134003132546,
+        0.715135651790306,
+        0.6168179634242886,
+        0.48869492011508325
+      ],
+      "iou": [
+        0.5828846971407566,
+        0.5782995183932733,
+        0.5565845552386621,
+        0.44594127679052303,
+        0.3233595430991978
+      ]
+    },
+    "DeepLabV3+": {
+      "f1": [
+        0.799036591295887,
+        0.783795865379901,
+        0.7616046981141839,
+        0.6639246507390998,
+        0.49034654950263246
+      ],
+      "iou": [
+        0.6653296724153146,
+        0.6444607801179135,
+        0.6149932068980072,
+        0.4969215629241079,
+        0.32480735849746434
+      ]
+    }
+  },
+  "robustness": {
+    "noise_levels": [
+      0.0,
+      0.05,
+      0.1,
+      0.2,
+      0.3
+    ],
+    "f1": [
+      0.6805859423835936,
+      0.6793356387613467,
+      0.6564868887522025,
+      0.6839349485413354,
+      0.6269346776579199
+    ],
+    "iou": [
+      0.515824383145583,
+      0.5143893169981483,
+      0.4886345233672379,
+      0.5196817192153944,
+      0.4565949394079358
+    ],
+    "f1_decay_slope": -0.1390222185103647,
+    "figure": "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/outputs_tpami_studies_interim/figures/robustness_decay.png"
+  }
+}

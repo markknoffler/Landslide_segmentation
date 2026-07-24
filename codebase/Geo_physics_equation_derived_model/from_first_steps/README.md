@@ -2,6 +2,9 @@
 
 Incremental graft of **PS-GPLNet** (5 encoders + MAO/TTEB + dual physics decoder) onto the working DiGATe dual-stream baseline.
 
+**Which outputs are the final paper metrics?** See [`RESULTS_AND_CHECKPOINTS.md`](RESULTS_AND_CHECKPOINTS.md)  
+(Bijie → `outputs_absolute_final_fully_novel_complete` / `outputs_final_bijie`; L4S → `outputs_step3_l4s` / `outputs_final_l4s`. Local retrain under `outputs_tpami_local_bijie/` is for TPAMI inference studies only.)
+
 ## Architecture (Step 3 default)
 
 - **Encoders:** EfficientNet RGB + Physics RGB + EfficientNet DEM + Physics DEM + Prithvi+LoRA

@@ -1,0 +1,16 @@
+[GPU] Visible CUDA devices: 1
+[GPU]   cuda:0 free=0.98 GiB / total=11.63 GiB | torch allocated=0.0 MiB
+[GPU] nvidia-smi compute apps:
+GPU-1f404671-bed9-f6fb-f8d7-ea7143e1e039, 00000000:01:00.0, 2907529, python, 18540 MiB
+GPU-1f404671-bed9-f6fb-f8d7-ea7143e1e039, 00000000:01:00.0, 3071148, /usr/local/lib/ollama/llama-server, 556 MiB
+GPU-85f17fb3-3311-e91b-13cb-f9b3fd29c1df, 00000000:05:00.0, 3071148, /usr/local/lib/ollama/llama-server, 10774 MiB
+GPU-85f17fb3-3311-e91b-13cb-f9b3fd29c1df, 00000000:05:00.0, 3139240, /home/user/anaconda3/envs/deeplearning/bin/python, 104 MiB
+Traceback (most recent call last):
+  File "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/run_tpami_studies.py", line 506, in <module>
+    main()
+  File "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/run_tpami_studies.py", line 446, in main
+    device = resolve_device(args.device, auto_select=args.auto_gpu, min_free_gb=args.min_free_gb)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Desktop/Deep_learning_projects/4PI/Landslide_segmentation/codebase/Geo_physics_equation_derived_model/from_first_steps/device_utils.py", line 95, in resolve_device
+    raise RuntimeError(
+RuntimeError: CUDA device cuda:0 has only 0.98 GiB free of 11.63 GiB total. GeoPhysicsLandslideNet needs ~4+ GiB free before loading (~0.5 GiB weights + activations). Kill stale jobs or enable --auto_gpu if another visible GPU is free.
