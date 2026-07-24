@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2023/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: paper_tpami_v3.aux
+The style file: unsrt.bst
+Database file #1: bib/refs.bib
+Warning--empty journal in xie2021segformer
+Warning--empty journal in houlsby2019lora
+Warning--empty journal in tan2019efficientnet
+Warning--empty journal in salehi2017tversky
+You've used 27 entries,
+            1791 wiz_defined-function locations,
+            566 strings with 7745 characters,
+and the built_in function-call counts, 4428 in all, are:
+= -- 344
+> -- 262
+< -- 0
++ -- 97
+- -- 70
+* -- 196
+:= -- 808
+add.period$ -- 82
+call.type$ -- 27
+change.case$ -- 26
+chr.to.int$ -- 0
+cite$ -- 31
+duplicate$ -- 225
+empty$ -- 418
+format.name$ -- 70
+if$ -- 953
+int.to.chr$ -- 0
+int.to.str$ -- 27
+missing$ -- 28
+newline$ -- 139
+num.names$ -- 27
+pop$ -- 90
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 94
+stack$ -- 0
+substring$ -- 52
+swap$ -- 24
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 4
+while$ -- 31
+width$ -- 29
+write$ -- 273
+(There were 4 warnings)

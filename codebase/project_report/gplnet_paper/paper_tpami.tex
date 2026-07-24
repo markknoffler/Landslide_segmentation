@@ -12,6 +12,19 @@
 \usepackage{subcaption}
 \usepackage{microtype}
 \usepackage{enumitem}
+% Lightweight algorithm floats (no algorithm.sty required)
+\usepackage{float}
+\newfloat{algorithm}{htbp}{loa}
+\floatname{algorithm}{Algorithm}
+\newcommand{\algorithmautorefname}{Algorithm}
+\newcounter{algline}
+\newcommand{\State}{\par\noindent\refstepcounter{algline}\makebox[1.6em][r]{\scriptsize\thealgline.}\hspace{0.4em}}
+\newcommand{\Require}{\par\noindent\textbf{Require:}\ }
+\newcommand{\Ensure}{\par\noindent\textbf{Ensure:}\ }
+\newcommand{\Comment}[1]{\hfill\textit{\small\ttfamily\# #1}}
+\newenvironment{algorithmic}[1][0]{%
+  \setcounter{algline}{0}\par\smallskip\begingroup\ttfamily\small\setlength{\parskip}{0.15em}%
+}{\endgroup\par\smallskip}
 
 \newtheorem{definition}{Definition}
 \newtheorem{lemma}{Lemma}
@@ -97,99 +110,7 @@ Gravity-/geometry-informed CV~\cite{wang2025gravityformer,yin2021virtualnormal} 
 \end{tabular}}
 \end{table}
 
-\section{Method}
-\subsection{Problem}
-Given $x_1\in\mathbb{R}^{B\times 3\times H\times W}$ (RGB) and $x_2\in\mathbb{R}^{B\times 3\times H\times W}$ (NDVI/slope/DEM or replicated DEM), predict $y\in\{0,1\}^{B\times 1\times H\times W}$. Proxies $(\alpha,h,m)$ are derived in the forward pass.
-
-\subsection{Continuum operator and bounded materials}
-\begin{definition}[Infinite-slope continuum operator]
-\[
-\mathrm{FS}(\alpha,h,m)=\frac{c+\phi h\cos^{2}\alpha}{\gamma h\sin\alpha\cos\alpha+w_m m+\varepsilon},\quad
-\mathrm{FE}=\mathrm{ReLU}(1-\mathrm{FS}).
-\]
-\end{definition}
-
-\begin{definition}[Bounded material reparametrization]
-$c=\exp(\mathrm{clip}(w_c;-8,8))$ and likewise for $\phi,\gamma,w_m$ (implementation: \textit{physics/params.py}).
-\end{definition}
-
-\begin{definition}[Pixel mechanistic cell]
-$g_{\mathrm{pix}}(x;\alpha,h,m)=f(x)\odot\sigma(\psi-\mathrm{FS}(\alpha,h,m))$.
-\end{definition}
-
-\subsection{Pentastream architecture}
-Five encoders run in parallel: EfficientNet~\cite{tan2019efficientnet} RGB/DEM; PhysicsEncoders with pixel/latent FS cells; Prithvi-EO with LoRA~\cite{szink2024prithvi,houlsby2019lora}. Complementary Modality Bridges (CMB) hybridize CNN and physics features per level when streams co-activate. MAO-GeoEGCA performs physics-anchored cross-attention with Prithvi; TTEB builds tri-stream skips with a latent stability residual. Dual PhysicsDecoders with PGDI upsample path-specific proxies; MPEF merges logits.
-
-\begin{definition}[MPEF]
-\begin{equation}
-\begin{split}
-[w_A,w_B]&=\mathrm{softmax}([\mathrm{FE}_A,\mathrm{FE}_B]),\\
-O&=w_A O_A+w_B O_B+\mathrm{Conv}_{1\times1}([O_A\|O_B]).
-\end{split}
-\end{equation}
-Entropy regularizer $\mathcal{R}_{\mathrm{MPEF}}=-\mathbb{E}[w_A\log w_A+w_B\log w_B]$.
-\end{definition}
-
-\paragraph{Forward procedure.}
-(1)~Derive $(\alpha,h,m)$; encode five streams.
-(2)~CMB hybrids; align Prithvi.
-(3)~MAO at levels $2,3$; TTEB skips at $0..3$.
-(4)~Dual PhysicsDecoder $\rightarrow(O_A,O_B)$.
-(5)~MPEF $\rightarrow$ (main, aux2, aux3, reg).
-
-\subsection{Objective}
-Deeply supervised Tversky loss~\cite{salehi2017tversky} with weights $(1.0,0.6,0.4)$ plus $\lambda_{\mathrm{reg}}\sum_h\mathcal{R}_{\mathrm{MPEF}}^{(h)}$.
-
-\section{Theoretical Analysis}
-We state the TPAMI-facing claims that organize LCE. Proofs are elementary but match the gravity-/Lipschitz-style scaffolding used in related TPAMI work~\cite{wang2025gravityformer,lipschitzseg2025,clough2022topological}.
-
-\begin{definition}[Latent Continuum Equivalency]
-A layered multimodal network satisfies LCE if every stage $\ell$ applies an operator $T_\ell$ from the same continuum class $\mathcal{C}_{\mathrm{FS}}$ (identical algebraic FS skeleton, possibly different parameters and resolutions), so failure energies remain commensurable across depths and paths.
-\end{definition}
-
-\begin{lemma}[Compactness of materials]
-Under Definition~2, $c,\phi,\gamma,w_m\in[e^{-8},e^{8}]$.
-\end{lemma}
-\begin{proof}
-$\mathrm{clip}(w;-8,8)$ lands in $[-8,8]$; $\exp$ is continuous and strictly increasing, so the image is $[e^{-8},e^{8}]$.
-\end{proof}
-
-\begin{lemma}[Local Lipschitz continuity of FS]
-On any compact training domain $\alpha\in[\alpha_{\min},\alpha_{\max}]\subset(0,\pi/2)$, $h\ge h_{\min}>0$, $m\in[0,1]$, the denominator is at least $\varepsilon>0$, hence FS is $C^{\infty}$ and Lipschitz on that set.
-\end{lemma}
-\begin{proof}
-The map is a ratio of smooth functions with non-vanishing denominator; continuous functions on compact sets are Lipschitz~\cite{boyd2004convex,lipschitzseg2025}.
-\end{proof}
-
-\begin{lemma}[FS gate Lipschitz]
-$x\mapsto\sigma(\psi-\mathrm{FS}(x))$ is Lipschitz on the same domain with constant at most $\tfrac14\mathrm{Lip}(\mathrm{FS})$, since $\mathrm{Lip}(\sigma)\le 1/4$.
-\end{lemma}
-
-\begin{proposition}[Non-explosion of the pixel cell]
-Composing a Lipschitz $1\times1$ map $f$ with Lemma~3 yields a locally Lipschitz mechanistic cell; unbounded $\exp(w)$ without clipping is excluded by Lemma~1.
-\end{proposition}
-
-\begin{theorem}[LCE enables FE routing]
-If every path and stage applies $\mathcal{C}_{\mathrm{FS}}$ under Lemma~1, then path-wise $\mathrm{FE}_A,\mathrm{FE}_B$ are evaluations of the same continuum currency and are admissible inputs to Definition~4. Without LCE, dual-path weights lack a shared physical unit.
-\end{theorem}
-\begin{proof}[Proof sketch]
-Commensurability follows from identical FS algebra and shared positivity constraints (Lemmas~1--2). Arbitrary learned gates are not evaluations of $\mathcal{C}_{\mathrm{FS}}$ and therefore are not FE-comparable.
-\end{proof}
-
-\begin{theorem}[MPEF energy identity]
-On the simplex $\Delta=\{w_A+w_B=1,\,w\ge0\}$, $\mathbf{w}^\star=\mathrm{softmax}(\mathbf{FE})$ uniquely maximizes $\mathbf{w}^\top\mathbf{FE}+\mathcal{H}(\mathbf{w})$.
-\end{theorem}
-\begin{proof}
-This is the standard entropic projection / soft-argmax identity on a two-point simplex~\cite{boyd2004convex}. Strict concavity of $\mathcal{H}$ yields uniqueness.
-\end{proof}
-
-\begin{corollary}[Contrast to GateFuse]
-Scalar learned fusion gates that are not softmax(FE) are not solutions of Theorem~2; MPEF is an equilibrium, not an unconstrained gate~\cite{islam2024digate,panda2025sparsefusion}.
-\end{corollary}
-
-\begin{remark}[Empirical probes]
-On GPU~0 we verified Lemma~1 numerically ($c\in[e^{-8},e^{8}]$), Theorem~2 against $5000$ random simplex competitors (dominance rate $1.0$), and local FS-gate sensitivity (median $\|\Delta\mathrm{gate}\|/\|\Delta\alpha\|\approx0.28$, $p_{95}\approx0.68$). See Figure~\ref{fig:theory}.
-\end{remark}
+\input{content/method_tpami}
 
 \begin{figure}[t]
 \centering
