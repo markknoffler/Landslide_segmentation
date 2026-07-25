@@ -3,7 +3,8 @@
 \usepackage[margin=0.75in]{geometry}
 \usepackage{times}
 \usepackage{graphicx}
-\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools}
+\allowdisplaybreaks[2]
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{xcolor}
@@ -23,7 +24,10 @@
 \newcommand{\Ensure}{\par\noindent\textbf{Ensure:}\ }
 \newcommand{\Comment}[1]{\hfill\textit{\small\ttfamily\# #1}}
 \newenvironment{algorithmic}[1][0]{%
-  \setcounter{algline}{0}\par\smallskip\begingroup\ttfamily\small\setlength{\parskip}{0.15em}%
+  \setcounter{algline}{0}\par\smallskip
+  \begingroup\ttfamily\footnotesize\raggedright
+  \setlength{\parskip}{0.12em}\setlength{\parindent}{0pt}%
+  \rightskip=0pt plus 1fil
 }{\endgroup\par\smallskip}
 
 \newtheorem{definition}{Definition}
