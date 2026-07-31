@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 15:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 15:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -436,6 +436,9 @@ Package: enumitem 2019/06/20 v3.9 Customized lists
 \enit@count@id=\count303
 \enitdp@description=\count304
 )
+(/usr/share/texlive/texmf-dist/tex/latex/placeins/placeins.sty
+Package: placeins 2005/04/18  v 2.2
+)
 (/usr/share/texlive/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@float@type=\count305
@@ -453,9 +456,9 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 \c@theorem=\count311
 \c@corollary=\count312
 \c@remark=\count313
-Package hyperref Info: Option `colorlinks' set `true' on input line 40.
-LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 6
-0.
+Package hyperref Info: Option `colorlinks' set `true' on input line 41.
+LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 7
+2.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
@@ -468,24 +471,24 @@ File: l3backend-pdftex.def 2024-01-04 L3 backend support: PDF output (pdfTeX)
 (./paper_tpami_v3.aux)
 \openout1 = `paper_tpami_v3.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 60.
-LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 72.
+LaTeX Font Info:    ... okay on input line 72.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -543,7 +546,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-Package hyperref Info: Link coloring ON on input line 60.
+Package hyperref Info: Link coloring ON on input line 72.
 
 (./paper_tpami_v3.out) (./paper_tpami_v3.out)
 \@outlinefile=\write3
@@ -552,19 +555,19 @@ Package hyperref Info: Link coloring ON on input line 60.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
-LaTeX Info: Redefining \microtypecontext on input line 60.
-Package microtype Info: Applying patch `item' on input line 60.
-Package microtype Info: Applying patch `toc' on input line 60.
-Package microtype Info: Applying patch `eqnum' on input line 60.
-Package microtype Info: Applying patch `footnote' on input line 60.
-Package microtype Info: Applying patch `verbatim' on input line 60.
+LaTeX Info: Redefining \microtypecontext on input line 72.
+Package microtype Info: Applying patch `item' on input line 72.
+Package microtype Info: Applying patch `toc' on input line 72.
+Package microtype Info: Applying patch `eqnum' on input line 72.
+Package microtype Info: Applying patch `footnote' on input line 72.
+Package microtype Info: Applying patch `verbatim' on input line 72.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 60.
+LaTeX Info: Redefining \showhyphens on input line 72.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
@@ -576,7 +579,7 @@ File: mt-ptm.cfg 2006/04/20 v1.7 microtype config. file: Times (RS)
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 77.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 89.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -585,7 +588,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 77.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 89.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -594,8 +597,8 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 7
-7.
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 8
+9.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
@@ -603,36 +606,36 @@ File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 <figures/fig1_qualitative.png, id=100, 2246.3925pt x 1108.14pt>
 File: figures/fig1_qualitative.png Graphic file (type png)
 <use figures/fig1_qualitative.png>
-Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 77.
+Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 89.
 (pdftex.def)             Requested size: 505.89pt x 249.54056pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 77.
+(caption)                particular \caption on input line 89.
 See the caption package documentation for explanation.
 
 
 LaTeX Warning: Optional argument of \twocolumn too tall on page 1.
 
 
-Overfull \vbox (30.0pt too high) has occurred while \output is active []
+Overfull \vbox (18.0pt too high) has occurred while \output is active []
 
 
 
 LaTeX Warning: Text page 1 contains only floats.
 
 
-Overfull \vbox (30.0pt too high) has occurred while \output is active []
+Overfull \vbox (18.0pt too high) has occurred while \output is active []
 
 
-Overfull \vbox (16.0pt too high) has occurred while \output is active []
+Overfull \vbox (6.0pt too high) has occurred while \output is active []
 
  [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf
 -dist/fonts/enc/dvips/base/8r.enc}
 
 
  <./figures/fig1_qualitative.png (PNG copy)>]
-Underfull \hbox (badness 1038) in paragraph at lines 94--95
+Underfull \hbox (badness 1038) in paragraph at lines 106--107
  []\OT1/ptm/b/n/10 (+20) Physics in-side ar-chi-tec-tures.[] \OT1/ptm/m/n/10 (+
 20) Grav-i-ty-former mul-ti-plies
  []
@@ -677,22 +680,27 @@ Underfull \hbox (badness 10000) in paragraph at lines 232--235
 ^^B \OT1/cmr/m/n/10 256$ \OT1/ptm/m/n/10 (+20) yields spa-tial grids
  []
 
-[4]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
 put line 255.
 LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 2
 58.
- (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `pcr' (encoding: OT1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-
+ [4]
 Underfull \hbox (badness 3668) in paragraph at lines 353--357
 \OT1/ptm/m/n/10 (+20) from $\OML/cmm/m/it/10 H[]$\OT1/ptm/m/n/10 (+20) , with a
 n op-tional tem-po-ral router $\OML/cmm/m/it/10 ! \OT1/cmr/m/n/10 =
+ []
+
+
+Underfull \hbox (badness 7168) in paragraph at lines 390--391
+ []\OT1/ptm/b/n/10 (+20) Shared vs. path-specific in-puts.[] \OT1/ptm/m/n/10 (+
+20) Both paths share
  []
 
 [5
@@ -700,44 +708,74 @@ pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.388 
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
+      
+pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
+as been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.391 
       ]
-Underfull \hbox (badness 7168) in paragraph at lines 390--391
- []\OT1/ptm/b/n/10 (+20) Shared vs. path-specific in-puts.[] \OT1/ptm/m/n/10 (+
-20) Both paths share
- []
-
-
 pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <to be read again> 
@@ -836,265 +874,198 @@ as been already used, duplicate ignored
                    \relax 
 l.490 \State
              dual \(\mathrm{PhysDec}\) \(\rightarrow(O_A,O_B)\) at three heads
-[6
-pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      
-pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      
-pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      
-pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      
-pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      
-pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
-as been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.510 \begin{equation}
-                      ])
-<figures/tpami/fig_bounded_positive_scale.png, id=351, 375.804pt x 260.172pt>
+[6])
+<figures/tpami/fig_bounded_positive_scale.png, id=352, 375.804pt x 260.172pt>
 File: figures/tpami/fig_bounded_positive_scale.png Graphic file (type png)
 <use figures/tpami/fig_bounded_positive_scale.png>
 Package pdftex.def Info: figures/tpami/fig_bounded_positive_scale.png  used on 
-input line 121.
+input line 133.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_landscape.png, id=353, 375.804pt x 289.08pt>
+<figures/tpami/fig_fs_landscape.png, id=354, 375.804pt x 289.08pt>
 File: figures/tpami/fig_fs_landscape.png Graphic file (type png)
 <use figures/tpami/fig_fs_landscape.png>
 Package pdftex.def Info: figures/tpami/fig_fs_landscape.png  used on input line
- 128.
+ 140.
 (pdftex.def)             Requested size: 243.91125pt x 187.62628pt.
-<figures/tpami/fig_mpef_routing.png, id=354, 375.804pt x 260.172pt>
+<figures/tpami/fig_mpef_routing.png, id=355, 375.804pt x 260.172pt>
 File: figures/tpami/fig_mpef_routing.png Graphic file (type png)
 <use figures/tpami/fig_mpef_routing.png>
 Package pdftex.def Info: figures/tpami/fig_mpef_routing.png  used on input line
- 135.
+ 147.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_local_lipschitz_hist.png, id=355, 375.804pt x 260.172pt>
+<figures/tpami/fig_fs_local_lipschitz_hist.png, id=356, 375.804pt x 260.172pt>
 File: figures/tpami/fig_fs_local_lipschitz_hist.png Graphic file (type png)
 <use figures/tpami/fig_fs_local_lipschitz_hist.png>
 Package pdftex.def Info: figures/tpami/fig_fs_local_lipschitz_hist.png  used on
- input line 142.
+ input line 154.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_tpami_lce_schematic.png, id=356, 397.485pt x 231.264pt>
+<figures/tpami/fig_tpami_lce_schematic.png, id=357, 397.485pt x 231.264pt>
 File: figures/tpami/fig_tpami_lce_schematic.png Graphic file (type png)
 <use figures/tpami/fig_tpami_lce_schematic.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_lce_schematic.png  used on inp
-ut line 149.
+ut line 161.
 (pdftex.def)             Requested size: 243.91125pt x 141.91422pt.
- [7 <./figures/tpami/fig_bounded_positive_scale.png>]
-Underfull \hbox (badness 1715) in paragraph at lines 159--160
+ [7 <./figures/tpami/fig_bounded_positive_scale.png> <./figures/tpami/fig_fs_la
+ndscape.png>]
+Underfull \hbox (badness 1715) in paragraph at lines 171--172
 \OT1/ptm/m/n/10 (+20) LinkNet, DEP-UNet, GM-Net, RMAU-Net, Tran-sUNet,
  []
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 159--160
+Underfull \hbox (badness 1226) in paragraph at lines 171--172
 \OT1/ptm/m/n/10 (+20) EMR-HRNet, Shape-Former, Dual-Stream UNet, U-Net,
  []
 
 
-Underfull \hbox (badness 3407) in paragraph at lines 162--163
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+Underfull \hbox (badness 3407) in paragraph at lines 174--175
 \OT1/ptm/m/n/10 (+20) ($\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 710$
 \OT1/ptm/m/n/10 (+20) /$\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 636$
 \OT1/ptm/m/n/10 (+20) ). Gains ver-sus DeepLabV3+ and dual-
  []
 
-<figures/tpami/fig_tpami_deltas.png, id=383, 592.2125pt x 245.718pt>
+<figures/tpami/fig_tpami_deltas.png, id=385, 592.2125pt x 245.718pt>
 File: figures/tpami/fig_tpami_deltas.png Graphic file (type png)
 <use figures/tpami/fig_tpami_deltas.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_deltas.png  used on input line
- 195.
+ 207.
 (pdftex.def)             Requested size: 243.91125pt x 101.20244pt.
-<figures/tpami/fig_tpami_iou_rank.png, id=384, 650.43pt x 289.08pt>
+<figures/tpami/fig_tpami_iou_rank.png, id=386, 650.43pt x 289.08pt>
 File: figures/tpami/fig_tpami_iou_rank.png Graphic file (type png)
 <use figures/tpami/fig_tpami_iou_rank.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_iou_rank.png  used on input li
-ne 202.
+ne 214.
 (pdftex.def)             Requested size: 243.91125pt x 108.40472pt.
-<figures/fig_bijie_bars.png, id=385, 722.7pt x 361.35pt>
+<figures/fig_bijie_bars.png, id=387, 722.7pt x 361.35pt>
 File: figures/fig_bijie_bars.png Graphic file (type png)
 <use figures/fig_bijie_bars.png>
-Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 209.
+Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 221.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/fig_l4s_bars.png, id=386, 722.7pt x 361.35pt>
+<figures/fig_l4s_bars.png, id=388, 722.7pt x 361.35pt>
 File: figures/fig_l4s_bars.png Graphic file (type png)
 <use figures/fig_l4s_bars.png>
-Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 216.
+Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 228.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/tpami/fig_tpami_bijie_curves.png, id=387, 722.7pt x 231.264pt>
+<figures/tpami/fig_tpami_bijie_curves.png, id=389, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_bijie_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_bijie_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_bijie_curves.png  used on inpu
-t line 223.
+t line 235.
 (pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-<figures/tpami/fig_tpami_l4s_curves.png, id=388, 722.7pt x 231.264pt>
+<figures/tpami/fig_tpami_l4s_curves.png, id=390, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_l4s_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_l4s_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_l4s_curves.png  used on input 
-line 230.
+line 242.
 (pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-
-Underfull \vbox (badness 2103) has occurred while \output is active []
-
- [8 <./figures/tpami/fig_fs_landscape.png> <./figures/tpami/fig_mpef_routing.pn
-g> <./figures/tpami/fig_fs_local_lipschitz_hist.png> <./figures/tpami/fig_tpami
-_lce_schematic.png> <./figures/tpami/fig_tpami_deltas.png>] [9 <./figures/tpami
-/fig_tpami_iou_rank.png> <./figures/fig_bijie_bars.png> <./figures/fig_l4s_bars
-.png> <./figures/tpami/fig_tpami_bijie_curves.png> <./figures/tpami/fig_tpami_l
-4s_curves.png>]
-<figures/fig26_bijie_qual.png, id=423, 3032.32875pt x 1108.14pt>
+[8 <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_local_lipschi
+tz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures/tpami/fig
+_tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figures/fig_biji
+e_bars.png>]
+<figures/fig26_bijie_qual.png, id=412, 3032.32875pt x 1108.14pt>
 File: figures/fig26_bijie_qual.png Graphic file (type png)
 <use figures/fig26_bijie_qual.png>
-Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 241.
-(pdftex.def)             Requested size: 505.89pt x 184.86427pt.
-
-
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 243.
-See the caption package documentation for explanation.
-
-<figures/fig27_l4s_qual.png, id=424, 3032.32875pt x 1108.14pt>
+Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 252.
+(pdftex.def)             Requested size: 495.73198pt x 181.16124pt.
+<figures/fig27_l4s_qual.png, id=413, 3032.32875pt x 1108.14pt>
 File: figures/fig27_l4s_qual.png Graphic file (type png)
 <use figures/fig27_l4s_qual.png>
-Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 246.
-(pdftex.def)             Requested size: 505.89pt x 184.86427pt.
+Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 259.
+(pdftex.def)             Requested size: 495.73198pt x 181.16124pt.
+ [9 <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_curves.png> <
+./figures/tpami/fig_tpami_l4s_curves.png>]
 
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 248.
-See the caption package documentation for explanation.
-
-[10
-
- <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png>] [11
+LaTeX Warning: Text page 10 contains only floats.
 
 
-]
-
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 268.
-See the caption package documentation for explanation.
+Overfull \vbox (1.2026pt too high) has occurred while \output is active []
 
 
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 293.
-See the caption package documentation for explanation.
+
+LaTeX Warning: Text page 10 contains only floats.
 
 
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 315.
-See the caption package documentation for explanation.
+Overfull \vbox (1.2026pt too high) has occurred while \output is active []
 
-[12
 
-]
-<figures/ablation/fig_ablation_f1_dual.png, id=457, 566.0055pt x 315.0315pt>
+[10 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png>]
+<figures/ablation/fig_ablation_f1_dual.png, id=443, 566.0055pt x 315.0315pt>
 File: figures/ablation/fig_ablation_f1_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_f1_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_f1_dual.png  used on inp
-ut line 345.
-(pdftex.def)             Requested size: 243.91125pt x 135.75412pt.
-<figures/ablation/fig_ablation_delta_f1.png, id=458, 569.619pt x 290.394pt>
+ut line 335.
+(pdftex.def)             Requested size: 164.4127pt x 91.5106pt.
+<figures/ablation/fig_ablation_delta_f1.png, id=444, 569.619pt x 290.394pt>
 File: figures/ablation/fig_ablation_delta_f1.png Graphic file (type png)
 <use figures/ablation/fig_ablation_delta_f1.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_delta_f1.png  used on in
-put line 352.
-(pdftex.def)             Requested size: 243.91125pt x 124.34854pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-<figures/ablation/fig_ablation_iou_dual.png, id=459, 566.0055pt x 297.621pt>
+put line 341.
+(pdftex.def)             Requested size: 164.4127pt x 83.81773pt.
+<figures/ablation/fig_ablation_iou_dual.png, id=445, 566.0055pt x 297.621pt>
 File: figures/ablation/fig_ablation_iou_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_iou_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_iou_dual.png  used on in
-put line 359.
-(pdftex.def)             Requested size: 243.91125pt x 128.25154pt.
-<figures/ablation/fig_ablation_component_help.png, id=460, 609.3675pt x 294.664
+put line 347.
+(pdftex.def)             Requested size: 164.4127pt x 86.45319pt.
+<figures/ablation/fig_ablation_component_help.png, id=446, 609.3675pt x 294.664
 5pt>
 File: figures/ablation/fig_ablation_component_help.png Graphic file (type png)
 <use figures/ablation/fig_ablation_component_help.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_component_help.png  used
- on input line 366.
-(pdftex.def)             Requested size: 243.91125pt x 117.94464pt.
-<figures/ablation/fig_ablation_mechanism_swaps.png, id=461, 486.837pt x 287.109
+ on input line 353.
+(pdftex.def)             Requested size: 164.4127pt x 79.50203pt.
+<figures/ablation/fig_ablation_mechanism_swaps.png, id=447, 486.837pt x 287.109
 pt>
 File: figures/ablation/fig_ablation_mechanism_swaps.png Graphic file (type png)
 
 <use figures/ablation/fig_ablation_mechanism_swaps.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_mechanism_swaps.png  use
-d on input line 373.
-(pdftex.def)             Requested size: 243.91125pt x 143.84328pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [13
-
- <./figures/ablation/fig_ablation_f1_dual.png> <./figures/ablation/fig_ablation
-_delta_f1.png> <./figures/ablation/fig_ablation_iou_dual.png> <./figures/ablati
-on/fig_ablation_component_help.png>]
-<figures/ablation/fig_ablation_cross_rank.png, id=478, 388.944pt x 363.321pt>
+d on input line 359.
+(pdftex.def)             Requested size: 164.4127pt x 96.95862pt.
+<figures/ablation/fig_ablation_cross_rank.png, id=448, 388.944pt x 363.321pt>
 File: figures/ablation/fig_ablation_cross_rank.png Graphic file (type png)
 <use figures/ablation/fig_ablation_cross_rank.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_cross_rank.png  used on 
-input line 380.
-(pdftex.def)             Requested size: 243.91125pt x 227.84564pt.
-
-Underfull \hbox (badness 5119) in paragraph at lines 392--393
+input line 365.
+(pdftex.def)             Requested size: 164.4127pt x 153.58057pt.
+ [11]
+Underfull \hbox (badness 5119) in paragraph at lines 381--382
  []\OT1/ptm/b/n/10 (+20) Boundary com-plex-ity.[] \OT1/ptm/m/n/10 (+20) We re-p
 ort Bound-ary F-score
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 395--396
+Underfull \hbox (badness 10000) in paragraph at lines 384--385
  []\OT1/ptm/b/n/10 (+20) Perturbation de-cay.[] \OT1/ptm/m/n/10 (+20) Gaus-sian
  noise $\OML/cmm/m/it/10 ^^[ \OMS/cmsy/m/n/10 2
  []
 
-<figures/tpami/fig_latent_manifold_tsne.png, id=482, 785.8158pt x 322.3242pt>
+<figures/tpami/fig_latent_manifold_tsne.png, id=458, 785.8158pt x 322.3242pt>
 File: figures/tpami/fig_latent_manifold_tsne.png Graphic file (type png)
 <use figures/tpami/fig_latent_manifold_tsne.png>
 Package pdftex.def Info: figures/tpami/fig_latent_manifold_tsne.png  used on in
-put line 399.
+put line 388.
 (pdftex.def)             Requested size: 243.91125pt x 100.04242pt.
-<figures/tpami/fig_boundary_metrics.png, id=483, 715.473pt x 281.853pt>
+<figures/tpami/fig_boundary_metrics.png, id=459, 715.473pt x 281.853pt>
 File: figures/tpami/fig_boundary_metrics.png Graphic file (type png)
 <use figures/tpami/fig_boundary_metrics.png>
 Package pdftex.def Info: figures/tpami/fig_boundary_metrics.png  used on input 
-line 406.
+line 395.
 (pdftex.def)             Requested size: 243.91125pt x 96.08249pt.
-<figures/tpami/fig_robustness_decay.png, id=484, 513.117pt x 339.1872pt>
+<figures/tpami/fig_robustness_decay.png, id=460, 513.117pt x 339.1872pt>
 File: figures/tpami/fig_robustness_decay.png Graphic file (type png)
 <use figures/tpami/fig_robustness_decay.png>
 Package pdftex.def Info: figures/tpami/fig_robustness_decay.png  used on input 
-line 413.
+line 402.
 (pdftex.def)             Requested size: 243.91125pt x 161.23463pt.
-[14 <./figures/ablation/fig_ablation_mechanism_swaps.png> <./figures/ablation/f
-ig_ablation_cross_rank.png> <./figures/tpami/fig_latent_manifold_tsne.png> <./f
-igures/tpami/fig_boundary_metrics.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-(./paper_tpami_v3.bbl [15 <./figures/tpami/fig_robustness_decay.png>]) [16
+[12 <./figures/ablation/fig_ablation_f1_dual.png> <./figures/ablation/fig_ablat
+ion_delta_f1.png> <./figures/ablation/fig_ablation_iou_dual.png> <./figures/abl
+ation/fig_ablation_component_help.png> <./figures/ablation/fig_ablation_mechani
+sm_swaps.png> <./figures/ablation/fig_ablation_cross_rank.png> <./figures/tpami
+/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_metrics.png>]
+(./paper_tpami_v3.bbl [13 <./figures/tpami/fig_robustness_decay.png>]) [14
 
 ]
 (./paper_tpami_v3.aux)
@@ -1106,13 +1077,13 @@ Package rerunfilecheck Info: File `paper_tpami_v3.out' has not changed.
 (rerunfilecheck)             Checksum: A94717B7A47742F1514AAC8B73FBBBA9;4834.
  ) 
 Here is how much of TeX's memory you used:
- 16387 strings out of 476182
- 262857 string characters out of 5795596
- 1953975 words of memory out of 5000000
- 37536 multiletter control sequences out of 15000+600000
- 609911 words of font info for 386 fonts, out of 8000000 for 9000
+ 16429 strings out of 476182
+ 263852 string characters out of 5795596
+ 1961975 words of memory out of 5000000
+ 37579 multiletter control sequences out of 15000+600000
+ 611846 words of font info for 389 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,20n,79p,1813b,634s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,20n,79p,1813b,636s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
@@ -1130,17 +1101,16 @@ ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/
 fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/t
 ype1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
-blic/amsfonts/cm/cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
-sfonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
-fonts/symbols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier
-/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb><
-/usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texl
-ive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/
-fonts/type1/urw/times/utmri8a.pfb>
-Output written on paper_tpami_v3.pdf (16 pages, 10214668 bytes).
+blic/amsfonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
+lic/amsfonts/symbols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/
+courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8
+a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on paper_tpami_v3.pdf (14 pages, 10203792 bytes).
 PDF statistics:
- 674 PDF objects out of 1000 (max. 8388607)
- 554 compressed objects within 6 object streams
- 193 named destinations out of 1000 (max. 500000)
- 69428 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 649 PDF objects out of 1000 (max. 8388607)
+ 533 compressed objects within 6 object streams
+ 184 named destinations out of 1000 (max. 500000)
+ 74036 words of extra memory for PDF output out of 74296 (max. 10000000)
 

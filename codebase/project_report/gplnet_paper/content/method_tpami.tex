@@ -251,7 +251,7 @@ H=g\odot\tilde{P}+(1-g)\odot\tilde{E}+B_{\mathrm{mix}}.
 \end{definition}
 The gate \(g\) opens toward physics when element-wise agreement \(\tilde{E}\odot\tilde{P}\) is strong; otherwise appearance features dominate. The residual mix \(B_{\mathrm{mix}}\) preserves a shared channel pathway so neither stream is hard-gated to zero. Applying CMB at every EffNet index produces hybrid pyramids \(\{H_{\mathrm{rgb}}^{i}\}\) and \(\{H_{\mathrm{dem}}^{i}\}\). Foundation maps are likewise aligned to \(E_{\mathrm{rgb}}^{i}\), yielding \(\{\hat{T}_{\mathrm{fm}}^{i}\}\). Subsequent fusion consumes only these hybrids and foundation maps---not raw EffNet features. Algorithm~\ref{alg:cmb} states the exact operator used in code.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{Complementary Modality Bridge (CMB)}
 \label{alg:cmb}
 \begin{algorithmic}
@@ -315,7 +315,7 @@ F=\mathrm{Conv}_{3\times3}
 \end{definition}
 When local geomechanics indicate low stress, \(G\to0\) and foundation context is suppressed; when instability cues are strong, \(G\to1\) and Prithvi tokens guide the fused map. Outputs \(F^{2}\) (neck, \(B{\times}64{\times}32{\times}32\)) and \(F^{3}\) (bottleneck, \(B{\times}64{\times}16{\times}16\)) seed the dual decoder. Algorithm~\ref{alg:mao} matches the implemented fusion kernel.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{MAO-GeoEGCA (neck / bottleneck)}
 \label{alg:mao}
 \begin{algorithmic}
@@ -368,7 +368,7 @@ A
 \end{equation}
 Thus TTEB does not invent a new inductive bias: its stability map \(\delta\) is LCE applied to multi-scale, multi-stream skips. The resulting list \(\{S^{0},S^{1},S^{2},S^{3}\}\) lives on \(\{128^{2},64^{2},32^{2},16^{2}\}\). Algorithm~\ref{alg:tteb} states the per-level skip construction.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{TTEB at level \(L\)}
 \label{alg:tteb}
 \begin{algorithmic}
@@ -410,7 +410,7 @@ D'&=D+\beta\odot
 \end{definition}
 The gate \(\beta\) is content-dependent: skips that disagree with the current decode state are attenuated; skips that carry complementary continuum structure are admitted. Concretely, the decode chain widens \(16^{2}\!\to\!32^{2}\!\to\!64^{2}\!\to\!128^{2}\!\to\!256^{2}\). At \(32^{2}\), the upsampled state is first refined by a Latent Mechanistic Cell and then residual-injected with the MAO neck \(F^{2}\); immediately afterward, PGDI admits the aligned TTEB skip. After four \(\times2\) stages and a pixel FS head, each path emits deeply supervised logits \((O_{\mathrm{main}},O_{\mathrm{aux2}},O_{\mathrm{aux3}})\) of shapes \(B{\times}1{\times}256{\times}256\), \(B{\times}1{\times}64{\times}64\), and \(B{\times}1{\times}32{\times}32\). Algorithm~\ref{alg:pgdi} states the skip injection.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{Physics-Gated Decoder Injection (PGDI)}
 \label{alg:pgdi}
 \begin{algorithmic}
@@ -463,7 +463,7 @@ w_B\log(w_B+\varepsilon)
 \end{definition}
 Independent MPEF modules fuse main, aux2, and aux3 heads (three masks during training; inference uses the main head). The entropy regularizer discourages indecisive averaging while preserving the continuum interpretation of \(w\). Algorithm~\ref{alg:mpef} states the merge; Algorithm~\ref{alg:forward} summarizes the full forward pass.
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{Mechanistic Path Equilibrium Fusion (MPEF)}
 \label{alg:mpef}
 \begin{algorithmic}
@@ -477,7 +477,7 @@ Independent MPEF modules fuse main, aux2, and aux3 heads (three masks during tra
 \end{algorithmic}
 \end{algorithm}
 
-\begin{algorithm}[t]
+\begin{algorithm}[htbp]
 \caption{PS-GPLNet forward}
 \label{alg:forward}
 \begin{algorithmic}

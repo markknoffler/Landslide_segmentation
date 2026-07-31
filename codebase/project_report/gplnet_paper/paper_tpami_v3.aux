@@ -47,6 +47,7 @@
 \citation{islam2024digate}
 \citation{wang2025gravityformer}
 \citation{yin2021virtualnormal}
+\citation{skempton1957stability}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dense segmentation and multimodal fusion.}{2}{section*.2}\protected@file@percent }
@@ -60,7 +61,6 @@
 \newlabel{sec:method}{{3}{2}{Method}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Problem and notation}{2}{subsection.3.1}\protected@file@percent }
 \newlabel{sec:problem}{{3.1}{2}{Problem and notation}{subsection.3.1}{}}
-\citation{skempton1957stability}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Classical infinite-slope factor of safety}{3}{subsection.3.2}\protected@file@percent }
 \newlabel{sec:classical-fs}{{3.2}{3}{Classical infinite-slope factor of safety}{subsection.3.2}{}}
 \newlabel{eq:fs-classical}{{1}{3}{Classical infinite-slope factor of safety}{equation.3.1}{}}
@@ -77,12 +77,12 @@
 \newlabel{eq:fe-gate}{{8}{3}{Taylor-stabilized neural FS}{equation.3.8}{}}
 \newlabel{def:materials}{{2}{3}{Bounded material reparametrization}{definition.2}{}}
 \newlabel{eq:positive-scale}{{9}{3}{Bounded material reparametrization}{equation.3.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Pixel and latent mechanistic cells}{3}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:cells}{{3.4}{3}{Pixel and latent mechanistic cells}{subsection.3.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{PixelMechanisticCell.}{3}{section*.7}\protected@file@percent }
 \citation{szink2024prithvi}
 \citation{houlsby2019lora}
 \citation{tan2019efficientnet}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Pixel and latent mechanistic cells}{4}{subsection.3.4}\protected@file@percent }
-\newlabel{sec:cells}{{3.4}{4}{Pixel and latent mechanistic cells}{subsection.3.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{PixelMechanisticCell.}{4}{section*.7}\protected@file@percent }
 \newlabel{def:pixel}{{3}{4}{PixelMechanisticCell}{definition.3}{}}
 \newlabel{eq:pixel}{{10}{4}{PixelMechanisticCell}{equation.3.10}{}}
 \@writefile{toc}{\contentsline {paragraph}{LatentMechanisticCell.}{4}{section*.8}\protected@file@percent }
@@ -112,41 +112,44 @@
 \newlabel{def:mao}{{6}{5}{MAO-GeoEGCA}{definition.6}{}}
 \newlabel{eq:mao-xp}{{19}{5}{MAO-GeoEGCA}{equation.3.19}{}}
 \newlabel{eq:mao-qkv}{{20}{5}{MAO-GeoEGCA}{equation.3.20}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces MAO-GeoEGCA (neck / bottleneck)}}{5}{algorithm.2}\protected@file@percent }
-\newlabel{alg:mao}{{2}{5}{MAO-GeoEGCA (neck / bottleneck)}{algorithm.2}{}}
 \newlabel{eq:mao-align}{{21}{5}{MAO-GeoEGCA}{equation.3.21}{}}
 \newlabel{eq:mao-attn}{{22}{5}{MAO-GeoEGCA}{equation.3.22}{}}
 \newlabel{eq:mao-out}{{23}{5}{MAO-GeoEGCA}{equation.3.23}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces MAO-GeoEGCA (neck / bottleneck)}}{5}{algorithm.2}\protected@file@percent }
+\newlabel{alg:mao}{{2}{5}{MAO-GeoEGCA (neck / bottleneck)}{algorithm.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.8}Stage C (continued): TTEB skip lattice}{5}{subsection.3.8}\protected@file@percent }
 \newlabel{sec:tteb}{{3.8}{5}{Stage C (continued): TTEB skip lattice}{subsection.3.8}{}}
 \newlabel{eq:tteb-a}{{24}{5}{Stage C (continued): TTEB skip lattice}{equation.3.24}{}}
 \newlabel{eq:tteb-delta}{{25}{5}{Stage C (continued): TTEB skip lattice}{equation.3.25}{}}
 \newlabel{eq:tteb-out}{{26}{5}{Stage C (continued): TTEB skip lattice}{equation.3.26}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces TTEB at level \(L\)}}{5}{algorithm.3}\protected@file@percent }
+\newlabel{alg:tteb}{{3}{5}{TTEB at level \(L\)}{algorithm.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.9}Stage D: Dual Physics Decoder, PGDI, and MPEF}{5}{subsection.3.9}\protected@file@percent }
+\newlabel{sec:decode}{{3.9}{5}{Stage D: Dual Physics Decoder, PGDI, and MPEF}{subsection.3.9}{}}
 \citation{salehi2017tversky}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces TTEB at level \(L\)}}{6}{algorithm.3}\protected@file@percent }
-\newlabel{alg:tteb}{{3}{6}{TTEB at level \(L\)}{algorithm.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.9}Stage D: Dual Physics Decoder, PGDI, and MPEF}{6}{subsection.3.9}\protected@file@percent }
-\newlabel{sec:decode}{{3.9}{6}{Stage D: Dual Physics Decoder, PGDI, and MPEF}{subsection.3.9}{}}
 \@writefile{toc}{\contentsline {paragraph}{Shared vs.\ path-specific inputs.}{6}{section*.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Dual paths.}{6}{section*.15}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{PGDI.}{6}{section*.16}\protected@file@percent }
 \newlabel{def:pgdi}{{7}{6}{PGDI}{definition.7}{}}
 \newlabel{eq:pgdi}{{27}{6}{PGDI}{equation.3.27}{}}
-\@writefile{toc}{\contentsline {paragraph}{MPEF.}{6}{section*.17}\protected@file@percent }
 \@writefile{loa}{\contentsline {algorithm}{\numberline {4}{\ignorespaces Physics-Gated Decoder Injection (PGDI)}}{6}{algorithm.4}\protected@file@percent }
 \newlabel{alg:pgdi}{{4}{6}{Physics-Gated Decoder Injection (PGDI)}{algorithm.4}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {5}{\ignorespaces Mechanistic Path Equilibrium Fusion (MPEF)}}{6}{algorithm.5}\protected@file@percent }
-\newlabel{alg:mpef}{{5}{6}{Mechanistic Path Equilibrium Fusion (MPEF)}{algorithm.5}{}}
-\@writefile{loa}{\contentsline {algorithm}{\numberline {6}{\ignorespaces PS-GPLNet forward}}{6}{algorithm.6}\protected@file@percent }
-\newlabel{alg:forward}{{6}{6}{PS-GPLNet forward}{algorithm.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{MPEF.}{6}{section*.17}\protected@file@percent }
 \newlabel{def:mpef}{{8}{6}{MPEF}{definition.8}{}}
 \newlabel{eq:mpef-fe}{{28}{6}{MPEF}{equation.3.28}{}}
 \newlabel{eq:mpef-w}{{29}{6}{MPEF}{equation.3.29}{}}
 \newlabel{eq:mpef-o}{{30}{6}{MPEF}{equation.3.30}{}}
 \newlabel{eq:mpef-r}{{31}{6}{MPEF}{equation.3.31}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {5}{\ignorespaces Mechanistic Path Equilibrium Fusion (MPEF)}}{6}{algorithm.5}\protected@file@percent }
+\newlabel{alg:mpef}{{5}{6}{Mechanistic Path Equilibrium Fusion (MPEF)}{algorithm.5}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {6}{\ignorespaces PS-GPLNet forward}}{6}{algorithm.6}\protected@file@percent }
+\newlabel{alg:forward}{{6}{6}{PS-GPLNet forward}{algorithm.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.10}Training objective}{6}{subsection.3.10}\protected@file@percent }
 \newlabel{sec:loss}{{3.10}{6}{Training objective}{subsection.3.10}{}}
 \newlabel{eq:tversky}{{32}{6}{Training objective}{equation.3.32}{}}
+\newlabel{eq:loss}{{33}{6}{Training objective}{equation.3.33}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Theoretical Analysis}{6}{section.4}\protected@file@percent }
+\newlabel{sec:theory}{{4}{6}{Theoretical Analysis}{section.4}{}}
 \citation{boyd2004convex}
 \citation{lipschitzseg2025}
 \citation{boyd2004convex}
@@ -154,87 +157,82 @@
 \citation{panda2025sparsefusion}
 \citation{ji2020bijie}
 \citation{ghorbanzadeh2022landslide4sense}
-\newlabel{eq:loss}{{33}{7}{Training objective}{equation.3.33}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Theoretical Analysis}{7}{section.4}\protected@file@percent }
-\newlabel{sec:theory}{{4}{7}{Theoretical Analysis}{section.4}{}}
 \newlabel{def:lce}{{9}{7}{Latent Continuum Equivalency}{definition.9}{}}
 \newlabel{lem:compact}{{1}{7}{Compactness of materials}{lemma.1}{}}
 \newlabel{lem:lip-fs}{{2}{7}{Local Lipschitz continuity of \(\mathrm {FS}_{\mathrm {nn}}\)}{lemma.2}{}}
 \newlabel{lem:lip-gate}{{3}{7}{FS gate Lipschitz}{lemma.3}{}}
 \newlabel{prop:nonexp}{{2}{7}{Non-explosion of the pixel cell}{proposition.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Bounded material map $\exp (\mathrm  {clip}(w))$ versus unbounded $\exp (w)$.}}{7}{figure.caption.18}\protected@file@percent }
-\newlabel{fig:bound}{{2}{7}{Bounded material map $\exp (\mathrm {clip}(w))$ versus unbounded $\exp (w)$}{figure.caption.18}{}}
 \newlabel{thm:lce}{{1}{7}{LCE enables FE routing}{theorem.1}{}}
 \newlabel{thm:mpef}{{2}{7}{MPEF energy identity}{theorem.2}{}}
 \newlabel{cor:gatefuse}{{1}{7}{Contrast to GateFuse}{corollary.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Bounded material map $\exp (\mathrm  {clip}(w))$ versus unbounded $\exp (w)$.}}{7}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:bound}{{2}{7}{Bounded material map $\exp (\mathrm {clip}(w))$ versus unbounded $\exp (w)$}{figure.caption.18}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Infinite-slope FS landscape over $(\alpha ,h)$.}}{7}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:fsland}{{3}{7}{Infinite-slope FS landscape over $(\alpha ,h)$}{figure.caption.19}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{7}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Stress-test datasets and protocol}{7}{subsection.5.1}\protected@file@percent }
 \citation{islam2024digate}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Infinite-slope FS landscape over $(\alpha ,h)$.}}{8}{figure.caption.19}\protected@file@percent }
-\newlabel{fig:fsland}{{3}{8}{Infinite-slope FS landscape over $(\alpha ,h)$}{figure.caption.19}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces MPEF path weights as functions of relative failure energy.}}{8}{figure.caption.20}\protected@file@percent }
 \newlabel{fig:mpef}{{4}{8}{MPEF path weights as functions of relative failure energy}{figure.caption.20}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{8}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Stress-test datasets and protocol}{8}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Baselines}{8}{subsection.5.2}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Empirical local sensitivity of the FS gate (GPU-0 Monte Carlo).}}{8}{figure.caption.21}\protected@file@percent }
 \newlabel{fig:theory}{{5}{8}{Empirical local sensitivity of the FS gate (GPU-0 Monte Carlo)}{figure.caption.21}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Schematic of Latent Continuum Equivalency: shared FS currency from inlet to MPEF.}}{8}{figure.caption.22}\protected@file@percent }
 \newlabel{fig:lce}{{6}{8}{Schematic of Latent Continuum Equivalency: shared FS currency from inlet to MPEF}{figure.caption.22}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Validated gains of PS-GPLNet over DeepLabV3+ and dual\_stream\_gated.}}{8}{figure.caption.24}\protected@file@percent }
 \newlabel{fig:deltas}{{7}{8}{Validated gains of PS-GPLNet over DeepLabV3+ and dual\_stream\_gated}{figure.caption.24}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces IoU ranking at best epoch on both stress-test datasets.}}{8}{figure.caption.25}\protected@file@percent }
+\newlabel{fig:rank}{{8}{8}{IoU ranking at best epoch on both stress-test datasets}{figure.caption.25}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Bijie grouped best-epoch metrics including PS-GPLNet.}}{8}{figure.caption.26}\protected@file@percent }
+\newlabel{fig:bijbars}{{9}{8}{Bijie grouped best-epoch metrics including PS-GPLNet}{figure.caption.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Baselines}{8}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Quantitative results}{8}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Qualitative stress-test results}{8}{subsection.5.4}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Best-epoch validation on Bijie and Landslide4Sense (unified protocol).}}{9}{table.caption.23}\protected@file@percent }
 \newlabel{tab:results}{{2}{9}{Best-epoch validation on Bijie and Landslide4Sense (unified protocol)}{table.caption.23}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces IoU ranking at best epoch on both stress-test datasets.}}{9}{figure.caption.25}\protected@file@percent }
-\newlabel{fig:rank}{{8}{9}{IoU ranking at best epoch on both stress-test datasets}{figure.caption.25}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Bijie grouped best-epoch metrics including PS-GPLNet.}}{9}{figure.caption.26}\protected@file@percent }
-\newlabel{fig:bijbars}{{9}{9}{Bijie grouped best-epoch metrics including PS-GPLNet}{figure.caption.26}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Qualitative stress-test results}{9}{subsection.5.4}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Landslide4Sense grouped best-epoch metrics including PS-GPLNet.}}{9}{figure.caption.27}\protected@file@percent }
 \newlabel{fig:l4sbars}{{10}{9}{Landslide4Sense grouped best-epoch metrics including PS-GPLNet}{figure.caption.27}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Bijie final-run training dynamics (best F1 at epoch 92).}}{9}{figure.caption.28}\protected@file@percent }
 \newlabel{fig:bjc}{{11}{9}{Bijie final-run training dynamics (best F1 at epoch 92)}{figure.caption.28}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Landslide4Sense final-run training dynamics (best F1 at epoch 70).}}{9}{figure.caption.29}\protected@file@percent }
 \newlabel{fig:l4sc}{{12}{9}{Landslide4Sense final-run training dynamics (best F1 at epoch 70)}{figure.caption.29}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Qualitative Bijie samples: RGB, ground truth, prediction, heatmap.}}{10}{figure.13}\protected@file@percent }
-\newlabel{fig:bijie_qual}{{13}{10}{Qualitative Bijie samples: RGB, ground truth, prediction, heatmap}{figure.13}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Qualitative Landslide4Sense samples.}}{10}{figure.14}\protected@file@percent }
-\newlabel{fig:l4s_qual}{{14}{10}{Qualitative Landslide4Sense samples}{figure.14}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Theory--experiment alignment}{11}{subsection.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Component ablation study}{11}{subsection.5.6}\protected@file@percent }
-\newlabel{sec:ablation}{{5.6}{11}{Component ablation study}{subsection.5.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{What each removal tests.}{11}{section*.30}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Ablation study: component effectiveness on Difficult (Landslide4Sense) and Easy (Bijie) stress tests. Full row $=$ primary-server PS-GPLNet (Table~\ref {tab:results}). Other rows $=$ matched compact protocol (best val epoch). Acc/Prec/Rec/F1/IoU.}}{12}{table.3}\protected@file@percent }
-\newlabel{tab:ablation-main}{{3}{12}{Ablation study: component effectiveness on Difficult (Landslide4Sense) and Easy (Bijie) stress tests. Full row $=$ primary-server PS-GPLNet (Table~\ref {tab:results}). Other rows $=$ matched compact protocol (best val epoch). Acc/Prec/Rec/F1/IoU}{table.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Protocol-matched \(\Delta \)F1 / \(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). Negative $=$ removal hurts.}}{12}{table.4}\protected@file@percent }
-\newlabel{tab:ablation-delta}{{4}{12}{Protocol-matched \(\Delta \)F1 / \(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). Negative $=$ removal hurts}{table.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Mechanism-swap focus: FS gating, MPEF, and dual-path competition (matched compact F1).}}{12}{table.5}\protected@file@percent }
-\newlabel{tab:ablation-mech}{{5}{12}{Mechanism-swap focus: FS gating, MPEF, and dual-path competition (matched compact F1)}{table.5}{}}
-\@writefile{toc}{\contentsline {paragraph}{Hard-set verdict (L4S).}{13}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Easy-set verdict (Bijie).}{13}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Positive \(\Delta \) under compact protocol.}{13}{section*.33}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Component ablation F1 on Difficult (L4S) vs.\ Easy (Bijie). Dashed lines: primary-server Full.}}{13}{figure.caption.34}\protected@file@percent }
-\newlabel{fig:abl_f1}{{15}{13}{Component ablation F1 on Difficult (L4S) vs.\ Easy (Bijie). Dashed lines: primary-server Full}{figure.caption.34}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Protocol-matched \(\Delta \)F1 vs.\ compact Full. Negative bars: module helps Full under the matched budget.}}{13}{figure.caption.35}\protected@file@percent }
-\newlabel{fig:abl_delta}{{16}{13}{Protocol-matched \(\Delta \)F1 vs.\ compact Full. Negative bars: module helps Full under the matched budget}{figure.caption.35}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces Component ablation IoU with primary Full as dashed references.}}{13}{figure.caption.36}\protected@file@percent }
-\newlabel{fig:abl_iou}{{17}{13}{Component ablation IoU with primary Full as dashed references}{figure.caption.36}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces Signed module contribution \(\mathrm  {Full_{compact}}-\mathrm  {Variant}\) (F1). Color: positive help.}}{13}{figure.caption.37}\protected@file@percent }
-\newlabel{fig:abl_help}{{18}{13}{Signed module contribution \(\mathrm {Full_{compact}}-\mathrm {Variant}\) (F1). Color: positive help}{figure.caption.37}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Theory--experiment alignment}{9}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Component ablation study}{9}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:ablation}{{5.6}{9}{Component ablation study}{subsection.5.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{What each removal tests.}{9}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Hard-set verdict (L4S).}{9}{section*.34}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Qualitative Bijie samples: RGB, ground truth, prediction, heatmap.}}{10}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:bijie_qual}{{13}{10}{Qualitative Bijie samples: RGB, ground truth, prediction, heatmap}{figure.caption.30}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Qualitative Landslide4Sense samples.}}{10}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:l4s_qual}{{14}{10}{Qualitative Landslide4Sense samples}{figure.caption.31}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf  {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf  {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf  {Bottom-right:} mechanism-swap F1 under the same compact protocol.}}{10}{table.caption.33}\protected@file@percent }
+\newlabel{tab:ablation-main}{{3}{10}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.33}{}}
+\newlabel{tab:ablation-delta}{{3}{10}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.33}{}}
+\@writefile{toc}{\contentsline {paragraph}{Easy-set verdict (Bijie).}{11}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Positive \(\Delta \) under compact protocol.}{11}{section*.36}\protected@file@percent }
 \citation{yin2021virtualnormal}
 \citation{wang2025gravityformer}
-\@writefile{lof}{\contentsline {figure}{\numberline {19}{\ignorespaces Mechanism swaps: FS gating, MPEF, and Path-A only.}}{14}{figure.caption.38}\protected@file@percent }
-\newlabel{fig:abl_mech}{{19}{14}{Mechanism swaps: FS gating, MPEF, and Path-A only}{figure.caption.38}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {20}{\ignorespaces Cross-dataset ablation ranking. Star: primary-server Full.}}{14}{figure.caption.39}\protected@file@percent }
-\newlabel{fig:abl_rank}{{20}{14}{Cross-dataset ablation ranking. Star: primary-server Full}{figure.caption.39}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Latent manifold, boundary fidelity, and perturbation robustness}{14}{subsection.5.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Latent manifold (t-SNE).}{14}{section*.40}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {21}{\ignorespaces t-SNE of MAO \texttt  {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy.}}{14}{figure.caption.43}\protected@file@percent }
-\newlabel{fig:tsne}{{21}{14}{t-SNE of MAO \texttt {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy}{figure.caption.43}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {22}{\ignorespaces Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet).}}{14}{figure.caption.44}\protected@file@percent }
-\newlabel{fig:boundary}{{22}{14}{Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet)}{figure.caption.44}{}}
-\@writefile{toc}{\contentsline {paragraph}{Boundary complexity.}{14}{section*.41}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Perturbation decay.}{14}{section*.42}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{14}{section.6}\protected@file@percent }
+\newlabel{fig:abl_f1}{{15a}{12}{F1 dual-dataset}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_f1}{{a}{12}{F1 dual-dataset}{figure.caption.37}{}}
+\newlabel{fig:abl_delta}{{15b}{12}{Matched \(\Delta \)F1}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_delta}{{b}{12}{Matched \(\Delta \)F1}{figure.caption.37}{}}
+\newlabel{fig:abl_iou}{{15c}{12}{IoU dual-dataset}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_iou}{{c}{12}{IoU dual-dataset}{figure.caption.37}{}}
+\newlabel{fig:abl_help}{{15d}{12}{Signed module help}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_help}{{d}{12}{Signed module help}{figure.caption.37}{}}
+\newlabel{fig:abl_mech}{{15e}{12}{Mechanism swaps}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_mech}{{e}{12}{Mechanism swaps}{figure.caption.37}{}}
+\newlabel{fig:abl_rank}{{15f}{12}{Easy--hard ranking}{figure.caption.37}{}}
+\newlabel{sub@fig:abl_rank}{{f}{12}{Easy--hard ranking}{figure.caption.37}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$).}}{12}{figure.caption.37}\protected@file@percent }
+\newlabel{fig:abl_panel}{{15}{12}{Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$)}{figure.caption.37}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Latent manifold, boundary fidelity, and perturbation robustness}{12}{subsection.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Latent manifold (t-SNE).}{12}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Boundary complexity.}{12}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Perturbation decay.}{12}{section*.40}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces t-SNE of MAO \texttt  {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy.}}{12}{figure.caption.41}\protected@file@percent }
+\newlabel{fig:tsne}{{16}{12}{t-SNE of MAO \texttt {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy}{figure.caption.41}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet).}}{12}{figure.caption.42}\protected@file@percent }
+\newlabel{fig:boundary}{{17}{12}{Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet)}{figure.caption.42}{}}
 \citation{skempton1957stability}
 \citation{newmark1965effects}
 \bibstyle{unsrt}
@@ -248,12 +246,13 @@
 \bibcite{karniadakis2021physics}{7}
 \bibcite{clough2022topological}{8}
 \bibcite{panda2025sparsefusion}{9}
+\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}}{13}{figure.caption.43}\protected@file@percent }
+\newlabel{fig:robust}{{18}{13}{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+}{figure.caption.43}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{13}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Do we need a Universal Approximation Theorem?}{13}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{CV vs.\ application framing.}{13}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{13}{section.7}\protected@file@percent }
 \bibcite{dahal2024pinn}{10}
-\@writefile{lof}{\contentsline {figure}{\numberline {23}{\ignorespaces F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}}{15}{figure.caption.45}\protected@file@percent }
-\newlabel{fig:robust}{{23}{15}{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+}{figure.caption.45}{}}
-\@writefile{toc}{\contentsline {paragraph}{Do we need a Universal Approximation Theorem?}{15}{section*.46}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{CV vs.\ application framing.}{15}{section*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{15}{section.7}\protected@file@percent }
 \bibcite{liu2023physics}{11}
 \bibcite{islam2024digate}{12}
 \bibcite{mercier2022bifusion}{13}
@@ -271,4 +270,4 @@
 \bibcite{tan2019efficientnet}{25}
 \bibcite{salehi2017tversky}{26}
 \bibcite{newmark1965effects}{27}
-\gdef \@abspage@last{16}
+\gdef \@abspage@last{14}

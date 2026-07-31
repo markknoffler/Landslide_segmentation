@@ -18,28 +18,19 @@ Full row = **primary-server** PS-GPLNet (not compact ablation Full).
 | w/o TTEB | 0.984 | 0.721 | 0.835 | 0.706 | 0.628 | 0.987 | 0.965 | 0.891 | 0.889 | 0.863 |
 | w/o FS-gate | 0.984 | 0.736 | 0.807 | 0.703 | 0.626 | 0.988 | 0.948 | 0.916 | 0.896 | 0.869 |
 
-## Table B — Δ vs compact Full (matched protocol)
+## Table 4 (PDF) — Δ + mechanism swaps (side-by-side, one float)
 
 Compact Full ref: Bijie F1/IoU **0.804/0.773**; L4S **0.693/0.617**.
 
-| Removed | L4S ΔF1 | L4S ΔIoU | Bijie ΔF1 | Bijie ΔIoU |
-|---------|---------|----------|-----------|------------|
-| w/o Prithvi | −0.163 | −0.159 | −0.076 | −0.057 |
-| Path-A only | +0.011 | +0.010 | −0.052 | −0.057 |
-| w/o CMB | +0.022 | +0.022 | −0.009 | −0.007 |
-| w/o MPEF | −0.005 | −0.006 | +0.007 | +0.009 |
-| w/o MAO | +0.024 | +0.025 | +0.065 | +0.062 |
-| w/o TTEB | +0.013 | +0.011 | +0.085 | +0.090 |
-| w/o FS-gate | +0.010 | +0.009 | +0.092 | +0.096 |
-
-## Table C — Mechanism swaps (compact F1)
-
-| Setting | L4S | Bijie |
-|---------|-----|-------|
-| Full (compact ref.) | 0.693 | 0.804 |
-| w/o FS-gate | 0.703 | 0.896 |
-| w/o MPEF | 0.689 | 0.812 |
-| Path-A only | 0.704 | 0.753 |
+| Removed | L4S ΔF1 | L4S ΔIoU | Bijie ΔF1 | Bijie ΔIoU | Setting | L4S | Bijie |
+|---------|---------|----------|-----------|------------|---------|-----|-------|
+| w/o Prithvi | −0.163 | −0.159 | −0.076 | −0.057 | Full (compact) | 0.693 | 0.804 |
+| Path-A only | +0.011 | +0.010 | −0.052 | −0.057 | w/o FS-gate | 0.703 | 0.896 |
+| w/o CMB | +0.022 | +0.022 | −0.009 | −0.007 | w/o MPEF | 0.689 | 0.812 |
+| w/o MPEF | −0.005 | −0.006 | +0.007 | +0.009 | Path-A only | 0.704 | 0.753 |
+| w/o MAO | +0.024 | +0.025 | +0.065 | +0.062 | | | |
+| w/o TTEB | +0.013 | +0.011 | +0.085 | +0.090 | | | |
+| w/o FS-gate | +0.010 | +0.009 | +0.092 | +0.096 | | | |
 
 ## Figures
-`figures/ablation/fig_ablation_{f1_dual,delta_f1,iou_dual,component_help,mechanism_swaps,cross_rank}.png`
+Six plots are one panel in the PDF (`fig:abl_panel`). Source PNGs remain in `figures/ablation/`.
