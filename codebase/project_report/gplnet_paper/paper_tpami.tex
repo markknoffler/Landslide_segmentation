@@ -247,26 +247,26 @@ DeepLabV3+ & 0.989 & 0.929 & 0.966 & 0.927 & 0.899 & 0.984 & 0.789 & 0.749 & 0.7
 \subsection{Qualitative stress-test results}
 Figures~\ref{fig:bijie_qual}--\ref{fig:l4s_qual} show representative patches. Bijie polygons are large; heatmaps concentrate on scarps and deposits while suppressing homogeneous steep slopes. L4S scars are smaller and cross-region; precision-recall trade-offs match Table~\ref{tab:results}.
 
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth,height=0.20\textheight,keepaspectratio]{figures/fig26_bijie_qual.png}\\[0.3em]
+\includegraphics[width=0.98\textwidth,height=0.20\textheight,keepaspectratio]{figures/fig27_l4s_qual.png}
+\caption{Qualitative stress-test samples.
+\textbf{Top:} Bijie (RGB, ground truth, prediction, heatmap).
+\textbf{Bottom:} Landslide4Sense.}
+\label{fig:bijie_qual}
+\label{fig:l4s_qual}
+\end{figure*}
+
 \subsection{Theory-experiment alignment}
 Material compactness, MPEF uniqueness, and FS-gate sensitivity (Remark after Theorem~2) were verified on an RTX~4000~Ada (20\,GB) without retraining. Training curves (Figures~\ref{fig:bjc}--\ref{fig:l4sc}) show stable validation F1/IoU on the final PS-GPLNet logs.
 
+\clearpage
 \subsection{Component ablation study}
 \label{sec:ablation}
 Following the diagnostic organization used in strong multimodal ablations (Difficult vs.\ Easy stress tests; component matrix; mechanism swaps), we treat \textbf{Landslide4Sense as the hard regime} (cross-region scars, severe imbalance) and \textbf{Bijie as the easier regime} (larger polygons, more homogeneous acquisition). Absolute Full-model numbers in Table~\ref{tab:ablation-main} are taken from the primary-server runs already reported in Table~\ref{tab:results} (Bijie F1/IoU \(0.933\)/$0.907$; L4S \(0.736\)/$0.660$), and not from the compact ablation Full checkpoint. Component rows are matched-protocol removals under a compact low-VRAM schedule (EfficientNet-B0, \(C{=}32\), LoRA \(r{\le}4\), FP32, batch~$2$, $40$ epochs, seed~$42$). Protocol-matched \(\Delta\) and mechanism swaps appear in the bottom of Table~\ref{tab:ablation-main} (compact Full reference: Bijie F1~$0.804$; L4S F1~$0.693$); comparative plots are in Figure~\ref{fig:abl_panel}.
 
-\paragraph{What each removal tests.}
-\texttt{w/o FS-gate} disables Taylor-stabilized FS gating (identity residual). \texttt{w/o MPEF} replaces instability routing by mean fusion. \texttt{w/o CMB} bypasses Complementary Modality Bridge. \texttt{w/o MAO} replaces GeoEGCA by a plain $1{\times}1$ concat mix. \texttt{w/o TTEB} replaces the skip lattice by bilinear identity skips. \texttt{w/o Prithvi} drops the foundation stream. \texttt{Path-A only} keeps a single RGB-proxy decode path.
-
-\paragraph{Hard-set verdict (L4S).}
-The dominant failure mode under matched removal is dropping Prithvi (\(\Delta\)F1 $-0.163$, \(\Delta\)IoU $-0.159$): planetary context is indispensable when scars are small and acquisition is heterogeneous. Mean fusion without MPEF is a mild regression ($-0.005$ F1). Dual-path competition is not the primary L4S bottleneck under the compact budget (Path-A only is slightly above compact Full), consistent with foundation context dominating local path rivalry on the hard set.
-
-\paragraph{Easy-set verdict (Bijie).}
-Prithvi removal remains harmful (\(-0.076\) F1), and Path-A only collapses dual-path competition (\(-0.052\) F1), showing that topographic decode authority matters when polygons are large enough for DEM proxies to adjudicate. CMB removal is near-neutral under the short budget.
-
-\paragraph{Positive \(\Delta\) under compact protocol.}
-Several removals (FS-gate, TTEB, MAO on Bijie; MAO/CMB on L4S) exceed compact Full under the $40$-epoch low-VRAM schedule. We do not interpret this as ``Full is worse'': primary Full (Table~\ref{tab:results}) still dominates every component absolute number. The pattern matches a known optimization interaction: strong continuum regularizers and multi-module fusion can underfit when capacity, LoRA rank, and epoch budget are jointly reduced, while the same operators recover and lead when trained under the primary protocol. Figure~\ref{fig:abl_panel} summarizes F1/IoU, matched \(\Delta\), signed contributions, mechanism swaps, and the easy-hard ranking.
-
-\begin{table*}[!t]
+\begin{table*}[!htbp]
 \centering
 \caption{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie).
 \textbf{Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref{tab:results}); other rows $=$ matched compact protocol.
@@ -314,58 +314,60 @@ w/o FS-gate & $+0.010$ & $+0.009$ & $+0.092$ & $+0.096$ & & & \\
 \end{tabular}
 \end{table*}
 
-\begin{figure*}[!t]
+\begin{figure*}[!htbp]
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_f1_dual.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_f1_dual.png}
 \caption{F1 dual-dataset}
 \label{fig:abl_f1}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_delta_f1.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_delta_f1.png}
 \caption{Matched \(\Delta\)F1}
 \label{fig:abl_delta}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_iou_dual.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_iou_dual.png}
 \caption{IoU dual-dataset}
 \label{fig:abl_iou}
-\end{subfigure}\\[0.25em]
+\end{subfigure}\\[0.2em]
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_component_help.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_component_help.png}
 \caption{Signed module help}
 \label{fig:abl_help}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_mechanism_swaps.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_mechanism_swaps.png}
 \caption{Mechanism swaps}
 \label{fig:abl_mech}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.16\textheight,keepaspectratio]{figures/ablation/fig_ablation_cross_rank.png}
+\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_cross_rank.png}
 \caption{Easy-hard ranking}
 \label{fig:abl_rank}
 \end{subfigure}
 \caption{Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$).}
 \label{fig:abl_panel}
 \end{figure*}
+\FloatBarrier
 
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=0.98\textwidth,height=0.22\textheight,keepaspectratio]{figures/fig26_bijie_qual.png}\\[0.35em]
-\includegraphics[width=0.98\textwidth,height=0.22\textheight,keepaspectratio]{figures/fig27_l4s_qual.png}
-\caption{Qualitative stress-test samples.
-\textbf{Top:} Bijie (RGB, ground truth, prediction, heatmap).
-\textbf{Bottom:} Landslide4Sense.}
-\label{fig:bijie_qual}
-\label{fig:l4s_qual}
-\end{figure*}
+\paragraph{What each removal tests.}
+\texttt{w/o FS-gate} disables Taylor-stabilized FS gating (identity residual). \texttt{w/o MPEF} replaces instability routing by mean fusion. \texttt{w/o CMB} bypasses Complementary Modality Bridge. \texttt{w/o MAO} replaces GeoEGCA by a plain $1{\times}1$ concat mix. \texttt{w/o TTEB} replaces the skip lattice by bilinear identity skips. \texttt{w/o Prithvi} drops the foundation stream. \texttt{Path-A only} keeps a single RGB-proxy decode path.
+
+\paragraph{Hard-set verdict (L4S).}
+The dominant failure mode under matched removal is dropping Prithvi (\(\Delta\)F1 $-0.163$, \(\Delta\)IoU $-0.159$): planetary context is indispensable when scars are small and acquisition is heterogeneous. Mean fusion without MPEF is a mild regression ($-0.005$ F1). Dual-path competition is not the primary L4S bottleneck under the compact budget (Path-A only is slightly above compact Full), consistent with foundation context dominating local path rivalry on the hard set.
+
+\paragraph{Easy-set verdict (Bijie).}
+Prithvi removal remains harmful (\(-0.076\) F1), and Path-A only collapses dual-path competition (\(-0.052\) F1), showing that topographic decode authority matters when polygons are large enough for DEM proxies to adjudicate. CMB removal is near-neutral under the short budget.
+
+\paragraph{Positive \(\Delta\) under compact protocol.}
+Several removals (FS-gate, TTEB, MAO on Bijie; MAO/CMB on L4S) exceed compact Full under the $40$-epoch low-VRAM schedule. We do not interpret this as ``Full is worse'': primary Full (Table~\ref{tab:results}) still dominates every component absolute number. The pattern matches a known optimization interaction: strong continuum regularizers and multi-module fusion can underfit when capacity, LoRA rank, and epoch budget are jointly reduced, while the same operators recover and lead when trained under the primary protocol. Figure~\ref{fig:abl_panel} summarizes F1/IoU, matched \(\Delta\), signed contributions, mechanism swaps, and the easy-hard ranking.
 
 \subsection{Latent manifold, boundary fidelity, and perturbation robustness}
 Pixel IoU alone does not probe whether LCE structures the representation space or whether FS-gated decoding resists sensor noise. We therefore run three inference-only studies on the Bijie validation split (seed~$42$, $554$ images) using the real \texttt{GeoPhysicsLandslideNet} forward API and a locally trained architecture-faithful B4 checkpoint (epoch~$98$, image-mean val~F1~$0.912$; cluster final weights for the $0.933$ table entry were not synced to this machine). Latents are captured by a forward hook on MAO \texttt{fuse3} ($C{=}64$), not $1$-channel MPEF logits.
@@ -399,15 +401,6 @@ Gaussian noise $\sigma\in\{0,0.05,0.1,0.2,0.3\}$ is added to both RGB and DEM st
 \caption{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}
 \label{fig:robust}
 \end{figure}
-
-\section{Discussion}
-The paper's primary claim is methodological: LCE injects a continuum operator into multimodal dense predictors with bounded Jacobians, and MPEF turns dual-path fusion into an energy equilibrium. Landslide benchmarks are chosen because topographic-spectral fusion is anisotropic and imbalanced, a harder regime than RGB-D for testing continuum closure~\cite{yin2021virtualnormal,wang2025gravityformer}. Ablations (Sec.~\ref{sec:ablation}) sharpen that claim: on the Difficult set, foundation context is the largest matched drop; on the Easy set, dual-path competition and Prithvi both matter; positive compact-protocol \(\Delta\) for some removals are disclosed as under-capacity interactions, while primary Full remains the absolute reference. Manifold/boundary/robustness studies further support the CV claim beyond application tables: latents organize by landslide and topography, boundaries are measurable with BF/Hausdorff, and physics-closed decoding resists input corruption better than strong statistical segmenters.
-
-\paragraph{Do we need a Universal Approximation Theorem?}
-No. For TPAMI / NeurIPS / ICCV-style multimodal dense prediction, UAT is neither necessary nor the right certificate: classical UAT concerns existence of approximators for continuous functions on compact sets, whereas our contribution is an \emph{operator family} with compactness of materials (Lemma~\ref{lem:compact}), local Lipschitz FS gates (Lemmas~\ref{lem:lip-fs}--\ref{lem:lip-gate}), and an MPEF energy identity (Theorem~\ref{thm:mpef}). Proving that continuum equations can ``replace'' neurons in the UAT sense would not strengthen acceptance relative to mechanism ablations, baseline comparisons, and robustness probes already provided. We likewise do not require training unrelated domains for the first submission if LCE+MPEF is framed as a reusable continuum-closure recipe and stress-tested on anisotropic multimodal segmentation; cross-domain transfer remains future work, not a gatekeeping theorem.
-
-\paragraph{CV vs.\ application framing.}
-The manuscript is positioned as physics-closed multimodal dense prediction (LCE/MPEF), with landslide inventories as stress tests rather than as a susceptibility GIS product. Limitations remaining: local vs.\ cluster checkpoint sync for the exact $0.933$ weights, compact vs.\ primary training budgets in ablations, and the fact that FS is a reduced-order prior rather than a full 3D slope-stability PDE~\cite{skempton1957stability,newmark1965effects}.
 
 \section{Conclusion}
 We presented Latent Continuum Equivalency and Mechanistic Path Equilibrium Fusion as a physics-closed recipe for multimodal dense prediction, instantiated as PS-GPLNet and stress-tested on Bijie and Landslide4Sense. Theory guarantees compactness and local Lipschitz behavior of FS cells and identifies MPEF with entropic energy maximization without invoking Universal Approximation as a prerequisite. Experiments show strong primary F1/IoU under a unified baseline harness, Difficult/Easy component ablations with protocol-matched \(\Delta\), plus latent-manifold structure, boundary metrics, and flatter noise-decay curves than U-Net/DeepLabV3+. Future work includes syncing final cluster checkpoints and transferring LCE cells beyond geohazard segmentation.

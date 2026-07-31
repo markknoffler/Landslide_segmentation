@@ -196,24 +196,41 @@
 \newlabel{fig:bjc}{{11}{9}{Bijie final-run training dynamics (best F1 at epoch 92)}{figure.caption.28}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Landslide4Sense final-run training dynamics (best F1 at epoch 70).}}{9}{figure.caption.29}\protected@file@percent }
 \newlabel{fig:l4sc}{{12}{9}{Landslide4Sense final-run training dynamics (best F1 at epoch 70)}{figure.caption.29}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Component ablation study}{9}{subsection.5.6}\protected@file@percent }
-\newlabel{sec:ablation}{{5.6}{9}{Component ablation study}{subsection.5.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{What each removal tests.}{9}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Hard-set verdict (L4S).}{9}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Easy-set verdict (Bijie).}{9}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Positive \(\Delta \) under compact protocol.}{9}{section*.33}\protected@file@percent }
-\citation{yin2021virtualnormal}
-\citation{wang2025gravityformer}
-\citation{skempton1957stability}
-\citation{newmark1965effects}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Latent manifold, boundary fidelity, and perturbation robustness}{10}{subsection.5.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Latent manifold (t-SNE).}{10}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Boundary complexity.}{10}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Perturbation decay.}{10}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{10}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Do we need a Universal Approximation Theorem?}{10}{section*.43}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{CV vs.\ application framing.}{10}{section*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{10}{section.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Qualitative stress-test samples. \textbf  {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf  {Bottom:} Landslide4Sense.}}{10}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:bijie_qual}{{13}{10}{Qualitative stress-test samples. \textbf {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf {Bottom:} Landslide4Sense}{figure.caption.30}{}}
+\newlabel{fig:l4s_qual}{{13}{10}{Qualitative stress-test samples. \textbf {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf {Bottom:} Landslide4Sense}{figure.caption.30}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Component ablation study}{11}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:ablation}{{5.6}{11}{Component ablation study}{subsection.5.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf  {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf  {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf  {Bottom-right:} mechanism-swap F1 under the same compact protocol.}}{12}{table.caption.31}\protected@file@percent }
+\newlabel{tab:ablation-main}{{3}{12}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.31}{}}
+\newlabel{tab:ablation-delta}{{3}{12}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.31}{}}
+\newlabel{fig:abl_f1}{{14a}{12}{F1 dual-dataset}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_f1}{{a}{12}{F1 dual-dataset}{figure.caption.32}{}}
+\newlabel{fig:abl_delta}{{14b}{12}{Matched \(\Delta \)F1}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_delta}{{b}{12}{Matched \(\Delta \)F1}{figure.caption.32}{}}
+\newlabel{fig:abl_iou}{{14c}{12}{IoU dual-dataset}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_iou}{{c}{12}{IoU dual-dataset}{figure.caption.32}{}}
+\newlabel{fig:abl_help}{{14d}{12}{Signed module help}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_help}{{d}{12}{Signed module help}{figure.caption.32}{}}
+\newlabel{fig:abl_mech}{{14e}{12}{Mechanism swaps}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_mech}{{e}{12}{Mechanism swaps}{figure.caption.32}{}}
+\newlabel{fig:abl_rank}{{14f}{12}{Easy-hard ranking}{figure.caption.32}{}}
+\newlabel{sub@fig:abl_rank}{{f}{12}{Easy-hard ranking}{figure.caption.32}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$).}}{12}{figure.caption.32}\protected@file@percent }
+\newlabel{fig:abl_panel}{{14}{12}{Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$)}{figure.caption.32}{}}
+\@writefile{toc}{\contentsline {paragraph}{What each removal tests.}{13}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Hard-set verdict (L4S).}{13}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Easy-set verdict (Bijie).}{13}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Positive \(\Delta \) under compact protocol.}{13}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Latent manifold, boundary fidelity, and perturbation robustness}{13}{subsection.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Latent manifold (t-SNE).}{13}{section*.37}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces t-SNE of MAO \texttt  {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy.}}{13}{figure.caption.40}\protected@file@percent }
+\newlabel{fig:tsne}{{15}{13}{t-SNE of MAO \texttt {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy}{figure.caption.40}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet).}}{13}{figure.caption.41}\protected@file@percent }
+\newlabel{fig:boundary}{{16}{13}{Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet)}{figure.caption.41}{}}
+\@writefile{toc}{\contentsline {paragraph}{Boundary complexity.}{13}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Perturbation decay.}{13}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{13}{section.6}\protected@file@percent }
 \bibstyle{unsrt}
 \bibdata{bib/refs}
 \bibcite{ronneberger2015unet}{1}
@@ -222,38 +239,12 @@
 \bibcite{yin2021virtualnormal}{4}
 \bibcite{wang2025gravityformer}{5}
 \bibcite{raissi2019pinn}{6}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf  {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf  {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf  {Bottom-right:} mechanism-swap F1 under the same compact protocol.}}{11}{table.caption.34}\protected@file@percent }
-\newlabel{tab:ablation-main}{{3}{11}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.34}{}}
-\newlabel{tab:ablation-delta}{{3}{11}{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie). \textbf {Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref {tab:results}); other rows $=$ matched compact protocol. \textbf {Bottom-left:} \(\Delta \)F1/\(\Delta \)IoU vs.\ compact Full (Bijie $0.804$/$0.773$; L4S $0.693$/$0.617$). \textbf {Bottom-right:} mechanism-swap F1 under the same compact protocol}{table.caption.34}{}}
-\newlabel{fig:abl_f1}{{13a}{11}{F1 dual-dataset}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_f1}{{a}{11}{F1 dual-dataset}{figure.caption.35}{}}
-\newlabel{fig:abl_delta}{{13b}{11}{Matched \(\Delta \)F1}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_delta}{{b}{11}{Matched \(\Delta \)F1}{figure.caption.35}{}}
-\newlabel{fig:abl_iou}{{13c}{11}{IoU dual-dataset}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_iou}{{c}{11}{IoU dual-dataset}{figure.caption.35}{}}
-\newlabel{fig:abl_help}{{13d}{11}{Signed module help}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_help}{{d}{11}{Signed module help}{figure.caption.35}{}}
-\newlabel{fig:abl_mech}{{13e}{11}{Mechanism swaps}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_mech}{{e}{11}{Mechanism swaps}{figure.caption.35}{}}
-\newlabel{fig:abl_rank}{{13f}{11}{Easy-hard ranking}{figure.caption.35}{}}
-\newlabel{sub@fig:abl_rank}{{f}{11}{Easy-hard ranking}{figure.caption.35}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$).}}{11}{figure.caption.35}\protected@file@percent }
-\newlabel{fig:abl_panel}{{13}{11}{Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$)}{figure.caption.35}{}}
 \bibcite{karniadakis2021physics}{7}
 \bibcite{clough2022topological}{8}
 \bibcite{panda2025sparsefusion}{9}
 \bibcite{dahal2024pinn}{10}
 \bibcite{liu2023physics}{11}
 \bibcite{islam2024digate}{12}
-\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Qualitative stress-test samples. \textbf  {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf  {Bottom:} Landslide4Sense.}}{12}{figure.caption.36}\protected@file@percent }
-\newlabel{fig:bijie_qual}{{14}{12}{Qualitative stress-test samples. \textbf {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf {Bottom:} Landslide4Sense}{figure.caption.36}{}}
-\newlabel{fig:l4s_qual}{{14}{12}{Qualitative stress-test samples. \textbf {Top:} Bijie (RGB, ground truth, prediction, heatmap). \textbf {Bottom:} Landslide4Sense}{figure.caption.36}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces t-SNE of MAO \texttt  {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy.}}{12}{figure.caption.40}\protected@file@percent }
-\newlabel{fig:tsne}{{15}{12}{t-SNE of MAO \texttt {fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy}{figure.caption.40}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet).}}{12}{figure.caption.41}\protected@file@percent }
-\newlabel{fig:boundary}{{16}{12}{Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet)}{figure.caption.41}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}}{12}{figure.caption.42}\protected@file@percent }
-\newlabel{fig:robust}{{17}{12}{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+}{figure.caption.42}{}}
 \bibcite{mercier2022bifusion}{13}
 \bibcite{boyd2004convex}{14}
 \bibcite{ji2020bijie}{15}
@@ -269,4 +260,6 @@
 \bibcite{tan2019efficientnet}{25}
 \bibcite{salehi2017tversky}{26}
 \bibcite{newmark1965effects}{27}
-\gdef \@abspage@last{13}
+\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}}{14}{figure.caption.42}\protected@file@percent }
+\newlabel{fig:robust}{{17}{14}{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+}{figure.caption.42}{}}
+\gdef \@abspage@last{14}
