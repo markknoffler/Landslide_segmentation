@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 15:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 16:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -670,11 +670,6 @@ Underfull \hbox (badness 10000) in paragraph at lines 220--221
  []
 
 
-Underfull \hbox (badness 1320) in paragraph at lines 222--222
-[]\OT1/ptm/b/n/12 (+20) Stage A--B: Pen-tas-tream en-cod-ing and
- []
-
-
 Underfull \hbox (badness 10000) in paragraph at lines 232--235
 \OT1/ptm/m/n/10 (+20) EfficientNet-B4 at $\OT1/cmr/m/n/10 256 \OMS/cmsy/m/n/10 
 ^^B \OT1/cmr/m/n/10 256$ \OT1/ptm/m/n/10 (+20) yields spa-tial grids
@@ -963,127 +958,115 @@ line 242.
 [8 <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_local_lipschi
 tz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures/tpami/fig
 _tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figures/fig_biji
-e_bars.png>]
-<figures/fig26_bijie_qual.png, id=412, 3032.32875pt x 1108.14pt>
-File: figures/fig26_bijie_qual.png Graphic file (type png)
-<use figures/fig26_bijie_qual.png>
-Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 252.
-(pdftex.def)             Requested size: 495.73198pt x 181.16124pt.
-<figures/fig27_l4s_qual.png, id=413, 3032.32875pt x 1108.14pt>
-File: figures/fig27_l4s_qual.png Graphic file (type png)
-<use figures/fig27_l4s_qual.png>
-Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 259.
-(pdftex.def)             Requested size: 495.73198pt x 181.16124pt.
- [9 <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_curves.png> <
-./figures/tpami/fig_tpami_l4s_curves.png>]
-
-LaTeX Warning: Text page 10 contains only floats.
-
-
-Overfull \vbox (1.2026pt too high) has occurred while \output is active []
-
-
-
-LaTeX Warning: Text page 10 contains only floats.
-
-
-Overfull \vbox (1.2026pt too high) has occurred while \output is active []
-
-
-[10 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png>]
-<figures/ablation/fig_ablation_f1_dual.png, id=443, 566.0055pt x 315.0315pt>
+e_bars.png>] [9 <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_c
+urves.png> <./figures/tpami/fig_tpami_l4s_curves.png>]
+<figures/ablation/fig_ablation_f1_dual.png, id=436, 566.0055pt x 315.0315pt>
 File: figures/ablation/fig_ablation_f1_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_f1_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_f1_dual.png  used on inp
-ut line 335.
-(pdftex.def)             Requested size: 164.4127pt x 91.5106pt.
-<figures/ablation/fig_ablation_delta_f1.png, id=444, 569.619pt x 290.394pt>
+ut line 321.
+(pdftex.def)             Requested size: 161.88324pt x 90.10216pt.
+<figures/ablation/fig_ablation_delta_f1.png, id=437, 569.619pt x 290.394pt>
 File: figures/ablation/fig_ablation_delta_f1.png Graphic file (type png)
 <use figures/ablation/fig_ablation_delta_f1.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_delta_f1.png  used on in
-put line 341.
-(pdftex.def)             Requested size: 164.4127pt x 83.81773pt.
-<figures/ablation/fig_ablation_iou_dual.png, id=445, 566.0055pt x 297.621pt>
+put line 327.
+(pdftex.def)             Requested size: 161.88245pt x 82.52829pt.
+<figures/ablation/fig_ablation_iou_dual.png, id=438, 566.0055pt x 297.621pt>
 File: figures/ablation/fig_ablation_iou_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_iou_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_iou_dual.png  used on in
-put line 347.
-(pdftex.def)             Requested size: 164.4127pt x 86.45319pt.
-<figures/ablation/fig_ablation_component_help.png, id=446, 609.3675pt x 294.664
+put line 333.
+(pdftex.def)             Requested size: 161.88324pt x 85.12259pt.
+<figures/ablation/fig_ablation_component_help.png, id=439, 609.3675pt x 294.664
 5pt>
 File: figures/ablation/fig_ablation_component_help.png Graphic file (type png)
 <use figures/ablation/fig_ablation_component_help.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_component_help.png  used
- on input line 353.
-(pdftex.def)             Requested size: 164.4127pt x 79.50203pt.
-<figures/ablation/fig_ablation_mechanism_swaps.png, id=447, 486.837pt x 287.109
+ on input line 339.
+(pdftex.def)             Requested size: 161.88144pt x 78.27905pt.
+<figures/ablation/fig_ablation_mechanism_swaps.png, id=440, 486.837pt x 287.109
 pt>
 File: figures/ablation/fig_ablation_mechanism_swaps.png Graphic file (type png)
 
 <use figures/ablation/fig_ablation_mechanism_swaps.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_mechanism_swaps.png  use
-d on input line 359.
-(pdftex.def)             Requested size: 164.4127pt x 96.95862pt.
-<figures/ablation/fig_ablation_cross_rank.png, id=448, 388.944pt x 363.321pt>
+d on input line 345.
+(pdftex.def)             Requested size: 161.88983pt x 95.47348pt.
+<figures/ablation/fig_ablation_cross_rank.png, id=441, 388.944pt x 363.321pt>
 File: figures/ablation/fig_ablation_cross_rank.png Graphic file (type png)
 <use figures/ablation/fig_ablation_cross_rank.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_cross_rank.png  used on 
-input line 365.
-(pdftex.def)             Requested size: 164.4127pt x 153.58057pt.
- [11]
-Underfull \hbox (badness 5119) in paragraph at lines 381--382
+input line 351.
+(pdftex.def)             Requested size: 117.59805pt x 109.85088pt.
+<figures/fig26_bijie_qual.png, id=442, 3032.32875pt x 1108.14pt>
+File: figures/fig26_bijie_qual.png Graphic file (type png)
+<use figures/fig26_bijie_qual.png>
+Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 361.
+(pdftex.def)             Requested size: 413.32591pt x 151.0466pt.
+<figures/fig27_l4s_qual.png, id=443, 3032.32875pt x 1108.14pt>
+File: figures/fig27_l4s_qual.png Graphic file (type png)
+<use figures/fig27_l4s_qual.png>
+Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 362.
+(pdftex.def)             Requested size: 413.32591pt x 151.0466pt.
+
+Underfull \hbox (badness 5119) in paragraph at lines 377--378
  []\OT1/ptm/b/n/10 (+20) Boundary com-plex-ity.[] \OT1/ptm/m/n/10 (+20) We re-p
 ort Bound-ary F-score
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 384--385
+Underfull \hbox (badness 10000) in paragraph at lines 380--381
  []\OT1/ptm/b/n/10 (+20) Perturbation de-cay.[] \OT1/ptm/m/n/10 (+20) Gaus-sian
  noise $\OML/cmm/m/it/10 ^^[ \OMS/cmsy/m/n/10 2
  []
 
-<figures/tpami/fig_latent_manifold_tsne.png, id=458, 785.8158pt x 322.3242pt>
+<figures/tpami/fig_latent_manifold_tsne.png, id=447, 785.8158pt x 322.3242pt>
 File: figures/tpami/fig_latent_manifold_tsne.png Graphic file (type png)
 <use figures/tpami/fig_latent_manifold_tsne.png>
 Package pdftex.def Info: figures/tpami/fig_latent_manifold_tsne.png  used on in
-put line 388.
+put line 384.
 (pdftex.def)             Requested size: 243.91125pt x 100.04242pt.
-<figures/tpami/fig_boundary_metrics.png, id=459, 715.473pt x 281.853pt>
+<figures/tpami/fig_boundary_metrics.png, id=448, 715.473pt x 281.853pt>
 File: figures/tpami/fig_boundary_metrics.png Graphic file (type png)
 <use figures/tpami/fig_boundary_metrics.png>
 Package pdftex.def Info: figures/tpami/fig_boundary_metrics.png  used on input 
-line 395.
+line 391.
 (pdftex.def)             Requested size: 243.91125pt x 96.08249pt.
-<figures/tpami/fig_robustness_decay.png, id=460, 513.117pt x 339.1872pt>
+<figures/tpami/fig_robustness_decay.png, id=449, 513.117pt x 339.1872pt>
 File: figures/tpami/fig_robustness_decay.png Graphic file (type png)
 <use figures/tpami/fig_robustness_decay.png>
 Package pdftex.def Info: figures/tpami/fig_robustness_decay.png  used on input 
-line 402.
+line 398.
 (pdftex.def)             Requested size: 243.91125pt x 161.23463pt.
-[12 <./figures/ablation/fig_ablation_f1_dual.png> <./figures/ablation/fig_ablat
-ion_delta_f1.png> <./figures/ablation/fig_ablation_iou_dual.png> <./figures/abl
-ation/fig_ablation_component_help.png> <./figures/ablation/fig_ablation_mechani
-sm_swaps.png> <./figures/ablation/fig_ablation_cross_rank.png> <./figures/tpami
-/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_metrics.png>]
-(./paper_tpami_v3.bbl [13 <./figures/tpami/fig_robustness_decay.png>]) [14
+[10]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-]
-(./paper_tpami_v3.aux)
+
+(./paper_tpami_v3.bbl [11 <./figures/ablation/fig_ablation_f1_dual.png> <./figu
+res/ablation/fig_ablation_delta_f1.png> <./figures/ablation/fig_ablation_iou_du
+al.png> <./figures/ablation/fig_ablation_component_help.png> <./figures/ablatio
+n/fig_ablation_mechanism_swaps.png> <./figures/ablation/fig_ablation_cross_rank
+.png>] [12 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png> <./f
+igures/tpami/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_metric
+s.png> <./figures/tpami/fig_robustness_decay.png>]) [13
+
+] (./paper_tpami_v3.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
 Package rerunfilecheck Info: File `paper_tpami_v3.out' has not changed.
-(rerunfilecheck)             Checksum: A94717B7A47742F1514AAC8B73FBBBA9;4834.
+(rerunfilecheck)             Checksum: 563268B60578FD20AB1B6530AE64226B;4828.
  ) 
 Here is how much of TeX's memory you used:
- 16429 strings out of 476182
- 263852 string characters out of 5795596
- 1961975 words of memory out of 5000000
+ 16424 strings out of 476182
+ 263789 string characters out of 5795596
+ 1956975 words of memory out of 5000000
  37579 multiletter control sequences out of 15000+600000
- 611846 words of font info for 389 fonts, out of 8000000 for 9000
+ 611475 words of font info for 387 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,20n,79p,1813b,636s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,20n,79p,1808b,638s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
@@ -1107,10 +1090,10 @@ courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8
 a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/sha
 re/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on paper_tpami_v3.pdf (14 pages, 10203792 bytes).
+Output written on paper_tpami_v3.pdf (13 pages, 10203147 bytes).
 PDF statistics:
- 649 PDF objects out of 1000 (max. 8388607)
- 533 compressed objects within 6 object streams
- 184 named destinations out of 1000 (max. 500000)
+ 644 PDF objects out of 1000 (max. 8388607)
+ 529 compressed objects within 6 object streams
+ 182 named destinations out of 1000 (max. 500000)
  74036 words of extra memory for PDF output out of 74296 (max. 10000000)
 

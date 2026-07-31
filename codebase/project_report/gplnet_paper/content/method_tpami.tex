@@ -13,11 +13,11 @@ The remainder of this section follows that order after the FS derivation.
 \label{sec:problem}
 Let \(x_1\in\mathbb{R}^{B\times 3\times H\times W}\) denote the optical stream (RGB) and \(x_2\in\mathbb{R}^{B\times 3\times H\times W}\) the topographic/auxiliary stream. On Landslide4Sense, \(x_2\) stacks NDVI, slope, and DEM; on Bijie, DEM is replicated across three channels. The prediction target is a binary landslide mask \(y\in\{0,1\}^{B\times 1\times H\times W}\). Unless stated otherwise we use \(H=W=256\) at the network inlet and a unified fusion width \(C=64\).
 
-From \((x_1,x_2)\) the network extracts normalized physics proxies \((s,d,v)\)---slope, elevation, and vegetation---and maps them to geotechnical variables \((\alpha,h,m)\):
+From \((x_1,x_2)\) the network extracts normalized physics proxies \((s,d,v)\) (slope, elevation, and vegetation) and maps them to geotechnical variables \((\alpha,h,m)\):
 \begin{itemize}[leftmargin=1.1em,itemsep=0.15em]
 \item \(\alpha\): slope angle in radians (pixel-wise);
 \item \(h>0\): soil-column / elevation height proxy;
-\item \(m\in(0,1)\): moisture--saturation proxy.
+\item \(m\in(0,1)\): moisture-saturation proxy.
 \end{itemize}
 Separate RGB-path and DEM-path mappers produce stream-specific triples \((\alpha_r,h_r,m_r)\) and \((\alpha_d,h_d,m_d)\). We write \(\odot\) for Hadamard product, \([\,\cdot\,\|\,\cdot\,]\) for channel concatenation, and \(\varepsilon>0\) for a numerical floor (typically \(10^{-6}\)).
 
@@ -44,7 +44,7 @@ Here \(c'\) is effective cohesion, \(\phi'\) the effective friction angle, \(\ga
 H\cos^{2}\alpha\,\tan\phi'}
 {\gamma_{\mathrm{sat}}H\sin\alpha\cos\alpha}.
 \end{equation}
-Failure is declared when \(\mathrm{FS}_{\mathrm{class}}\le 1\). Equation~\eqref{eq:fs-classical-sub} is a valid engineering calculator for hand analysis, but it is a poor neuron. The term \(-m\gamma_w\) subtracts from the resisting numerator: early in training, uncalibrated material weights can drive that numerator through zero or negative values, flipping gradient signs and producing NaNs. Moreover, embedding \(\sin\alpha\) and \(\cos\alpha\) into deep latent tensors---where channels no longer represent geodetic angles---is physically meaningless and numerically brittle. We therefore derive a neural form that (i)~relocates hydrology into an additive driving term and (ii)~admits a latent counterpart that drops angles entirely while preserving the resisting/driving ratio skeleton.
+Failure is declared when \(\mathrm{FS}_{\mathrm{class}}\le 1\). Equation~\eqref{eq:fs-classical-sub} is a valid engineering calculator for hand analysis, but it is a poor neuron. The term \(-m\gamma_w\) subtracts from the resisting numerator: early in training, uncalibrated material weights can drive that numerator through zero or negative values, flipping gradient signs and producing NaNs. Moreover, embedding \(\sin\alpha\) and \(\cos\alpha\) into deep latent tensors, where channels no longer represent geodetic angles, is physically meaningless and numerically brittle. We therefore derive a neural form that (i)~relocates hydrology into an additive driving term and (ii)~admits a latent counterpart that drops angles entirely while preserving the resisting/driving ratio skeleton.
 
 \subsection{Derivation of the Taylor-stabilized neural FS}
 \label{sec:taylor-derivation}
@@ -62,7 +62,7 @@ B&=c'+\gamma_{\mathrm{sat}}H\cos^{2}\alpha\,\tan\phi',\\
 C&=m\gamma_w H\cos^{2}\alpha\,\tan\phi'.
 \end{aligned}
 \end{equation}
-Here \(A\) is gravity drive, \(B\) dry structural resistance, and \(C\) hydrological destablization. Whenever \(C\ge B\), the denominator of~\eqref{eq:stress} vanishes or turns negative---catastrophic for backpropagation.
+Here \(A\) is gravity drive, \(B\) dry structural resistance, and \(C\) hydrological destablization. Whenever \(C\ge B\), the denominator of~\eqref{eq:stress} vanishes or turns negative, which is catastrophic for backpropagation.
 
 \begin{proposition}[First-order Taylor relocation of pore pressure]
 \label{prop:taylor}
@@ -86,13 +86,13 @@ Truncating after the linear term yields the first-order structural equivalence
 \label{eq:taylor-struct}
 \frac{A}{B-C}\;\propto\;\frac{A+C}{B}
 \end{equation}
-up to a positive local scale \(B^{-1}\). Consequently, subtracting hydrology from resistance is---to first order---equivalent to \emph{adding} hydrology into the driving reference frame.
+up to a positive local scale \(B^{-1}\). Consequently, subtracting hydrology from resistance is, to first order, equivalent to \emph{adding} hydrology into the driving reference frame.
 \end{proposition}
 \begin{proof}
 Factor \(B\) from the denominator of~\eqref{eq:stress} and apply the geometric series \(1/(1-x)=\sum_{k\ge0}x^{k}\) for \(|x|<1\) with \(x=C/B\). Truncation after \(k=1\) gives~\eqref{eq:taylor}. Multiplying numerator and denominator of the truncated form by \(B\) rearranges to the proportional additive drive~\eqref{eq:taylor-struct}.
 \end{proof}
 
-Physically, the classical layout treats water as a lubricant that reduces effective normal stress; the neural layout treats water as an additive downslope driver. Both describe the same tipping point---driving forces overtaking resistance---but the neural layout keeps all tensors strictly positive. Reverting from stress \(S\) to an FS-shaped ratio and absorbing material constants into learnable positive weights \((c,\phi,\gamma,w_m)\) produces the operator used in pixel cells and in MPEF.
+Physically, the classical layout treats water as a lubricant that reduces effective normal stress; the neural layout treats water as an additive downslope driver. Both describe the same tipping point (driving forces overtaking resistance), but the neural layout keeps all tensors strictly positive. Reverting from stress \(S\) to an FS-shaped ratio and absorbing material constants into learnable positive weights \((c,\phi,\gamma,w_m)\) produces the operator used in pixel cells and in MPEF.
 
 \begin{definition}[Taylor-stabilized neural FS]
 \label{def:fs-nn}
@@ -149,7 +149,7 @@ At (or near) full spatial resolution, the DEM-derived angle \(\alpha\) is a know
 When \((\alpha,h,m)\) and \(x\) differ in spatial size, the proxies are bilinearly resized to match \(x\). If mechanistic gating is disabled (ablation), the cell returns the convolution alone. Conceptually, low \(\mathrm{FS}_{\mathrm{nn}}\) (unstable slopes) opens the gate and admits features; high \(\mathrm{FS}_{\mathrm{nn}}\) (stable slopes) attenuates them.
 
 \paragraph{LatentMechanisticCell.}
-Deeper feature maps do not live in a geodetic coordinate frame. Applying \(\sin\alpha\) or \(\cos\alpha\) to abstract channels would force angular geometry onto tensors that no longer represent angles---exactly the pathology we seek to avoid. We therefore drop trigonometry and realize the same resisting/driving \emph{ratio skeleton} with softplus projections:
+Deeper feature maps do not live in a geodetic coordinate frame. Applying \(\sin\alpha\) or \(\cos\alpha\) to abstract channels would force angular geometry onto tensors that no longer represent angles, exactly the pathology we seek to avoid. We therefore drop trigonometry and realize the same resisting/driving \emph{ratio skeleton} with softplus projections:
 \begin{definition}[LatentMechanisticCell]
 \label{def:latent}
 \begin{equation}
@@ -191,7 +191,7 @@ At \(256\times256\) input the physics pyramid lives on \(\{256,128,64,32,16\}\).
 \subsection{Physics proxies and foundation inlet}
 \label{sec:proxies}
 \paragraph{Proxy extraction.}
-Dataset channels are min--max normalized to \([0,1]\). On Landslide4Sense,
+Dataset channels are min-max normalized to \([0,1]\). On Landslide4Sense,
 \(s=x_2[:,1]\), \(d=x_2[:,2]\), \(v=x_2[:,0]\).
 On Bijie (replicated DEM),
 \begin{equation}
@@ -219,7 +219,7 @@ Softplus keeps \(h>0\); sigmoid keeps \(m\in(0,1)\); the \(\pi/2\) scale maps th
 \paragraph{Foundation stack.}
 A six-band observed stack feeds Prithvi-EO with LoRA~\cite{szink2024prithvi,houlsby2019lora}: on Landslide4Sense, \([R,G,B,\mathrm{NDVI},\mathrm{slope},\mathrm{DEM}]\); on Bijie, \([R,G,B,\mathrm{DEM},\mathrm{Sobel}(d),\mathrm{vegIndex}]\). Intermediate transformer blocks are projected to width \(C\) and resized onto a five-level pyramid \(\{T_{\mathrm{fm}}^{L}\}\).
 
-\subsection{Stage A--B: Pentastream encoding and Complementary Modality Bridge}
+\subsection{Stage A-B: Pentastream encoding and Complementary Modality Bridge}
 \label{sec:encode}
 \textbf{Stage~A} runs five encoders in parallel:
 \begin{enumerate}[leftmargin=1.2em,itemsep=0.2em]
@@ -249,7 +249,7 @@ B_{\mathrm{mix}}=\mathrm{Conv}_{1\times1}([\tilde{E}\,\|\,\tilde{P}]),
 H=g\odot\tilde{P}+(1-g)\odot\tilde{E}+B_{\mathrm{mix}}.
 \end{equation}
 \end{definition}
-The gate \(g\) opens toward physics when element-wise agreement \(\tilde{E}\odot\tilde{P}\) is strong; otherwise appearance features dominate. The residual mix \(B_{\mathrm{mix}}\) preserves a shared channel pathway so neither stream is hard-gated to zero. Applying CMB at every EffNet index produces hybrid pyramids \(\{H_{\mathrm{rgb}}^{i}\}\) and \(\{H_{\mathrm{dem}}^{i}\}\). Foundation maps are likewise aligned to \(E_{\mathrm{rgb}}^{i}\), yielding \(\{\hat{T}_{\mathrm{fm}}^{i}\}\). Subsequent fusion consumes only these hybrids and foundation maps---not raw EffNet features. Algorithm~\ref{alg:cmb} states the exact operator used in code.
+The gate \(g\) opens toward physics when element-wise agreement \(\tilde{E}\odot\tilde{P}\) is strong; otherwise appearance features dominate. The residual mix \(B_{\mathrm{mix}}\) preserves a shared channel pathway so neither stream is hard-gated to zero. Applying CMB at every EffNet index produces hybrid pyramids \(\{H_{\mathrm{rgb}}^{i}\}\) and \(\{H_{\mathrm{dem}}^{i}\}\). Foundation maps are likewise aligned to \(E_{\mathrm{rgb}}^{i}\), yielding \(\{\hat{T}_{\mathrm{fm}}^{i}\}\). Subsequent fusion consumes only these hybrids and foundation maps, not raw EffNet features. Algorithm~\ref{alg:cmb} states the exact operator used in code.
 
 \begin{algorithm}[htbp]
 \caption{Complementary Modality Bridge (CMB)}
@@ -339,7 +339,7 @@ A=\mathrm{Conv}_{1\times1}
 \mathrm{pres}_{\mathrm{dem}}\,\|\,
 \mathrm{pres}_{\mathrm{fm}}]).
 \end{equation}
-Eight off-diagonal lattice nodes (previous/next across streams and cross terms) are concatenated and mixed into a context tensor \(H_{\mathrm{ctx}}\). A latent FS residual---the same ratio skeleton as Definition~\ref{def:latent}---defines a stability map
+Eight off-diagonal lattice nodes (previous/next across streams and cross terms) are concatenated and mixed into a context tensor \(H_{\mathrm{ctx}}\). A latent FS residual, the same ratio skeleton as Definition~\ref{def:latent}, defines a stability map
 \begin{equation}
 \label{eq:tteb-delta}
 \delta
@@ -390,7 +390,7 @@ Thus TTEB does not invent a new inductive bias: its stability map \(\delta\) is 
 Both paths share $\{F^{3},F^{2},S^{L}\}$ from MAO/TTEB. Path~A injects EfficientNet RGB residual $a_5=\mathrm{Proj}(E_{\mathrm{rgb}}^{4})$ with proxies $(\alpha_r,h_r,m_r)$; Path~B injects DEM residual $b_5$ with $(\alpha_d,h_d,m_d)$. The paths do not share hidden states during upsampling; they cooperate only at MPEF.
 
 \paragraph{Dual paths.}
-Both paths apply the same decode grammar---latent mechanistic cells, PGDI, and a final pixel mechanistic head---so evidence is decoded under one continuum class rather than a single shared statistical decoder.
+Both paths apply the same decode grammar (latent mechanistic cells, PGDI, and a final pixel mechanistic head), so evidence is decoded under one continuum class rather than a single shared statistical decoder.
 
 \paragraph{PGDI.}
 At each upsample stage, Physics-Gated Decoder Injection injects a TTEB skip through a learned gate on a latent mechanistic cell:
@@ -422,7 +422,7 @@ The gate \(\beta\) is content-dependent: skips that disagree with the current de
 \end{algorithm}
 
 \paragraph{MPEF.}
-Dual-path logits are merged by Mechanistic Path Equilibrium Fusion---softmax failure energy of the same \(\mathrm{FS}_{\mathrm{nn}}\) derived in Sec.~\ref{sec:taylor-derivation}, not a DiGATe-style scalar GateFuse. Failure energy is computed from image-derived physics proxies \((\alpha,h,m)\), bilinearly resized to each head resolution; it does \emph{not} replace the decoder hidden state, but supplies the routing currency that adjudicates between candidate masks \(O_A\) and \(O_B\):
+Dual-path logits are merged by Mechanistic Path Equilibrium Fusion, i.e., softmax failure energy of the same \(\mathrm{FS}_{\mathrm{nn}}\) derived in Sec.~\ref{sec:taylor-derivation}, not a DiGATe-style scalar GateFuse. Failure energy is computed from image-derived physics proxies \((\alpha,h,m)\), bilinearly resized to each head resolution; it does not replace the decoder hidden state, but supplies the routing currency that adjudicates between candidate masks \(O_A\) and \(O_B\):
 \begin{definition}[MPEF]
 \label{def:mpef}
 For path logits \(O_A,O_B\) and proxies \((\alpha_p,h_p,m_p)\),
@@ -523,7 +523,7 @@ with \((w_{\mathrm{main}},w_{\mathrm{aux2}},w_{\mathrm{aux3}})=(1.0,0.6,0.4)\) a
 
 \section{Theoretical Analysis}
 \label{sec:theory}
-We now state the claims that organize Latent Continuum Equivalency. The continuum class \(\mathcal{C}_{\mathrm{FS}}\) comprises Definition~\ref{def:fs-nn} at pixels and Definition~\ref{def:latent} in latent space---the same resisting/driving ratio after Proposition~\ref{prop:taylor}. LCE is what makes failure energy a shared currency from inlet gating through MPEF routing.
+We now state the claims that organize Latent Continuum Equivalency. The continuum class \(\mathcal{C}_{\mathrm{FS}}\) comprises Definition~\ref{def:fs-nn} at pixels and Definition~\ref{def:latent} in latent space, the same resisting/driving ratio after Proposition~\ref{prop:taylor}. LCE is what makes failure energy a shared currency from inlet gating through MPEF routing.
 
 \begin{definition}[Latent Continuum Equivalency]
 \label{def:lce}
