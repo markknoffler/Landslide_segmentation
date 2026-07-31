@@ -1,0 +1,14 @@
+[skip] l4s/full already finished ≥40 epochs
+[skip] l4s/no_fs_gate already finished ≥40 epochs
+[skip] l4s/no_mpef already finished ≥40 epochs
+[run] l4s/no_cmb
+[done] l4s/no_cmb rc=0 best_f1=0.7145928658480222
+[run] l4s/no_mao
+[done] l4s/no_mao rc=0 best_f1=0.7173530911345658
+[run] l4s/no_tteb
+[done] l4s/no_tteb rc=0 best_f1=0.7062148205093747
+[run] l4s/no_prithvi
+[done] l4s/no_prithvi rc=0 best_f1=0.5303978667237231
+[run] l4s/path_a_only
+[done] l4s/path_a_only rc=0 best_f1=0.7041908645644529
+Ablation queue finished.

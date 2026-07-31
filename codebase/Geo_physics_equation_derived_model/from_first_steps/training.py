@@ -70,6 +70,12 @@ def parse_args():
         action="store_true",
         help="Disable FS-based gating inside physics cells (ablation).",
     )
+    parser.add_argument("--no_cmb", action="store_true")
+    parser.add_argument("--no_mao", action="store_true")
+    parser.add_argument("--no_tteb", action="store_true")
+    parser.add_argument("--no_prithvi", action="store_true")
+    parser.add_argument("--mpef_mode", type=str, default="mpef", choices=["mpef", "mean"])
+    parser.add_argument("--path_mode", type=str, default="dual", choices=["dual", "path_a"])
     parser.add_argument("--use_input_adapter", action="store_true", default=False)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--save_every", type=int, default=5)
@@ -320,6 +326,12 @@ def main():
         mechanistic_gating=not args.no_mechanistic_gating,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
+        use_cmb=not args.no_cmb,
+        use_mao=not args.no_mao,
+        use_tteb=not args.no_tteb,
+        use_prithvi=not args.no_prithvi,
+        mpef_mode=args.mpef_mode,
+        path_mode=args.path_mode,
     )
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())

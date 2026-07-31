@@ -1,0 +1,25 @@
+usage: train_bijie.py [-h] --dataset_root DATASET_ROOT
+                      [--output_dir OUTPUT_DIR] [--epochs EPOCHS]
+                      [--batch_size BATCH_SIZE] [--lr LR]
+                      [--weight_decay WEIGHT_DECAY]
+                      [--num_workers NUM_WORKERS] [--device DEVICE]
+                      [--auto_gpu] [--no-auto_gpu] [--min_free_gb MIN_FREE_GB]
+                      [--amp] [--grad_clip GRAD_CLIP] [--compact]
+                      [--fusion_channels FUSION_CHANNELS] [--seed SEED]
+                      [--tversky_alpha TVERSKY_ALPHA]
+                      [--tversky_beta TVERSKY_BETA]
+                      [--main_weight MAIN_WEIGHT] [--aux2_weight AUX2_WEIGHT]
+                      [--aux3_weight AUX3_WEIGHT] [--reg_weight REG_WEIGHT]
+                      [--metric_threshold METRIC_THRESHOLD]
+                      [--backbone BACKBONE] [--pretrained] [--freeze_backbone]
+                      [--share_backbone] [--use_input_adapter]
+                      [--pretrained_path PRETRAINED_PATH] --prithvi_snapshot
+                      PRITHVI_SNAPSHOT [--lora_rank LORA_RANK]
+                      [--tteb_attn_chunk TTEB_ATTN_CHUNK]
+                      [--tteb_attn_low_res_max TTEB_ATTN_LOW_RES_MAX]
+                      [--no_mechanistic_gating] [--no_cmb] [--no_mao]
+                      [--no_tteb] [--no_prithvi] [--mpef_mode {mpef,mean}]
+                      [--path_mode {dual,path_a}] [--resume]
+                      [--save_every SAVE_EVERY]
+train_bijie.py: error: unrecognized arguments: False
+ERROR conda.cli.main_run:execute(49): `conda run python -u train_bijie.py --dataset_root /home/user/Desktop/Deep_learning_projects/4PI/dataset_bijie_landslide/Bijie-landslide-dataset --output_dir outputs_ablation/bijie/_debug_fp32 --prithvi_snapshot /home/user/Desktop/Deep_learning_projects/4PI/prithvi_weights/models--ibm-nasa-geospatial--Prithvi-EO-2.0-100M-TL --compact --epochs 1 --batch_size 2 --num_workers 2 --device cuda:0 --no-auto_gpu --min_free_gb 0.5 --seed 42 --tversky_alpha 0.7 --tversky_beta 0.3 --save_every 1 --share_backbone False` failed. (See above for error)

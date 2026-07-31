@@ -1,0 +1,18 @@
+[run] bijie/full
+[done] bijie/full rc=0 best_f1=0.8043543232424745
+WARNING: full bijie F1=0.804 < 0.85 — check training health before trusting ablations.
+[run] bijie/no_fs_gate
+[done] bijie/no_fs_gate rc=0 best_f1=0.8964010244184131
+[run] bijie/no_mpef
+[done] bijie/no_mpef rc=0 best_f1=0.811793958184512
+[run] bijie/no_cmb
+[done] bijie/no_cmb rc=0 best_f1=0.7953331411755266
+[run] bijie/no_mao
+[done] bijie/no_mao rc=0 best_f1=0.8697049583704336
+[run] bijie/no_tteb
+[done] bijie/no_tteb rc=0 best_f1=0.8894118003507593
+[run] bijie/no_prithvi
+[done] bijie/no_prithvi rc=0 best_f1=0.7280519913994254
+[run] bijie/path_a_only
+[done] bijie/path_a_only rc=0 best_f1=0.7528040485511008
+Ablation queue finished.

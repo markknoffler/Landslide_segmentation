@@ -77,6 +77,12 @@ def parse_args():
         action="store_true",
         help="Disable FS-based gating inside physics cells (ablation).",
     )
+    p.add_argument("--no_cmb", action="store_true", help="Ablation: disable Complementary Modality Bridge.")
+    p.add_argument("--no_mao", action="store_true", help="Ablation: replace MAO-GeoEGCA with 1x1 concat fuse.")
+    p.add_argument("--no_tteb", action="store_true", help="Ablation: replace TTEB with present-only mix.")
+    p.add_argument("--no_prithvi", action="store_true", help="Ablation: zero foundation stream.")
+    p.add_argument("--mpef_mode", type=str, default="mpef", choices=["mpef", "mean"])
+    p.add_argument("--path_mode", type=str, default="dual", choices=["dual", "path_a"])
 
     # Resume/checkpoint
     p.add_argument("--resume", action="store_true", help="Resume from latest checkpoint in checkpoint/.")
@@ -294,6 +300,12 @@ def main():
         mechanistic_gating=not args.no_mechanistic_gating,
         tteb_attn_chunk=args.tteb_attn_chunk,
         tteb_attn_low_res_max=args.tteb_attn_low_res_max,
+        use_cmb=not args.no_cmb,
+        use_mao=not args.no_mao,
+        use_tteb=not args.no_tteb,
+        use_prithvi=not args.no_prithvi,
+        mpef_mode=args.mpef_mode,
+        path_mode=args.path_mode,
     )
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())

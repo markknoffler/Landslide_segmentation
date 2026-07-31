@@ -37,9 +37,18 @@ class ComplementaryModalityBridge(nn.Module):
         )
         self.blend = nn.Conv2d(unified_channels * 2, unified_channels, kernel_size=1, bias=False)
 
-    def forward(self, cnn_feat: torch.Tensor, physics_feat: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        cnn_feat: torch.Tensor,
+        physics_feat: torch.Tensor,
+        *,
+        enabled: bool = True,
+    ) -> torch.Tensor:
         physics_feat = match_spatial(physics_feat, cnn_feat)
         e = self.cnn_cal(self.cnn_proj(cnn_feat))
+        if not enabled:
+            # Ablation: drop physics resonance; keep CNN projection only.
+            return e
         p = self.physics_cal(physics_feat)
         g = self.coherence(e * p)
         mixed = self.blend(torch.cat([e, p], dim=1))

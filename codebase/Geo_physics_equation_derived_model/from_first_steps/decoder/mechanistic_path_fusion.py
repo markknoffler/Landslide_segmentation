@@ -21,10 +21,17 @@ class MechanisticPathEquilibriumFusion(nn.Module):
 
     Higher instability on a path increases its contribution to the merged logits.
     A learned 1x1 correction is added on top of the instability-weighted blend.
+
+    ``mode``:
+      - ``mpef``: failure-energy softmax routing (default)
+      - ``mean``: equal-weight blend + 1x1 correction (ablation: no FE routing)
     """
 
-    def __init__(self, n_classes: int = 1):
+    def __init__(self, n_classes: int = 1, mode: str = "mpef"):
         super().__init__()
+        if mode not in {"mpef", "mean"}:
+            raise ValueError(f"Unknown MPEF mode: {mode}")
+        self.mode = mode
         self.w_c = nn.Parameter(torch.zeros(1))
         self.w_phi = nn.Parameter(torch.zeros(1))
         self.w_gamma = nn.Parameter(torch.zeros(1))
@@ -65,6 +72,11 @@ class MechanisticPathEquilibriumFusion(nn.Module):
         h_b: torch.Tensor,
         m_b: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.mode == "mean":
+            blended = 0.5 * logits_a + 0.5 * logits_b
+            out = blended + self.correction(torch.cat([logits_a, logits_b], dim=1))
+            return out, logits_a.new_zeros(())
+
         fe_a = self._failure_energy(alpha_a, h_a, m_a, logits_a)
         fe_b = self._failure_energy(alpha_b, h_b, m_b, logits_b)
 

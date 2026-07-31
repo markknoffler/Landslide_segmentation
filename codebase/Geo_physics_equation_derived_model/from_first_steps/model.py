@@ -270,6 +270,13 @@ class GeoPhysicsLandslideNet(nn.Module):
         mechanistic_gating: bool = True,
         tteb_attn_chunk: int = 1024,
         tteb_attn_low_res_max: int = 4096,
+        # Ablation switches (default = full PS-GPLNet)
+        use_cmb: bool = True,
+        use_mao: bool = True,
+        use_tteb: bool = True,
+        use_prithvi: bool = True,
+        mpef_mode: str = "mpef",
+        path_mode: str = "dual",
     ):
         super().__init__()
 
@@ -278,14 +285,21 @@ class GeoPhysicsLandslideNet(nn.Module):
                 "share_backbone is ignored (RGB, DEM, and Prithvi use separate encoders).",
                 stacklevel=2,
             )
-        if not enable_prithvi:
-            raise ValueError("GeoPhysicsLandslideNet requires Prithvi (enable_prithvi=True).")
         if not enable_physics_encoders:
             raise ValueError("GeoPhysicsLandslideNet requires physics encoders (enable_physics_encoders=True).")
+        if mpef_mode not in {"mpef", "mean"}:
+            raise ValueError(f"Unknown mpef_mode: {mpef_mode}")
+        if path_mode not in {"dual", "path_a"}:
+            raise ValueError(f"Unknown path_mode: {path_mode}")
 
-        self.enable_prithvi = True
+        self.enable_prithvi = bool(enable_prithvi and use_prithvi)
         self.enable_physics_encoders = True
         self.mechanistic_gating = mechanistic_gating
+        self.use_cmb = bool(use_cmb)
+        self.use_mao = bool(use_mao)
+        self.use_tteb = bool(use_tteb)
+        self.mpef_mode = mpef_mode
+        self.path_mode = path_mode
         fusion_ch = int(fusion_channels)
         if fusion_ch < 16:
             raise ValueError("fusion_channels must be >= 16")
@@ -347,26 +361,52 @@ class GeoPhysicsLandslideNet(nn.Module):
         self.rgb_to_fusion = nn.ModuleList([_to_fusion(ch) for ch in ch_list])
         self.dem_to_fusion = nn.ModuleList([_to_fusion(ch) for ch in ch_list])
 
-        self.encoder_fm = PrithviFoundationEncoder(
-            unified_channels=fusion_ch,
-            lora_rank=lora_rank,
-            snapshot_dir=prithvi_snapshot,
-            input_normalization="observed_rasters",
-        )
-        self.fm_align = nn.ModuleList(
-            [
-                nn.Sequential(
-                    nn.Conv2d(fusion_ch, fusion_ch, kernel_size=1, bias=False),
-                    LN2d(fusion_ch),
-                    nn.ReLU(inplace=True),
-                )
-                for _ in ch_list
-            ]
-        )
+        self.encoder_fm = None
+        self.fm_align = None
+        if self.enable_prithvi:
+            if prithvi_snapshot is None:
+                raise ValueError("prithvi_snapshot is required when use_prithvi=True.")
+            self.encoder_fm = PrithviFoundationEncoder(
+                unified_channels=fusion_ch,
+                lora_rank=lora_rank,
+                snapshot_dir=prithvi_snapshot,
+                input_normalization="observed_rasters",
+            )
+            self.fm_align = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Conv2d(fusion_ch, fusion_ch, kernel_size=1, bias=False),
+                        LN2d(fusion_ch),
+                        nn.ReLU(inplace=True),
+                    )
+                    for _ in ch_list
+                ]
+            )
 
         self.fuse3 = MAOGeoEGCA(fusion_ch)
         self.fuse4 = MAOGeoEGCA(fusion_ch)
         self.post_fuse3 = nn.Conv2d(fusion_ch, fusion_ch, kernel_size=1, bias=False)
+        # Ablation fallback: concat RGB/DEM/FM → 1×1 (no MAO attention)
+        self.simple_fuse3 = nn.Sequential(
+            nn.Conv2d(fusion_ch * 3, fusion_ch, kernel_size=1, bias=False),
+            LN2d(fusion_ch),
+            nn.ReLU(inplace=True),
+        )
+        self.simple_fuse4 = nn.Sequential(
+            nn.Conv2d(fusion_ch * 3, fusion_ch, kernel_size=1, bias=False),
+            LN2d(fusion_ch),
+            nn.ReLU(inplace=True),
+        )
+        self.simple_skip_mix = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Conv2d(fusion_ch * 3, fusion_ch, kernel_size=1, bias=False),
+                    LN2d(fusion_ch),
+                    nn.ReLU(inplace=True),
+                )
+                for _ in self.TTEB_LEVELS
+            ]
+        )
         self.skips = nn.ModuleList(
             [
                 TriTemporalTriStreamBridge(
@@ -383,6 +423,8 @@ class GeoPhysicsLandslideNet(nn.Module):
             n_classes=n_classes,
             bottleneck_ch=ch_list[4],
             mechanistic_gating=mechanistic_gating,
+            mpef_mode=mpef_mode,
+            path_mode=path_mode,
         )
 
     def _align_legacy_level(self, legacy_pyramid: list[torch.Tensor], ref: torch.Tensor, level_i: int) -> torch.Tensor:
@@ -400,28 +442,37 @@ class GeoPhysicsLandslideNet(nn.Module):
         for i, (rgb, dem) in enumerate(zip(rgb_feats, dem_feats)):
             pr = self._align_legacy_level(phys_rgb, rgb, i)
             pd = self._align_legacy_level(phys_dem, dem, i)
-            h_rgb.append(self.hybrid_rgb[i](rgb, pr))
-            h_dem.append(self.hybrid_dem[i](dem, pd))
+            h_rgb.append(self.hybrid_rgb[i](rgb, pr, enabled=self.use_cmb))
+            h_dem.append(self.hybrid_dem[i](dem, pd, enabled=self.use_cmb))
         return h_rgb, h_dem
 
     def _fusion_pyramids(
         self,
         rgb_feats: Tuple[torch.Tensor, ...],
         dem_feats: Tuple[torch.Tensor, ...],
-        fm_feats: list[torch.Tensor],
+        fm_feats: Optional[list[torch.Tensor]],
     ) -> tuple[list[torch.Tensor], list[torch.Tensor], list[torch.Tensor]]:
-        """Project rgb/dem/fm native pyramids to unified C=64 for MAO/TTEB."""
-        if self.fm_align is None:
-            raise RuntimeError("Fusion pyramids requested but Prithvi encoder is disabled.")
+        """Project rgb/dem/fm native pyramids to unified C for MAO/TTEB."""
         p_rgb, p_dem, t_fm = [], [], []
         for i, rgb in enumerate(rgb_feats):
             dem = dem_feats[i]
-            fm_idx = self.LEGACY_LEVEL_FOR_EFFNET[i]
-            fm = match_spatial(fm_feats[fm_idx], rgb)
             p_rgb.append(self.rgb_to_fusion[i](rgb))
             p_dem.append(self.dem_to_fusion[i](dem))
-            t_fm.append(self.fm_align[i](fm))
+            if self.enable_prithvi and fm_feats is not None and self.fm_align is not None:
+                fm_idx = self.LEGACY_LEVEL_FOR_EFFNET[i]
+                fm = match_spatial(fm_feats[fm_idx], rgb)
+                t_fm.append(self.fm_align[i](fm))
+            else:
+                # Ablation: zero foundation stream at each EffNet spatial size.
+                t_fm.append(torch.zeros_like(p_rgb[-1]))
         return p_rgb, p_dem, t_fm
+
+    def _simple_skip(self, p_rgb, p_dem, t_fm, level: int) -> torch.Tensor:
+        """Present-only 1×1 mix (TTEB ablation)."""
+        r = p_rgb[level]
+        d = match_spatial(p_dem[level], r)
+        t = match_spatial(t_fm[level], r)
+        return self.simple_skip_mix[level](torch.cat([r, d, t], dim=1))
 
     def forward(
         self, x1: torch.Tensor, x2: torch.Tensor
@@ -434,8 +485,11 @@ class GeoPhysicsLandslideNet(nn.Module):
         _, _, _, _, a5 = rgb_feats
         _, _, _, _, b5 = dem_feats
 
-        fm_in = observed_stack_from_streams(x1, x2)
-        fm_raw = self.encoder_fm(fm_in)
+        if self.enable_prithvi and self.encoder_fm is not None:
+            fm_in = observed_stack_from_streams(x1, x2)
+            fm_raw = self.encoder_fm(fm_in)
+        else:
+            fm_raw = None
         _, _, t_fm = self._fusion_pyramids(rgb_feats, dem_feats, fm_raw)
 
         alpha_r, h_r, m_r = self.proxy_rgb(slope, dem_norm, ndvi)
@@ -444,11 +498,22 @@ class GeoPhysicsLandslideNet(nn.Module):
         phys_dem = self.enc_phys_dem(dem, alpha_d, h_d, m_d)
         p_rgb, p_dem = self._hybrid_pyramids(rgb_feats, dem_feats, phys_rgb, phys_dem)
 
-        tteb_skips = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in self.TTEB_LEVELS]
+        if self.use_tteb:
+            tteb_skips = [self.skips[i](p_rgb, p_dem, t_fm, level=i) for i in self.TTEB_LEVELS]
+        else:
+            tteb_skips = [self._simple_skip(p_rgb, p_dem, t_fm, level=i) for i in self.TTEB_LEVELS]
 
         # MAO at EffNet pyramid indices 2/3 (32² neck, 16² bottleneck).
-        f3_fused = self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2]))
-        f4_fused = self.fuse4(t_fm[3], p_rgb[3], p_dem[3])
+        if self.use_mao:
+            f3_fused = self.post_fuse3(self.fuse3(t_fm[2], p_rgb[2], p_dem[2]))
+            f4_fused = self.fuse4(t_fm[3], p_rgb[3], p_dem[3])
+        else:
+            f3_fused = self.post_fuse3(
+                self.simple_fuse3(torch.cat([p_rgb[2], p_dem[2], match_spatial(t_fm[2], p_rgb[2])], dim=1))
+            )
+            f4_fused = self.simple_fuse4(
+                torch.cat([p_rgb[3], p_dem[3], match_spatial(t_fm[3], p_rgb[3])], dim=1)
+            )
 
         main, aux2, aux3, dec_reg = self.physics_decoder(
             f4_fused,

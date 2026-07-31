@@ -1,0 +1,17 @@
+dataset,variant,best_val_f1,status
+bijie,full,0.804354,done
+bijie,no_cmb,0.795333,done
+bijie,no_fs_gate,0.896401,done
+bijie,no_mao,0.869705,done
+bijie,no_mpef,0.811794,done
+bijie,no_prithvi,0.728052,done
+bijie,no_tteb,0.889412,done
+bijie,path_a_only,0.752804,done
+l4s,full,0.693042,done
+l4s,no_cmb,0.714593,done
+l4s,no_fs_gate,0.702743,done
+l4s,no_mao,0.717353,done
+l4s,no_mpef,0.688534,done
+l4s,no_prithvi,0.530398,done
+l4s,no_tteb,0.706215,done
+l4s,path_a_only,0.704191,done
