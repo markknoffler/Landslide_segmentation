@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 16:16
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 20:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -640,45 +640,33 @@ Underfull \hbox (badness 1038) in paragraph at lines 106--107
 20) Grav-i-ty-former mul-ti-plies
  []
 
-(./content/method_tpami.tex
-Underfull \hbox (badness 1881) in paragraph at lines 6--7
-[]\OT1/ptm/b/n/10 (+20) Stage B (hy-bridiza-tion): \OT1/ptm/m/n/10 (+20) Com-pl
-e-men-tary Modal-ity
- []
-
-[2] [3]
-Underfull \hbox (badness 5161) in paragraph at lines 188--190
+(./content/method_tpami.tex [2] [3]
+Underfull \hbox (badness 5161) in paragraph at lines 175--177
 \OT1/ptm/m/n/10 (+20) At $\OT1/cmr/m/n/10 256 \OMS/cmsy/m/n/10 ^^B \OT1/cmr/m/n
 /10 256$ \OT1/ptm/m/n/10 (+20) in-put the physics pyra-mid lives on
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--221
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
  []\OT1/ptm/b/n/10 (+20) Foundation stack.[] \OT1/ptm/m/n/10 (+20) A six-band o
 b-served stack
  []
 
 
-Underfull \hbox (badness 7576) in paragraph at lines 220--221
+Underfull \hbox (badness 7576) in paragraph at lines 207--208
 \OT1/ptm/m/n/10 (+20) feeds Prithvi-EO with LoRA [[], []]: on Land-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 220--221
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
 \OT1/ptm/m/n/10 (+20) slide4Sense, $\OT1/cmr/m/n/10 [\OML/cmm/m/it/10 R; G; B; 
 []; []; []\OT1/cmr/m/n/10 ]$\OT1/ptm/m/n/10 (+20) ; on Bi-jie,
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 232--235
-\OT1/ptm/m/n/10 (+20) EfficientNet-B4 at $\OT1/cmr/m/n/10 256 \OMS/cmsy/m/n/10 
-^^B \OT1/cmr/m/n/10 256$ \OT1/ptm/m/n/10 (+20) yields spa-tial grids
- []
-
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
-put line 255.
+put line 235.
 LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 2
-58.
+38.
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
@@ -687,13 +675,13 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
  [4]
-Underfull \hbox (badness 3668) in paragraph at lines 353--357
+Underfull \hbox (badness 3668) in paragraph at lines 333--337
 \OT1/ptm/m/n/10 (+20) from $\OML/cmm/m/it/10 H[]$\OT1/ptm/m/n/10 (+20) , with a
 n op-tional tem-po-ral router $\OML/cmm/m/it/10 ! \OT1/cmr/m/n/10 =
  []
 
 
-Underfull \hbox (badness 7168) in paragraph at lines 390--391
+Underfull \hbox (badness 7168) in paragraph at lines 370--371
  []\OT1/ptm/b/n/10 (+20) Shared vs. path-specific in-puts.[] \OT1/ptm/m/n/10 (+
 20) Both paths share
  []
@@ -703,205 +691,204 @@ pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       
 pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.391 
+l.374 
       ]
 pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.418 \State
+l.398 \State
              \(S'\leftarrow\mathrm{match\_spatial}(S,D)\)
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.419 \State
+l.399 \State
              \(\beta\leftarrow\sigma(\mathrm{Conv}_{1\times1}([D;S']))\)
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.420 \State
+l.400 \State
              \textbf{return} \(D+\beta\odot\mathrm{LatentMechanisticCell}(S')\)
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.471 \State
+l.451 \State
              align proxies to logit resolution
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.472 \State
+l.452 \State
              \(\mathrm{FE}_p\leftarrow\mathrm{ReLU}(1-\mathrm{FS}_{\mathrm{n...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.473 \State
+l.453 \State
              \([w_A,w_B]\leftarrow\mathrm{softmax}([\mathrm{FE}_A,\mathrm{FE...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.474 \State
+l.454 \State
              \(O\leftarrow w_A O_A+w_B O_B+\mathrm{Conv}_{1\times1}([O_A;O_B...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.475 \State
+l.455 \State
              \(R\leftarrow\mathrm{mean}(-(w\log(w+\varepsilon)))\)
 pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.476 \State
+l.456 \State
              \textbf{return} \(O,R\)
 pdfTeX warning (ext4): destination with the same identifier (name{algline.1}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.485 \State
+l.465 \State
              \((s,d,v)\leftarrow\mathrm{physics\_proxies}(x_1,x_2)\); map \(...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.2}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.486 \State
+l.466 \State
              encode \(E_{\mathrm{rgb}},E_{\mathrm{dem}},P_{\mathrm{rgb}},P_{...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.3}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.487 \State
+l.467 \State
              \textbf{for} \(i=0..4\): CMB hybrids \(H^{i}\); align \(\hat{T}...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.4}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.488 \State
+l.468 \State
              \textbf{for} \(L\in\{0..3\}\): \(S^{L}\leftarrow\mathrm{TTEB}(\...
 
 pdfTeX warning (ext4): destination with the same identifier (name{algline.5}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.489 \State
+l.469 \State
              \(F^{2},F^{3}\leftarrow\mathrm{MAO}\) at levels \(2,3\)
 pdfTeX warning (ext4): destination with the same identifier (name{algline.6}) h
 as been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.490 \State
+l.470 \State
              dual \(\mathrm{PhysDec}\) \(\rightarrow(O_A,O_B)\) at three heads
 [6])
-<figures/tpami/fig_bounded_positive_scale.png, id=352, 375.804pt x 260.172pt>
+<figures/tpami/fig_bounded_positive_scale.png, id=349, 375.804pt x 260.172pt>
 File: figures/tpami/fig_bounded_positive_scale.png Graphic file (type png)
 <use figures/tpami/fig_bounded_positive_scale.png>
 Package pdftex.def Info: figures/tpami/fig_bounded_positive_scale.png  used on 
 input line 133.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_landscape.png, id=354, 375.804pt x 289.08pt>
+<figures/tpami/fig_fs_landscape.png, id=351, 375.804pt x 289.08pt>
 File: figures/tpami/fig_fs_landscape.png Graphic file (type png)
 <use figures/tpami/fig_fs_landscape.png>
 Package pdftex.def Info: figures/tpami/fig_fs_landscape.png  used on input line
  140.
 (pdftex.def)             Requested size: 243.91125pt x 187.62628pt.
-<figures/tpami/fig_mpef_routing.png, id=355, 375.804pt x 260.172pt>
+<figures/tpami/fig_mpef_routing.png, id=352, 375.804pt x 260.172pt>
 File: figures/tpami/fig_mpef_routing.png Graphic file (type png)
 <use figures/tpami/fig_mpef_routing.png>
 Package pdftex.def Info: figures/tpami/fig_mpef_routing.png  used on input line
  147.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_local_lipschitz_hist.png, id=356, 375.804pt x 260.172pt>
+<figures/tpami/fig_fs_local_lipschitz_hist.png, id=353, 375.804pt x 260.172pt>
 File: figures/tpami/fig_fs_local_lipschitz_hist.png Graphic file (type png)
 <use figures/tpami/fig_fs_local_lipschitz_hist.png>
 Package pdftex.def Info: figures/tpami/fig_fs_local_lipschitz_hist.png  used on
  input line 154.
 (pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_tpami_lce_schematic.png, id=357, 397.485pt x 231.264pt>
+<figures/tpami/fig_tpami_lce_schematic.png, id=354, 397.485pt x 231.264pt>
 File: figures/tpami/fig_tpami_lce_schematic.png Graphic file (type png)
 <use figures/tpami/fig_tpami_lce_schematic.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_lce_schematic.png  used on inp
 ut line 161.
 (pdftex.def)             Requested size: 243.91125pt x 141.91422pt.
- [7 <./figures/tpami/fig_bounded_positive_scale.png> <./figures/tpami/fig_fs_la
-ndscape.png>]
+
 Underfull \hbox (badness 1715) in paragraph at lines 171--172
 \OT1/ptm/m/n/10 (+20) LinkNet, DEP-UNet, GM-Net, RMAU-Net, Tran-sUNet,
  []
@@ -911,81 +898,82 @@ Underfull \hbox (badness 1226) in paragraph at lines 171--172
 \OT1/ptm/m/n/10 (+20) EMR-HRNet, Shape-Former, Dual-Stream UNet, U-Net,
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
+[7 <./figures/tpami/fig_bounded_positive_scale.png> <./figures/tpami/fig_fs_lan
+dscape.png>]
 Underfull \hbox (badness 3407) in paragraph at lines 174--175
 \OT1/ptm/m/n/10 (+20) ($\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 710$
 \OT1/ptm/m/n/10 (+20) /$\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 636$
 \OT1/ptm/m/n/10 (+20) ). Gains ver-sus DeepLabV3+ and dual-
  []
 
-<figures/tpami/fig_tpami_deltas.png, id=385, 592.2125pt x 245.718pt>
+<figures/tpami/fig_tpami_deltas.png, id=380, 592.2125pt x 245.718pt>
 File: figures/tpami/fig_tpami_deltas.png Graphic file (type png)
 <use figures/tpami/fig_tpami_deltas.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_deltas.png  used on input line
  207.
 (pdftex.def)             Requested size: 243.91125pt x 101.20244pt.
-<figures/tpami/fig_tpami_iou_rank.png, id=386, 650.43pt x 289.08pt>
+<figures/tpami/fig_tpami_iou_rank.png, id=381, 650.43pt x 289.08pt>
 File: figures/tpami/fig_tpami_iou_rank.png Graphic file (type png)
 <use figures/tpami/fig_tpami_iou_rank.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_iou_rank.png  used on input li
 ne 214.
 (pdftex.def)             Requested size: 243.91125pt x 108.40472pt.
-<figures/fig_bijie_bars.png, id=387, 722.7pt x 361.35pt>
+<figures/fig_bijie_bars.png, id=382, 722.7pt x 361.35pt>
 File: figures/fig_bijie_bars.png Graphic file (type png)
 <use figures/fig_bijie_bars.png>
 Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 221.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/fig_l4s_bars.png, id=388, 722.7pt x 361.35pt>
+<figures/fig_l4s_bars.png, id=383, 722.7pt x 361.35pt>
 File: figures/fig_l4s_bars.png Graphic file (type png)
 <use figures/fig_l4s_bars.png>
 Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 228.
 (pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/tpami/fig_tpami_bijie_curves.png, id=389, 722.7pt x 231.264pt>
+<figures/tpami/fig_tpami_bijie_curves.png, id=384, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_bijie_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_bijie_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_bijie_curves.png  used on inpu
 t line 235.
 (pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-<figures/tpami/fig_tpami_l4s_curves.png, id=390, 722.7pt x 231.264pt>
+<figures/tpami/fig_tpami_l4s_curves.png, id=385, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_l4s_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_l4s_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_l4s_curves.png  used on input 
 line 242.
 (pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-[8 <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_local_lipschi
-tz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures/tpami/fig
-_tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figures/fig_biji
-e_bars.png>] [9 <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_c
-urves.png> <./figures/tpami/fig_tpami_l4s_curves.png>]
-<figures/ablation/fig_ablation_f1_dual.png, id=436, 566.0055pt x 315.0315pt>
+
+Underfull \vbox (badness 1688) has occurred while \output is active []
+
+ [8 <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_local_lipsch
+itz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures/tpami/fi
+g_tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figures/fig_bij
+ie_bars.png>] [9 <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_
+curves.png> <./figures/tpami/fig_tpami_l4s_curves.png>]
+<figures/ablation/fig_ablation_f1_dual.png, id=433, 566.0055pt x 315.0315pt>
 File: figures/ablation/fig_ablation_f1_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_f1_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_f1_dual.png  used on inp
 ut line 321.
 (pdftex.def)             Requested size: 161.88324pt x 90.10216pt.
-<figures/ablation/fig_ablation_delta_f1.png, id=437, 569.619pt x 290.394pt>
+<figures/ablation/fig_ablation_delta_f1.png, id=434, 569.619pt x 290.394pt>
 File: figures/ablation/fig_ablation_delta_f1.png Graphic file (type png)
 <use figures/ablation/fig_ablation_delta_f1.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_delta_f1.png  used on in
 put line 327.
 (pdftex.def)             Requested size: 161.88245pt x 82.52829pt.
-<figures/ablation/fig_ablation_iou_dual.png, id=438, 566.0055pt x 297.621pt>
+<figures/ablation/fig_ablation_iou_dual.png, id=435, 566.0055pt x 297.621pt>
 File: figures/ablation/fig_ablation_iou_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_iou_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_iou_dual.png  used on in
 put line 333.
 (pdftex.def)             Requested size: 161.88324pt x 85.12259pt.
-<figures/ablation/fig_ablation_component_help.png, id=439, 609.3675pt x 294.664
+<figures/ablation/fig_ablation_component_help.png, id=436, 609.3675pt x 294.664
 5pt>
 File: figures/ablation/fig_ablation_component_help.png Graphic file (type png)
 <use figures/ablation/fig_ablation_component_help.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_component_help.png  used
  on input line 339.
 (pdftex.def)             Requested size: 161.88144pt x 78.27905pt.
-<figures/ablation/fig_ablation_mechanism_swaps.png, id=440, 486.837pt x 287.109
+<figures/ablation/fig_ablation_mechanism_swaps.png, id=437, 486.837pt x 287.109
 pt>
 File: figures/ablation/fig_ablation_mechanism_swaps.png Graphic file (type png)
 
@@ -993,18 +981,18 @@ File: figures/ablation/fig_ablation_mechanism_swaps.png Graphic file (type png)
 Package pdftex.def Info: figures/ablation/fig_ablation_mechanism_swaps.png  use
 d on input line 345.
 (pdftex.def)             Requested size: 161.88983pt x 95.47348pt.
-<figures/ablation/fig_ablation_cross_rank.png, id=441, 388.944pt x 363.321pt>
+<figures/ablation/fig_ablation_cross_rank.png, id=438, 388.944pt x 363.321pt>
 File: figures/ablation/fig_ablation_cross_rank.png Graphic file (type png)
 <use figures/ablation/fig_ablation_cross_rank.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_cross_rank.png  used on 
 input line 351.
 (pdftex.def)             Requested size: 117.59805pt x 109.85088pt.
-<figures/fig26_bijie_qual.png, id=442, 3032.32875pt x 1108.14pt>
+<figures/fig26_bijie_qual.png, id=439, 3032.32875pt x 1108.14pt>
 File: figures/fig26_bijie_qual.png Graphic file (type png)
 <use figures/fig26_bijie_qual.png>
 Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 361.
 (pdftex.def)             Requested size: 413.32591pt x 151.0466pt.
-<figures/fig27_l4s_qual.png, id=443, 3032.32875pt x 1108.14pt>
+<figures/fig27_l4s_qual.png, id=440, 3032.32875pt x 1108.14pt>
 File: figures/fig27_l4s_qual.png Graphic file (type png)
 <use figures/fig27_l4s_qual.png>
 Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 362.
@@ -1021,37 +1009,34 @@ Underfull \hbox (badness 10000) in paragraph at lines 380--381
  noise $\OML/cmm/m/it/10 ^^[ \OMS/cmsy/m/n/10 2
  []
 
-<figures/tpami/fig_latent_manifold_tsne.png, id=447, 785.8158pt x 322.3242pt>
+<figures/tpami/fig_latent_manifold_tsne.png, id=444, 785.8158pt x 322.3242pt>
 File: figures/tpami/fig_latent_manifold_tsne.png Graphic file (type png)
 <use figures/tpami/fig_latent_manifold_tsne.png>
 Package pdftex.def Info: figures/tpami/fig_latent_manifold_tsne.png  used on in
 put line 384.
 (pdftex.def)             Requested size: 243.91125pt x 100.04242pt.
-<figures/tpami/fig_boundary_metrics.png, id=448, 715.473pt x 281.853pt>
+<figures/tpami/fig_boundary_metrics.png, id=445, 715.473pt x 281.853pt>
 File: figures/tpami/fig_boundary_metrics.png Graphic file (type png)
 <use figures/tpami/fig_boundary_metrics.png>
 Package pdftex.def Info: figures/tpami/fig_boundary_metrics.png  used on input 
 line 391.
 (pdftex.def)             Requested size: 243.91125pt x 96.08249pt.
-<figures/tpami/fig_robustness_decay.png, id=449, 513.117pt x 339.1872pt>
+<figures/tpami/fig_robustness_decay.png, id=446, 513.117pt x 339.1872pt>
 File: figures/tpami/fig_robustness_decay.png Graphic file (type png)
 <use figures/tpami/fig_robustness_decay.png>
 Package pdftex.def Info: figures/tpami/fig_robustness_decay.png  used on input 
 line 398.
 (pdftex.def)             Requested size: 243.91125pt x 161.23463pt.
-[10]
-Underfull \vbox (badness 10000) has occurred while \output is active []
+[10] (./paper_tpami_v3.bbl [11 <./figures/ablation/fig_ablation_f1_dual.png> <.
+/figures/ablation/fig_ablation_delta_f1.png> <./figures/ablation/fig_ablation_i
+ou_dual.png> <./figures/ablation/fig_ablation_component_help.png> <./figures/ab
+lation/fig_ablation_mechanism_swaps.png> <./figures/ablation/fig_ablation_cross
+_rank.png>] [12 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png>
+ <./figures/tpami/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_m
+etrics.png> <./figures/tpami/fig_robustness_decay.png>]) [13
 
-
-(./paper_tpami_v3.bbl [11 <./figures/ablation/fig_ablation_f1_dual.png> <./figu
-res/ablation/fig_ablation_delta_f1.png> <./figures/ablation/fig_ablation_iou_du
-al.png> <./figures/ablation/fig_ablation_component_help.png> <./figures/ablatio
-n/fig_ablation_mechanism_swaps.png> <./figures/ablation/fig_ablation_cross_rank
-.png>] [12 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png> <./f
-igures/tpami/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_metric
-s.png> <./figures/tpami/fig_robustness_decay.png>]) [13
-
-] (./paper_tpami_v3.aux)
+]
+(./paper_tpami_v3.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -1060,11 +1045,11 @@ Package rerunfilecheck Info: File `paper_tpami_v3.out' has not changed.
 (rerunfilecheck)             Checksum: 563268B60578FD20AB1B6530AE64226B;4828.
  ) 
 Here is how much of TeX's memory you used:
- 16424 strings out of 476182
- 263789 string characters out of 5795596
- 1956975 words of memory out of 5000000
- 37579 multiletter control sequences out of 15000+600000
- 611475 words of font info for 387 fonts, out of 8000000 for 9000
+ 16397 strings out of 476182
+ 263363 string characters out of 5795596
+ 1955975 words of memory out of 5000000
+ 37567 multiletter control sequences out of 15000+600000
+ 610706 words of font info for 380 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  75i,20n,79p,1808b,638s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
@@ -1090,10 +1075,10 @@ courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8
 a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/sha
 re/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on paper_tpami_v3.pdf (13 pages, 10203147 bytes).
+Output written on paper_tpami_v3.pdf (13 pages, 10203142 bytes).
 PDF statistics:
- 644 PDF objects out of 1000 (max. 8388607)
- 529 compressed objects within 6 object streams
- 182 named destinations out of 1000 (max. 500000)
- 74036 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 637 PDF objects out of 1000 (max. 8388607)
+ 522 compressed objects within 6 object streams
+ 177 named destinations out of 1000 (max. 500000)
+ 71988 words of extra memory for PDF output out of 74296 (max. 10000000)
 

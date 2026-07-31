@@ -1,25 +1,12 @@
 \section{Method}
 \label{sec:method}
-We present a physics-closed multimodal dense predictor whose forward pass is organized by a single reduced-order continuum narrative: the infinite-slope factor of safety (FS). The classical geotechnical FS is \emph{not} wired verbatim into neurons. We first recall the textbook form, then derive a Taylor-stabilized neural operator $\mathrm{FS}_{\mathrm{nn}}$ that relocates pore pressure into an additive driving term and admits a latent variant without trigonometric angles. That operator family is then realized end-to-end in GeoPhysicsLandslideNet (PS-GPLNet) as four stages:
-\begin{itemize}[leftmargin=1.1em,itemsep=0.2em]
-\item \textbf{Stage~A (inlet):} five parallel encoders + physics proxies + pixel/latent mechanistic cells;
-\item \textbf{Stage~B (hybridization):} Complementary Modality Bridges (CMB) that resonate CNN texture with physics pyramids;
-\item \textbf{Stage~C (tri-stream fusion):} MAO-GeoEGCA at the bottleneck and TTEB multi-scale skips;
-\item \textbf{Stage~D (dual decode + equilibrium):} dual PhysicsDecoders with PGDI, then MPEF instability routing at three supervision heads.
-\end{itemize}
-The remainder of this section follows that order after the FS derivation.
+We present a physics-closed multimodal dense predictor whose forward pass is organized by a single reduced-order continuum narrative: the infinite-slope factor of safety (FS). The classical geotechnical FS is not wired verbatim into neurons. We first recall the textbook form, then derive a Taylor-stabilized neural operator $\mathrm{FS}_{\mathrm{nn}}$ that relocates pore pressure into an additive driving term and admits a latent variant without trigonometric angles. That operator family is then realized end-to-end in GeoPhysicsLandslideNet (PS-GPLNet) as four stages. Stage~A (inlet) comprises five parallel encoders together with physics proxies and pixel/latent mechanistic cells. Stage~B (hybridization) applies Complementary Modality Bridges (CMB) that resonate CNN texture with physics pyramids. Stage~C (tri-stream fusion) places MAO-GeoEGCA at the bottleneck and TTEB multi-scale skips. Stage~D (dual decode + equilibrium) runs dual PhysicsDecoders with PGDI, then MPEF instability routing at three supervision heads. The remainder of this section follows that order after the FS derivation.
 
 \subsection{Problem and notation}
 \label{sec:problem}
 Let \(x_1\in\mathbb{R}^{B\times 3\times H\times W}\) denote the optical stream (RGB) and \(x_2\in\mathbb{R}^{B\times 3\times H\times W}\) the topographic/auxiliary stream. On Landslide4Sense, \(x_2\) stacks NDVI, slope, and DEM; on Bijie, DEM is replicated across three channels. The prediction target is a binary landslide mask \(y\in\{0,1\}^{B\times 1\times H\times W}\). Unless stated otherwise we use \(H=W=256\) at the network inlet and a unified fusion width \(C=64\).
 
-From \((x_1,x_2)\) the network extracts normalized physics proxies \((s,d,v)\) (slope, elevation, and vegetation) and maps them to geotechnical variables \((\alpha,h,m)\):
-\begin{itemize}[leftmargin=1.1em,itemsep=0.15em]
-\item \(\alpha\): slope angle in radians (pixel-wise);
-\item \(h>0\): soil-column / elevation height proxy;
-\item \(m\in(0,1)\): moisture-saturation proxy.
-\end{itemize}
-Separate RGB-path and DEM-path mappers produce stream-specific triples \((\alpha_r,h_r,m_r)\) and \((\alpha_d,h_d,m_d)\). We write \(\odot\) for Hadamard product, \([\,\cdot\,\|\,\cdot\,]\) for channel concatenation, and \(\varepsilon>0\) for a numerical floor (typically \(10^{-6}\)).
+From \((x_1,x_2)\) the network extracts normalized physics proxies \((s,d,v)\) (slope, elevation, and vegetation) and maps them to geotechnical variables \((\alpha,h,m)\), where \(\alpha\) is the slope angle in radians (pixel-wise), \(h>0\) is a soil-column / elevation height proxy, and \(m\in(0,1)\) is a moisture-saturation proxy. Separate RGB-path and DEM-path mappers produce stream-specific triples \((\alpha_r,h_r,m_r)\) and \((\alpha_d,h_d,m_d)\). We write \(\odot\) for Hadamard product, \([\,\cdot\,\|\,\cdot\,]\) for channel concatenation, and \(\varepsilon>0\) for a numerical floor (typically \(10^{-6}\)).
 
 \subsection{Classical infinite-slope factor of safety}
 \label{sec:classical-fs}
@@ -116,7 +103,7 @@ g&=\sigma\bigl(\psi-\mathrm{FS}_{\mathrm{nn}}\bigr).
 \end{equation}
 \end{definition}
 
-Equation~\eqref{eq:fs-nn} is deliberately \emph{not} identical to~\eqref{eq:fs-classical}: pore pressure has been moved from a subtractive numerator into an additive denominator by Proposition~\ref{prop:taylor}, and \((\tan\phi',\gamma_{\mathrm{sat}},\gamma_w)\) have been reparameterized into bounded learnable positives (Definition~\ref{def:materials}). This is the form that replaces generic affine neurons in mechanistic cells.
+Equation~\eqref{eq:fs-nn} is deliberately not identical to~\eqref{eq:fs-classical}: pore pressure has been moved from a subtractive numerator into an additive denominator by Proposition~\ref{prop:taylor}, and \((\tan\phi',\gamma_{\mathrm{sat}},\gamma_w)\) have been reparameterized into bounded learnable positives (Definition~\ref{def:materials}). This is the form that replaces generic affine neurons in mechanistic cells.
 
 \begin{definition}[Bounded material reparametrization]
 \label{def:materials}
@@ -221,14 +208,7 @@ A six-band observed stack feeds Prithvi-EO with LoRA~\cite{szink2024prithvi,houl
 
 \subsection{Stage A-B: Pentastream encoding and Complementary Modality Bridge}
 \label{sec:encode}
-\textbf{Stage~A} runs five encoders in parallel:
-\begin{enumerate}[leftmargin=1.2em,itemsep=0.2em]
-\item \(E_{\mathrm{rgb}}\): EfficientNet~\cite{tan2019efficientnet} on RGB, pyramid \(\{E_{\mathrm{rgb}}^{i}\}_{i=0}^{4}\);
-\item \(P_{\mathrm{rgb}}\): PhysicsEncoder on RGB with \((\alpha_r,h_r,m_r)\);
-\item \(E_{\mathrm{dem}}\): EfficientNet on DEM, pyramid \(\{E_{\mathrm{dem}}^{i}\}\);
-\item \(P_{\mathrm{dem}}\): PhysicsEncoder on DEM with \((\alpha_d,h_d,m_d)\);
-\item \(T_{\mathrm{fm}}\): Prithvi$+$LoRA foundation pyramid.
-\end{enumerate}
+\textbf{Stage~A} runs five encoders in parallel: \(E_{\mathrm{rgb}}\) (EfficientNet~\cite{tan2019efficientnet} on RGB with pyramid \(\{E_{\mathrm{rgb}}^{i}\}_{i=0}^{4}\)), \(P_{\mathrm{rgb}}\) (PhysicsEncoder on RGB with \((\alpha_r,h_r,m_r)\)), \(E_{\mathrm{dem}}\) (EfficientNet on DEM with pyramid \(\{E_{\mathrm{dem}}^{i}\}\)), \(P_{\mathrm{dem}}\) (PhysicsEncoder on DEM with \((\alpha_d,h_d,m_d)\)), and \(T_{\mathrm{fm}}\) (Prithvi$+$LoRA foundation pyramid).
 EfficientNet-B4 at \(256\times256\) yields spatial grids \(\{128,64,32,16,8\}\) with growing channel counts. Physics and Prithvi pyramids use different native grids; they are bilinearly aligned to each EfficientNet level via a fixed legacy index map
 \(\mathrm{LEGACY}=(1,2,3,4,4)\),
 so EffNet index \(i\) consumes physics level \(\mathrm{LEGACY}[i]\). CNN texture is \emph{complemented}, not replaced: CMB increases trust in physics only when CNN and physics co-activate (resonate).
