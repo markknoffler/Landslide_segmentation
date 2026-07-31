@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 22:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2025.8.7)  31 JUL 2026 23:17
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -439,56 +439,94 @@ Package: enumitem 2019/06/20 v3.9 Customized lists
 (/usr/share/texlive/texmf-dist/tex/latex/placeins/placeins.sty
 Package: placeins 2005/04/18  v 2.2
 )
+(/usr/share/texlive/texmf-dist/tex/latex/dblfloatfix/dblfloatfix.sty
+Package: dblfloatfix 2012/12/31 v1.0a (JAW)
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/fixltx2e.sty
+Package: fixltx2e 2016/12/29 v2.1a fixes to LaTeX (obsolete)
+Applying: [2015/01/01] Old fixltx2e package on input line 46.
+
+
+Package fixltx2e Warning: fixltx2e is not required with releases after 2015
+(fixltx2e)                All fixes are now in the LaTeX kernel.
+(fixltx2e)                See the latexrelease package for details.
+
+Already applied: [0000/00/00] Old fixltx2e package on input line 53.
+)
+\@dblbotnum=\count305
+\c@dblbotnumber=\count306
+) (/usr/share/texlive/texmf-dist/tex/latex/sttools/flushend.sty
+Package: flushend 2021/10/04 v4.0 Balancing columns in twocolumn mode
+\flushend@@lastskip@a=\skip65
+\flushend@@lastskip@b=\skip66
+\flushend@@lastnode=\count307
+\var@@loop@iter=\count308
+\var@@temp@spread=\dimen198
+\var@@temp@a=\dimen199
+\var@@temp@loop=\dimen256
+\flushend@@page@rule=\dimen257
+\flushend@@varbox@lastpage=\box56
+\flushend@@varbox@a=\box57
+\flushend@@varbox@c=\box58
+\flushend@@tempbox@a=\box59
+\flushend@@tempbox@c=\box60
+\flushend@@floatbox=\box61
+\@viper=\box62
+\hold@viper=\box63
+\atColsBreak=\toks33
+\atColsEnd=\toks34
+\oldbreak@skip=\dimen258
+)
 (/usr/share/texlive/texmf-dist/tex/latex/float/float.sty
 Package: float 2001/11/08 v1.3d Float enhancements (AL)
-\c@float@type=\count305
-\float@exts=\toks33
-\float@box=\box56
-\@float@everytoks=\toks34
-\@floatcapt=\box57
+\c@float@type=\count309
+\float@exts=\toks35
+\float@box=\box64
+\@float@everytoks=\toks36
+\@floatcapt=\box65
 )
-\@float@every@algorithm=\toks35
-\c@algorithm=\count306
-\c@algline=\count307
-\c@definition=\count308
-\c@lemma=\count309
-\c@proposition=\count310
-\c@theorem=\count311
-\c@corollary=\count312
-\c@remark=\count313
-Package hyperref Info: Option `colorlinks' set `true' on input line 41.
+\@float@every@algorithm=\toks37
+\c@algorithm=\count310
+\c@algline=\count311
+\c@definition=\count312
+\c@lemma=\count313
+\c@proposition=\count314
+\c@theorem=\count315
+\c@corollary=\count316
+\c@remark=\count317
+Package hyperref Info: Option `colorlinks' set `true' on input line 43.
 LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 7
-2.
+0.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
 (/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-01-04 L3 backend support: PDF output (pdfTeX)
-\l__color_backend_stack_int=\count314
-\l__pdf_internal_box=\box58
+\l__color_backend_stack_int=\count318
+\l__pdf_internal_box=\box66
 )
 (./paper_tpami_v3.aux)
 \openout1 = `paper_tpami_v3.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 72.
-LaTeX Font Info:    ... okay on input line 72.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 70.
+LaTeX Font Info:    ... okay on input line 70.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -526,17 +564,17 @@ LaTeX Font Info:    ... okay on input line 72.
 
 (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count315
-\scratchdimen=\dimen198
-\scratchbox=\box59
-\nofMPsegments=\count316
-\nofMParguments=\count317
-\everyMPshowfont=\toks36
-\MPscratchCnt=\count318
-\MPscratchDim=\dimen199
-\MPnumerator=\count319
-\makeMPintoPDFobject=\count320
-\everyMPtoPDFconversion=\toks37
+\scratchcounter=\count319
+\scratchdimen=\dimen259
+\scratchbox=\box67
+\nofMPsegments=\count320
+\nofMParguments=\count321
+\everyMPshowfont=\toks38
+\MPscratchCnt=\count322
+\MPscratchDim=\dimen260
+\MPnumerator=\count323
+\makeMPintoPDFobject=\count324
+\everyMPtoPDFconversion=\toks39
 ) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
@@ -546,7 +584,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
-Package hyperref Info: Link coloring ON on input line 72.
+Package hyperref Info: Link coloring ON on input line 70.
 
 (./paper_tpami_v3.out) (./paper_tpami_v3.out)
 \@outlinefile=\write3
@@ -555,19 +593,19 @@ Package hyperref Info: Link coloring ON on input line 72.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
-LaTeX Info: Redefining \microtypecontext on input line 72.
-Package microtype Info: Applying patch `item' on input line 72.
-Package microtype Info: Applying patch `toc' on input line 72.
-Package microtype Info: Applying patch `eqnum' on input line 72.
-Package microtype Info: Applying patch `footnote' on input line 72.
-Package microtype Info: Applying patch `verbatim' on input line 72.
+LaTeX Info: Redefining \microtypecontext on input line 70.
+Package microtype Info: Applying patch `item' on input line 70.
+Package microtype Info: Applying patch `toc' on input line 70.
+Package microtype Info: Applying patch `eqnum' on input line 70.
+Package microtype Info: Applying patch `footnote' on input line 70.
+Package microtype Info: Applying patch `verbatim' on input line 70.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 72.
+LaTeX Info: Redefining \showhyphens on input line 70.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
@@ -579,7 +617,7 @@ File: mt-ptm.cfg 2006/04/20 v1.7 microtype config. file: Times (RS)
 File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msa on input line 89.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 87.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -588,7 +626,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 89.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 87.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -598,20 +636,20 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 8
-9.
+7.
 
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-<figures/fig1_qualitative.png, id=96, 2246.3925pt x 1108.14pt>
+<figures/fig1_qualitative.png, id=92, 2246.3925pt x 1108.14pt>
 File: figures/fig1_qualitative.png Graphic file (type png)
 <use figures/fig1_qualitative.png>
-Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 89.
+Package pdftex.def Info: figures/fig1_qualitative.png  used on input line 87.
 (pdftex.def)             Requested size: 505.89pt x 249.54056pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 89.
+(caption)                particular \caption on input line 87.
 See the caption package documentation for explanation.
 
 
@@ -627,15 +665,12 @@ LaTeX Warning: Text page 1 contains only floats.
 
 Overfull \vbox (18.0pt too high) has occurred while \output is active []
 
-
-Overfull \vbox (6.0pt too high) has occurred while \output is active []
-
  [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf
 -dist/fonts/enc/dvips/base/8r.enc}
 
 
  <./figures/fig1_qualitative.png (PNG copy)>]
-Underfull \hbox (badness 1038) in paragraph at lines 106--107
+Underfull \hbox (badness 1038) in paragraph at lines 104--105
  []\OT1/ptm/b/n/10 (+20) Physics in-side ar-chi-tec-tures.[] \OT1/ptm/m/n/10 (+
 20) Grav-i-ty-former mul-ti-plies
  []
@@ -857,200 +892,213 @@ as been already used, duplicate ignored
                    \relax 
 l.470 \State
              dual \(\mathrm{PhysDec}\) \(\rightarrow(O_A,O_B)\) at three heads
-[6])
-<figures/tpami/fig_bounded_positive_scale.png, id=345, 375.804pt x 260.172pt>
+[6]
+<figures/tpami/fig_bounded_positive_scale.png, id=336, 375.804pt x 260.172pt>
 File: figures/tpami/fig_bounded_positive_scale.png Graphic file (type png)
 <use figures/tpami/fig_bounded_positive_scale.png>
 Package pdftex.def Info: figures/tpami/fig_bounded_positive_scale.png  used on 
-input line 133.
-(pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_landscape.png, id=347, 375.804pt x 289.08pt>
+input line 571.
+(pdftex.def)             Requested size: 109.08931pt x 75.52336pt.
+<figures/tpami/fig_fs_landscape.png, id=338, 375.804pt x 289.08pt>
 File: figures/tpami/fig_fs_landscape.png Graphic file (type png)
 <use figures/tpami/fig_fs_landscape.png>
 Package pdftex.def Info: figures/tpami/fig_fs_landscape.png  used on input line
- 140.
-(pdftex.def)             Requested size: 243.91125pt x 187.62628pt.
-<figures/tpami/fig_mpef_routing.png, id=348, 375.804pt x 260.172pt>
+ 577.
+(pdftex.def)             Requested size: 98.17694pt x 75.52072pt.
+<figures/tpami/fig_mpef_routing.png, id=339, 375.804pt x 260.172pt>
 File: figures/tpami/fig_mpef_routing.png Graphic file (type png)
 <use figures/tpami/fig_mpef_routing.png>
 Package pdftex.def Info: figures/tpami/fig_mpef_routing.png  used on input line
- 147.
-(pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_fs_local_lipschitz_hist.png, id=349, 375.804pt x 260.172pt>
+ 583.
+(pdftex.def)             Requested size: 109.08931pt x 75.52336pt.
+<figures/tpami/fig_fs_local_lipschitz_hist.png, id=340, 375.804pt x 260.172pt>
 File: figures/tpami/fig_fs_local_lipschitz_hist.png Graphic file (type png)
 <use figures/tpami/fig_fs_local_lipschitz_hist.png>
 Package pdftex.def Info: figures/tpami/fig_fs_local_lipschitz_hist.png  used on
- input line 154.
-(pdftex.def)             Requested size: 243.91125pt x 168.86365pt.
-<figures/tpami/fig_tpami_lce_schematic.png, id=350, 397.485pt x 231.264pt>
+ input line 589.
+(pdftex.def)             Requested size: 109.08931pt x 75.52336pt.
+<figures/tpami/fig_tpami_lce_schematic.png, id=341, 397.485pt x 231.264pt>
 File: figures/tpami/fig_tpami_lce_schematic.png Graphic file (type png)
 <use figures/tpami/fig_tpami_lce_schematic.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_lce_schematic.png  used on inp
-ut line 161.
-(pdftex.def)             Requested size: 243.91125pt x 141.91422pt.
-
-Underfull \hbox (badness 1715) in paragraph at lines 171--172
+ut line 595.
+(pdftex.def)             Requested size: 129.8058pt x 75.52336pt.
+)
+Underfull \hbox (badness 1715) in paragraph at lines 134--135
 \OT1/ptm/m/n/10 (+20) LinkNet, DEP-UNet, GM-Net, RMAU-Net, Tran-sUNet,
  []
 
 
-Underfull \hbox (badness 1226) in paragraph at lines 171--172
+Underfull \hbox (badness 1226) in paragraph at lines 134--135
 \OT1/ptm/m/n/10 (+20) EMR-HRNet, Shape-Former, Dual-Stream UNet, U-Net,
  []
 
-[7 <./figures/tpami/fig_bounded_positive_scale.png> <./figures/tpami/fig_fs_lan
-dscape.png>]
-Underfull \hbox (badness 3407) in paragraph at lines 174--175
+
+Underfull \hbox (badness 3407) in paragraph at lines 137--138
 \OT1/ptm/m/n/10 (+20) ($\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 710$
 \OT1/ptm/m/n/10 (+20) /$\OT1/cmr/m/n/10 0\OML/cmm/m/it/10 :\OT1/cmr/m/n/10 636$
 \OT1/ptm/m/n/10 (+20) ). Gains ver-sus DeepLabV3+ and dual-
  []
 
-<figures/tpami/fig_tpami_deltas.png, id=376, 592.2125pt x 245.718pt>
+<figures/tpami/fig_tpami_deltas.png, id=351, 592.2125pt x 245.718pt>
 File: figures/tpami/fig_tpami_deltas.png Graphic file (type png)
 <use figures/tpami/fig_tpami_deltas.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_deltas.png  used on input line
- 207.
-(pdftex.def)             Requested size: 243.91125pt x 101.20244pt.
-<figures/tpami/fig_tpami_iou_rank.png, id=377, 650.43pt x 289.08pt>
+ 172.
+(pdftex.def)             Requested size: 215.1211pt x 89.25702pt.
+<figures/tpami/fig_tpami_iou_rank.png, id=352, 650.43pt x 289.08pt>
 File: figures/tpami/fig_tpami_iou_rank.png Graphic file (type png)
 <use figures/tpami/fig_tpami_iou_rank.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_iou_rank.png  used on input li
-ne 214.
-(pdftex.def)             Requested size: 243.91125pt x 108.40472pt.
-<figures/fig_bijie_bars.png, id=378, 722.7pt x 361.35pt>
+ne 178.
+(pdftex.def)             Requested size: 200.8273pt x 89.25658pt.
+<figures/fig_bijie_bars.png, id=353, 722.7pt x 361.35pt>
 File: figures/fig_bijie_bars.png Graphic file (type png)
 <use figures/fig_bijie_bars.png>
-Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 221.
-(pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/fig_l4s_bars.png, id=379, 722.7pt x 361.35pt>
+Package pdftex.def Info: figures/fig_bijie_bars.png  used on input line 184.
+(pdftex.def)             Requested size: 178.51315pt x 89.25658pt.
+<figures/fig_l4s_bars.png, id=354, 722.7pt x 361.35pt>
 File: figures/fig_l4s_bars.png Graphic file (type png)
 <use figures/fig_l4s_bars.png>
-Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 228.
-(pdftex.def)             Requested size: 243.91125pt x 121.95311pt.
-<figures/tpami/fig_tpami_bijie_curves.png, id=380, 722.7pt x 231.264pt>
+Package pdftex.def Info: figures/fig_l4s_bars.png  used on input line 190.
+(pdftex.def)             Requested size: 178.51315pt x 89.25658pt.
+<figures/fig26_bijie_qual.png, id=358, 3032.32875pt x 1108.14pt>
+File: figures/fig26_bijie_qual.png Graphic file (type png)
+<use figures/fig26_bijie_qual.png>
+Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 203.
+(pdftex.def)             Requested size: 169.06894pt x 61.78487pt.
+<figures/fig27_l4s_qual.png, id=359, 3032.32875pt x 1108.14pt>
+File: figures/fig27_l4s_qual.png Graphic file (type png)
+<use figures/fig27_l4s_qual.png>
+Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 204.
+(pdftex.def)             Requested size: 169.06894pt x 61.78487pt.
+<figures/tpami/fig_tpami_bijie_curves.png, id=360, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_bijie_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_bijie_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_bijie_curves.png  used on inpu
-t line 235.
-(pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-<figures/tpami/fig_tpami_l4s_curves.png, id=381, 722.7pt x 231.264pt>
+t line 205.
+(pdftex.def)             Requested size: 171.64302pt x 54.92577pt.
+<figures/tpami/fig_tpami_l4s_curves.png, id=361, 722.7pt x 231.264pt>
 File: figures/tpami/fig_tpami_l4s_curves.png Graphic file (type png)
 <use figures/tpami/fig_tpami_l4s_curves.png>
 Package pdftex.def Info: figures/tpami/fig_tpami_l4s_curves.png  used on input 
-line 242.
-(pdftex.def)             Requested size: 243.91125pt x 78.04999pt.
-<figures/fig26_bijie_qual.png, id=385, 3032.32875pt x 1108.14pt>
-File: figures/fig26_bijie_qual.png Graphic file (type png)
-<use figures/fig26_bijie_qual.png>
-Package pdftex.def Info: figures/fig26_bijie_qual.png  used on input line 252.
-(pdftex.def)             Requested size: 375.70876pt x 137.29971pt.
-<figures/fig27_l4s_qual.png, id=386, 3032.32875pt x 1108.14pt>
-File: figures/fig27_l4s_qual.png Graphic file (type png)
-<use figures/fig27_l4s_qual.png>
-Package pdftex.def Info: figures/fig27_l4s_qual.png  used on input line 253.
-(pdftex.def)             Requested size: 375.70876pt x 137.29971pt.
-[8 <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_local_lipschi
-tz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures/tpami/fig
-_tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figures/fig_biji
-e_bars.png>] [9
+line 206.
+(pdftex.def)             Requested size: 171.64302pt x 54.92577pt.
+[7]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
- <./figures/fig_l4s_bars.png> <./figures/tpami/fig_tpami_bijie_curves.png> <./f
-igures/tpami/fig_tpami_l4s_curves.png>] [10 <./figures/fig26_bijie_qual.png> <.
-/figures/fig27_l4s_qual.png>]
-<figures/ablation/fig_ablation_f1_dual.png, id=427, 566.0055pt x 315.0315pt>
+<figures/ablation/fig_ablation_f1_dual.png, id=386, 566.0055pt x 315.0315pt>
 File: figures/ablation/fig_ablation_f1_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_f1_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_f1_dual.png  used on inp
-ut line 321.
-(pdftex.def)             Requested size: 161.88324pt x 90.10216pt.
-<figures/ablation/fig_ablation_delta_f1.png, id=428, 569.619pt x 290.394pt>
+ut line 273.
+(pdftex.def)             Requested size: 148.01297pt x 82.38214pt.
+<figures/ablation/fig_ablation_delta_f1.png, id=387, 569.619pt x 290.394pt>
 File: figures/ablation/fig_ablation_delta_f1.png Graphic file (type png)
 <use figures/ablation/fig_ablation_delta_f1.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_delta_f1.png  used on in
-put line 327.
-(pdftex.def)             Requested size: 161.88245pt x 82.52829pt.
-<figures/ablation/fig_ablation_iou_dual.png, id=429, 566.0055pt x 297.621pt>
+put line 279.
+(pdftex.def)             Requested size: 161.59561pt x 82.38206pt.
+<figures/ablation/fig_ablation_iou_dual.png, id=388, 566.0055pt x 297.621pt>
 File: figures/ablation/fig_ablation_iou_dual.png Graphic file (type png)
 <use figures/ablation/fig_ablation_iou_dual.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_iou_dual.png  used on in
-put line 333.
-(pdftex.def)             Requested size: 161.88324pt x 85.12259pt.
-<figures/ablation/fig_ablation_component_help.png, id=430, 609.3675pt x 294.664
+put line 285.
+(pdftex.def)             Requested size: 156.67542pt x 82.38417pt.
+<figures/ablation/fig_ablation_component_help.png, id=389, 609.3675pt x 294.664
 5pt>
 File: figures/ablation/fig_ablation_component_help.png Graphic file (type png)
 <use figures/ablation/fig_ablation_component_help.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_component_help.png  used
- on input line 339.
+ on input line 291.
 (pdftex.def)             Requested size: 161.88144pt x 78.27905pt.
-<figures/ablation/fig_ablation_mechanism_swaps.png, id=431, 486.837pt x 287.109
+<figures/ablation/fig_ablation_mechanism_swaps.png, id=390, 486.837pt x 287.109
 pt>
 File: figures/ablation/fig_ablation_mechanism_swaps.png Graphic file (type png)
 
 <use figures/ablation/fig_ablation_mechanism_swaps.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_mechanism_swaps.png  use
-d on input line 345.
-(pdftex.def)             Requested size: 161.88983pt x 95.47348pt.
-<figures/ablation/fig_ablation_cross_rank.png, id=432, 388.944pt x 363.321pt>
+d on input line 297.
+(pdftex.def)             Requested size: 139.6934pt x 82.38329pt.
+<figures/ablation/fig_ablation_cross_rank.png, id=391, 388.944pt x 363.321pt>
 File: figures/ablation/fig_ablation_cross_rank.png Graphic file (type png)
 <use figures/ablation/fig_ablation_cross_rank.png>
 Package pdftex.def Info: figures/ablation/fig_ablation_cross_rank.png  used on 
-input line 351.
-(pdftex.def)             Requested size: 110.24483pt x 102.98209pt.
- [11
+input line 303.
+(pdftex.def)             Requested size: 88.19112pt x 82.38123pt.
+ [8 <./figures/tpami/fig_bounded_positive_scale.png> <./figures/tpami/fig_fs_la
+ndscape.png> <./figures/tpami/fig_mpef_routing.png> <./figures/tpami/fig_fs_loc
+al_lipschitz_hist.png> <./figures/tpami/fig_tpami_lce_schematic.png> <./figures
+/tpami/fig_tpami_deltas.png> <./figures/tpami/fig_tpami_iou_rank.png> <./figure
+s/fig_bijie_bars.png> <./figures/fig_l4s_bars.png>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
-] [12 <./figures/ablation/fig_ablation_f1_dual.png> <./figures/ablation/fig_abl
-ation_delta_f1.png> <./figures/ablation/fig_ablation_iou_dual.png> <./figures/a
-blation/fig_ablation_component_help.png> <./figures/ablation/fig_ablation_mecha
-nism_swaps.png> <./figures/ablation/fig_ablation_cross_rank.png>]
-Underfull \hbox (badness 5119) in paragraph at lines 379--380
- []\OT1/ptm/b/n/10 (+20) Boundary com-plex-ity.[] \OT1/ptm/m/n/10 (+20) We re-p
-ort Bound-ary F-score
- []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 382--383
- []\OT1/ptm/b/n/10 (+20) Perturbation de-cay.[] \OT1/ptm/m/n/10 (+20) Gaus-sian
- noise $\OML/cmm/m/it/10 ^^[ \OMS/cmsy/m/n/10 2
- []
-
-<figures/tpami/fig_latent_manifold_tsne.png, id=454, 785.8158pt x 322.3242pt>
+ [9 <./figures/fig26_bijie_qual.png> <./figures/fig27_l4s_qual.png> <./figures/
+tpami/fig_tpami_bijie_curves.png> <./figures/tpami/fig_tpami_l4s_curves.png>]
+<figures/tpami/fig_latent_manifold_tsne.png, id=415, 785.8158pt x 322.3242pt>
 File: figures/tpami/fig_latent_manifold_tsne.png Graphic file (type png)
 <use figures/tpami/fig_latent_manifold_tsne.png>
 Package pdftex.def Info: figures/tpami/fig_latent_manifold_tsne.png  used on in
-put line 386.
-(pdftex.def)             Requested size: 243.91125pt x 100.04242pt.
-<figures/tpami/fig_boundary_metrics.png, id=455, 715.473pt x 281.853pt>
+put line 320.
+(pdftex.def)             Requested size: 184.11517pt x 75.51994pt.
+<figures/tpami/fig_boundary_metrics.png, id=416, 715.473pt x 281.853pt>
 File: figures/tpami/fig_boundary_metrics.png Graphic file (type png)
 <use figures/tpami/fig_boundary_metrics.png>
 Package pdftex.def Info: figures/tpami/fig_boundary_metrics.png  used on input 
-line 393.
-(pdftex.def)             Requested size: 243.91125pt x 96.08249pt.
-<figures/tpami/fig_robustness_decay.png, id=456, 513.117pt x 339.1872pt>
+line 321.
+(pdftex.def)             Requested size: 174.28258pt x 68.65677pt.
+<figures/tpami/fig_robustness_decay.png, id=417, 513.117pt x 339.1872pt>
 File: figures/tpami/fig_robustness_decay.png Graphic file (type png)
 <use figures/tpami/fig_robustness_decay.png>
 Package pdftex.def Info: figures/tpami/fig_robustness_decay.png  used on input 
-line 400.
-(pdftex.def)             Requested size: 243.91125pt x 161.23463pt.
-[13 <./figures/tpami/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundar
-y_metrics.png>] (./paper_tpami_v3.bbl) [14 <./figures/tpami/fig_robustness_deca
-y.png>] (./paper_tpami_v3.aux)
+line 322.
+(pdftex.def)             Requested size: 103.86647pt x 68.65915pt.
+
+Underfull \hbox (badness 1067) in paragraph at lines 323--323
+[]\OT1/ptm/b/n/9 (+20) Figure 6: |\OT1/ptm/m/n/9 (+20) Di-ag-nos-tic probes on 
+Bi-jie val: t-SNE of MAO
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [10 <./figures/ablation/fig_ablation_f1_dual.png> <./figures/ablation/fig_abla
+tion_delta_f1.png> <./figures/ablation/fig_ablation_iou_dual.png> <./figures/ab
+lation/fig_ablation_component_help.png> <./figures/ablation/fig_ablation_mechan
+ism_swaps.png> <./figures/ablation/fig_ablation_cross_rank.png> <./figures/tpam
+i/fig_latent_manifold_tsne.png> <./figures/tpami/fig_boundary_metrics.png> <./f
+igures/tpami/fig_robustness_decay.png>] (./paper_tpami_v3.bbl)
+- LAST -
+Extra skip:0.0pt
+Left:507.8399pt/1.26892pt
+Right:547.0pt/1.85844pt
+Split: 529.91995pt
+Output:529.91995pt
+Pageshrink: 25.0pt
+Pagestretch: 25.0pt
+@colht:686.56499pt
+FLUSHEND [output]: 529.91995pt
+FLUSHEND [leftcolumn badness]: 56
+FUSHEND [rightcolumn badness]: 18
+ [11] (./paper_tpami_v3.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
 Package rerunfilecheck Info: File `paper_tpami_v3.out' has not changed.
-(rerunfilecheck)             Checksum: 86AAE409D540B808D3EE02A2BBD69587;4734.
+(rerunfilecheck)             Checksum: 6C229E7CDC1CDE3FBA274116F68FC606;4538.
  ) 
 Here is how much of TeX's memory you used:
- 16388 strings out of 476182
- 263271 string characters out of 5795596
- 1955975 words of memory out of 5000000
- 37566 multiletter control sequences out of 15000+600000
- 610386 words of font info for 376 fonts, out of 8000000 for 9000
+ 16517 strings out of 476182
+ 266543 string characters out of 5795596
+ 1964975 words of memory out of 5000000
+ 37734 multiletter control sequences out of 15000+600000
+ 609273 words of font info for 357 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,20n,79p,1808b,604s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,20n,79p,1809b,642s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
 r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
@@ -1074,10 +1122,10 @@ courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8
 a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/sha
 re/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texm
 f-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on paper_tpami_v3.pdf (14 pages, 10199875 bytes).
+Output written on paper_tpami_v3.pdf (11 pages, 10192804 bytes).
 PDF statistics:
- 626 PDF objects out of 1000 (max. 8388607)
- 510 compressed objects within 6 object streams
- 175 named destinations out of 1000 (max. 500000)
- 71980 words of extra memory for PDF output out of 74296 (max. 10000000)
+ 579 PDF objects out of 1000 (max. 8388607)
+ 467 compressed objects within 5 object streams
+ 153 named destinations out of 1000 (max. 500000)
+ 71972 words of extra memory for PDF output out of 74296 (max. 10000000)
 

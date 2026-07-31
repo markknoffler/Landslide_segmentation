@@ -14,6 +14,8 @@
 \usepackage{microtype}
 \usepackage{enumitem}
 \usepackage{placeins}
+\usepackage{dblfloatfix}
+\usepackage{flushend}
 % Lightweight algorithm floats (no algorithm.sty required)
 \usepackage{float}
 \newfloat{algorithm}{htbp}{loa}
@@ -39,16 +41,12 @@
 \newtheorem{remark}{Remark}
 
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
-\setcounter{topnumber}{3}
-\setcounter{bottomnumber}{2}
-\setcounter{totalnumber}{5}
-\setcounter{dbltopnumber}{3}
-\renewcommand{\topfraction}{0.85}
-\renewcommand{\bottomfraction}{0.7}
-\renewcommand{\textfraction}{0.12}
-\renewcommand{\floatpagefraction}{0.7}
-\renewcommand{\dbltopfraction}{0.85}
-\renewcommand{\dblfloatpagefraction}{0.7}
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{1}
+\setcounter{totalnumber}{3}
+\setcounter{dbltopnumber}{1}
+\renewcommand{\dbltopfraction}{0.55}
+\setlength{\emergencystretch}{2em}
 \captionsetup{font=small,labelfont=bf,skip=4pt}
 \setlength{\columnsep}{0.25in}
 \setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
@@ -128,41 +126,6 @@ Gravity-/geometry-informed CV~\cite{wang2025gravityformer,yin2021virtualnormal} 
 
 \input{content/method_tpami}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_bounded_positive_scale.png}
-\caption{Bounded material map $\exp(\mathrm{clip}(w))$ versus unbounded $\exp(w)$.}
-\label{fig:bound}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_fs_landscape.png}
-\caption{Infinite-slope FS landscape over $(\alpha,h)$.}
-\label{fig:fsland}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_mpef_routing.png}
-\caption{MPEF path weights as functions of relative failure energy.}
-\label{fig:mpef}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_fs_local_lipschitz_hist.png}
-\caption{Empirical local sensitivity of the FS gate (GPU-0 Monte Carlo).}
-\label{fig:theory}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_tpami_lce_schematic.png}
-\caption{Schematic of Latent Continuum Equivalency: shared FS currency from inlet to MPEF.}
-\label{fig:lce}
-\end{figure}
-
 \section{Experiments}
 \subsection{Stress-test datasets and protocol}
 We evaluate on Bijie~\cite{ji2020bijie} and Landslide4Sense~\cite{ghorbanzadeh2022landslide4sense} as anisotropic multimodal dense-prediction stress tests. Inputs are $256\times256$. Adam ($3\cdot10^{-4}$, weight decay $10^{-4}$), Tversky loss, $100$ epochs, threshold $0.5$. EfficientNet backbones frozen when pretrained; Prithvi frozen with LoRA. Metrics: Acc/Prec/Rec/F1/IoU on the main head. Final numbers are best validation epochs from \textit{outputs\_final\_bijie} (epoch~92) and \textit{outputs\_final\_l4s} (epoch~70).
@@ -171,9 +134,9 @@ We evaluate on Bijie~\cite{ji2020bijie} and Landslide4Sense~\cite{ghorbanzadeh20
 LinkNet, DEP-UNet, GMNet, RMAU-Net, TransUNet, EMR-HRNet, ShapeFormer, Dual-Stream UNet, U-Net, DeepLabV3+, and dual\_stream\_gated under a unified harness. DiGATe-style dual-stream gated models are baselines only~\cite{islam2024digate}.
 
 \subsection{Quantitative results}
-Table~\ref{tab:results} consolidates both benchmarks. On Bijie, PS-GPLNet reaches F1\,$=$\,$0.933$ and IoU\,$=$\,$0.907$, above DeepLabV3+ ($0.927$/$0.899$) and dual\_stream\_gated ($0.897$/$0.869$). On Landslide4Sense, F1\,$=$\,$0.736$ and IoU\,$=$\,$0.660$, above DeepLabV3+ ($0.710$/$0.636$). Gains versus DeepLabV3+ and dual-gated baselines are summarized in Figure~\ref{fig:deltas} (Bijie $\Delta$F1 $+0.006$/$\Delta$IoU $+0.009$; L4S $\Delta$F1 $+0.026$/$\Delta$IoU $+0.024$ vs.\ DeepLab).
+Table~\ref{tab:results} consolidates both benchmarks. On Bijie, PS-GPLNet reaches F1\,$=$\,$0.933$ and IoU\,$=$\,$0.907$, above DeepLabV3+ ($0.927$/$0.899$) and dual\_stream\_gated ($0.897$/$0.869$). On Landslide4Sense, F1\,$=$\,$0.736$ and IoU\,$=$\,$0.660$, above DeepLabV3+ ($0.710$/$0.636$). Gains versus DeepLabV3+ and dual-gated baselines are summarized in Figure~\ref{fig:bench_panel} (Bijie $\Delta$F1 $+0.006$/$\Delta$IoU $+0.009$; L4S $\Delta$F1 $+0.026$/$\Delta$IoU $+0.024$ vs.\ DeepLab). The same panel ranks IoU and groups F1/IoU bars on each dataset.
 
-\begin{table*}[t]
+\begin{table*}[!t]
 \centering
 \caption{Best-epoch validation on Bijie and Landslide4Sense (unified protocol).}
 \label{tab:results}
@@ -202,71 +165,60 @@ DeepLabV3+ & 0.989 & 0.929 & 0.966 & 0.927 & 0.899 & 0.984 & 0.789 & 0.749 & 0.7
 \end{tabular}
 \end{table*}
 
-\begin{figure}[t]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_tpami_deltas.png}
-\caption{Validated gains of PS-GPLNet over DeepLabV3+ and dual\_stream\_gated.}
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.13\textheight,keepaspectratio]{figures/tpami/fig_tpami_deltas.png}
+\caption{Gains vs.\ DeepLabV3+ / dual\_stream\_gated}
 \label{fig:deltas}
-\end{figure}
-
-\begin{figure}[t]
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_tpami_iou_rank.png}
-\caption{IoU ranking at best epoch on both stress-test datasets.}
+\includegraphics[width=\linewidth,height=0.13\textheight,keepaspectratio]{figures/tpami/fig_tpami_iou_rank.png}
+\caption{IoU ranking at best epoch}
 \label{fig:rank}
-\end{figure}
-
-\begin{figure}[t]
+\end{subfigure}\\[0.35em]
+\begin{subfigure}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=\linewidth]{figures/fig_bijie_bars.png}
-\caption{Bijie grouped best-epoch metrics including PS-GPLNet.}
+\includegraphics[width=\linewidth,height=0.13\textheight,keepaspectratio]{figures/fig_bijie_bars.png}
+\caption{Bijie grouped F1/IoU}
 \label{fig:bijbars}
-\end{figure}
-
-\begin{figure}[t]
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
 \centering
-\includegraphics[width=\linewidth]{figures/fig_l4s_bars.png}
-\caption{Landslide4Sense grouped best-epoch metrics including PS-GPLNet.}
+\includegraphics[width=\linewidth,height=0.13\textheight,keepaspectratio]{figures/fig_l4s_bars.png}
+\caption{Landslide4Sense grouped F1/IoU}
 \label{fig:l4sbars}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_tpami_bijie_curves.png}
-\caption{Bijie final-run training dynamics (best F1 at epoch 92).}
-\label{fig:bjc}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_tpami_l4s_curves.png}
-\caption{Landslide4Sense final-run training dynamics (best F1 at epoch 70).}
-\label{fig:l4sc}
-\end{figure}
+\end{subfigure}
+\caption{Benchmark comparison panel for PS-GPLNet against unified-harness baselines.}
+\label{fig:bench_panel}
+\end{figure*}
 
 \subsection{Qualitative stress-test results}
-Figures~\ref{fig:bijie_qual}--\ref{fig:l4s_qual} show representative patches. Bijie polygons are large; heatmaps concentrate on scarps and deposits while suppressing homogeneous steep slopes. L4S scars are smaller and cross-region; precision-recall trade-offs match Table~\ref{tab:results}.
+Figure~\ref{fig:bijie_qual} shows representative patches together with final-run training dynamics. Bijie polygons are large; heatmaps concentrate on scarps and deposits while suppressing homogeneous steep slopes. L4S scars are smaller and cross-region; precision-recall trade-offs match Table~\ref{tab:results}. Material compactness, MPEF uniqueness, and FS-gate sensitivity (Remark after Theorem~2; Figure~\ref{fig:theory_panel}) were verified on an RTX~4000~Ada (20\,GB) without retraining. Curves show Bijie best F1 at epoch~$92$ and L4S at epoch~$70$.
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.98\textwidth,height=0.20\textheight,keepaspectratio]{figures/fig26_bijie_qual.png}\\[0.3em]
-\includegraphics[width=0.98\textwidth,height=0.20\textheight,keepaspectratio]{figures/fig27_l4s_qual.png}
-\caption{Qualitative stress-test samples.
-\textbf{Top:} Bijie (RGB, ground truth, prediction, heatmap).
-\textbf{Bottom:} Landslide4Sense.}
+\includegraphics[width=0.98\textwidth,height=0.09\textheight,keepaspectratio]{figures/fig26_bijie_qual.png}\\[0.1em]
+\includegraphics[width=0.98\textwidth,height=0.09\textheight,keepaspectratio]{figures/fig27_l4s_qual.png}\\[0.25em]
+\includegraphics[width=0.98\textwidth,height=0.08\textheight,keepaspectratio]{figures/tpami/fig_tpami_bijie_curves.png}\\[0.08em]
+\includegraphics[width=0.98\textwidth,height=0.08\textheight,keepaspectratio]{figures/tpami/fig_tpami_l4s_curves.png}
+\caption{Qualitative stress-test samples and training dynamics.
+\textbf{Top two strips:} Bijie then Landslide4Sense (RGB, ground truth, prediction, heatmap).
+\textbf{Bottom:} final-run curves (Bijie best F1 at epoch 92; L4S at epoch 70).}
 \label{fig:bijie_qual}
 \label{fig:l4s_qual}
+\label{fig:train_curves}
+\label{fig:bjc}
+\label{fig:l4sc}
 \end{figure*}
 
-\subsection{Theory-experiment alignment}
-Material compactness, MPEF uniqueness, and FS-gate sensitivity (Remark after Theorem~2) were verified on an RTX~4000~Ada (20\,GB) without retraining. Training curves (Figures~\ref{fig:bjc}--\ref{fig:l4sc}) show stable validation F1/IoU on the final PS-GPLNet logs.
-
-\clearpage
 \subsection{Component ablation study}
 \label{sec:ablation}
-Following the diagnostic organization used in strong multimodal ablations (Difficult vs.\ Easy stress tests; component matrix; mechanism swaps), we treat \textbf{Landslide4Sense as the hard regime} (cross-region scars, severe imbalance) and \textbf{Bijie as the easier regime} (larger polygons, more homogeneous acquisition). Absolute Full-model numbers in Table~\ref{tab:ablation-main} are taken from the primary-server runs already reported in Table~\ref{tab:results} (Bijie F1/IoU \(0.933\)/$0.907$; L4S \(0.736\)/$0.660$), and not from the compact ablation Full checkpoint. Component rows are matched-protocol removals under a compact low-VRAM schedule (EfficientNet-B0, \(C{=}32\), LoRA \(r{\le}4\), FP32, batch~$2$, $40$ epochs, seed~$42$). Protocol-matched \(\Delta\) and mechanism swaps appear in the bottom of Table~\ref{tab:ablation-main} (compact Full reference: Bijie F1~$0.804$; L4S F1~$0.693$); comparative plots are in Figure~\ref{fig:abl_panel}.
+We treat \textbf{Landslide4Sense as the hard regime} and \textbf{Bijie as the easier regime}. Absolute Full numbers in Table~\ref{tab:ablation-main} reuse the primary-server runs from Table~\ref{tab:results} (Bijie F1/IoU \(0.933\)/$0.907$; L4S \(0.736\)/$0.660$). Component rows use a matched compact schedule (EfficientNet-B0, \(C{=}32\), LoRA \(r{\le}4\), FP32, batch~$2$, $40$ epochs, seed~$42$). Matched \(\Delta\) and mechanism swaps sit in the table bottom (compact Full: Bijie F1~$0.804$; L4S F1~$0.693$); Figure~\ref{fig:abl_panel} plots the same comparisons.
 
-\begin{table*}[!htbp]
+\begin{table*}[!t]
 \centering
 \caption{Ablation study on Difficult (Landslide4Sense) vs.\ Easy (Bijie).
 \textbf{Top:} Acc/Prec/Rec/F1/IoU; Full $=$ primary-server PS-GPLNet (Table~\ref{tab:results}); other rows $=$ matched compact protocol.
@@ -294,7 +246,7 @@ w/o FS-gate & 0.984 & 0.736 & 0.807 & 0.703 & 0.626 & 0.988 & 0.948 & 0.916 & 0.
 \bottomrule
 \end{tabular}
 
-\vspace{0.5em}
+\vspace{0.45em}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lcccc@{\hspace{1.6em}}lcc}
 \toprule
@@ -314,91 +266,64 @@ w/o FS-gate & $+0.010$ & $+0.009$ & $+0.092$ & $+0.096$ & & & \\
 \end{tabular}
 \end{table*}
 
-\begin{figure*}[!htbp]
+\begin{figure*}[!t]
 \centering
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_f1_dual.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_f1_dual.png}
 \caption{F1 dual-dataset}
 \label{fig:abl_f1}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_delta_f1.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_delta_f1.png}
 \caption{Matched \(\Delta\)F1}
 \label{fig:abl_delta}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_iou_dual.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_iou_dual.png}
 \caption{IoU dual-dataset}
 \label{fig:abl_iou}
-\end{subfigure}\\[0.2em]
+\end{subfigure}\\[0.12em]
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_component_help.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_component_help.png}
 \caption{Signed module help}
 \label{fig:abl_help}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_mechanism_swaps.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_mechanism_swaps.png}
 \caption{Mechanism swaps}
 \label{fig:abl_mech}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{0.32\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.15\textheight,keepaspectratio]{figures/ablation/fig_ablation_cross_rank.png}
+\includegraphics[width=\linewidth,height=0.12\textheight,keepaspectratio]{figures/ablation/fig_ablation_cross_rank.png}
 \caption{Easy-hard ranking}
 \label{fig:abl_rank}
 \end{subfigure}
 \caption{Comparative ablation panel. Dashed lines / star markers denote primary-server Full (Bijie $0.933$, L4S $0.736$).}
 \label{fig:abl_panel}
 \end{figure*}
-\FloatBarrier
 
-\paragraph{What each removal tests.}
-\texttt{w/o FS-gate} disables Taylor-stabilized FS gating (identity residual). \texttt{w/o MPEF} replaces instability routing by mean fusion. \texttt{w/o CMB} bypasses Complementary Modality Bridge. \texttt{w/o MAO} replaces GeoEGCA by a plain $1{\times}1$ concat mix. \texttt{w/o TTEB} replaces the skip lattice by bilinear identity skips. \texttt{w/o Prithvi} drops the foundation stream. \texttt{Path-A only} keeps a single RGB-proxy decode path.
-
-\paragraph{Hard-set verdict (L4S).}
-The dominant failure mode under matched removal is dropping Prithvi (\(\Delta\)F1 $-0.163$, \(\Delta\)IoU $-0.159$): planetary context is indispensable when scars are small and acquisition is heterogeneous. Mean fusion without MPEF is a mild regression ($-0.005$ F1). Dual-path competition is not the primary L4S bottleneck under the compact budget (Path-A only is slightly above compact Full), consistent with foundation context dominating local path rivalry on the hard set.
-
-\paragraph{Easy-set verdict (Bijie).}
-Prithvi removal remains harmful (\(-0.076\) F1), and Path-A only collapses dual-path competition (\(-0.052\) F1), showing that topographic decode authority matters when polygons are large enough for DEM proxies to adjudicate. CMB removal is near-neutral under the short budget.
-
-\paragraph{Positive \(\Delta\) under compact protocol.}
-Several removals (FS-gate, TTEB, MAO on Bijie; MAO/CMB on L4S) exceed compact Full under the $40$-epoch low-VRAM schedule. We do not interpret this as ``Full is worse'': primary Full (Table~\ref{tab:results}) still dominates every component absolute number. The pattern matches a known optimization interaction: strong continuum regularizers and multi-module fusion can underfit when capacity, LoRA rank, and epoch budget are jointly reduced, while the same operators recover and lead when trained under the primary protocol. Figure~\ref{fig:abl_panel} summarizes F1/IoU, matched \(\Delta\), signed contributions, mechanism swaps, and the easy-hard ranking.
+\texttt{w/o FS-gate} disables Taylor-stabilized FS gating (identity residual). \texttt{w/o MPEF} replaces instability routing by mean fusion. \texttt{w/o CMB} bypasses Complementary Modality Bridge. \texttt{w/o MAO} replaces GeoEGCA by a plain $1{\times}1$ concat mix. \texttt{w/o TTEB} replaces the skip lattice by bilinear identity skips. \texttt{w/o Prithvi} drops the foundation stream. \texttt{Path-A only} keeps a single RGB-proxy decode path. On the hard set (L4S), the dominant failure mode under matched removal is dropping Prithvi (\(\Delta\)F1 $-0.163$, \(\Delta\)IoU $-0.159$): planetary context is indispensable when scars are small and acquisition is heterogeneous. Mean fusion without MPEF is a mild regression ($-0.005$ F1). Dual-path competition is not the primary L4S bottleneck under the compact budget (Path-A only is slightly above compact Full), consistent with foundation context dominating local path rivalry on the hard set. On Bijie, Prithvi removal remains harmful (\(-0.076\) F1), and Path-A only collapses dual-path competition (\(-0.052\) F1), showing that topographic decode authority matters when polygons are large enough for DEM proxies to adjudicate. CMB removal is near-neutral under the short budget. Several removals (FS-gate, TTEB, MAO on Bijie; MAO/CMB on L4S) exceed compact Full under the $40$-epoch low-VRAM schedule. We do not interpret this as ``Full is worse'': primary Full (Table~\ref{tab:results}) still dominates every component absolute number. The pattern matches a known optimization interaction: strong continuum regularizers and multi-module fusion can underfit when capacity, LoRA rank, and epoch budget are jointly reduced, while the same operators recover and lead when trained under the primary protocol.
 
 \subsection{Latent manifold, boundary fidelity, and perturbation robustness}
 Pixel IoU alone does not probe whether LCE structures the representation space or whether FS-gated decoding resists sensor noise. We therefore run three inference-only studies on the Bijie validation split (seed~$42$, $554$ images) using the real \texttt{GeoPhysicsLandslideNet} forward API and a locally trained architecture-faithful B4 checkpoint (epoch~$98$, image-mean val~F1~$0.912$; cluster final weights for the $0.933$ table entry were not synced to this machine). Latents are captured by a forward hook on MAO \texttt{fuse3} ($C{=}64$), not $1$-channel MPEF logits.
 
-\paragraph{Latent manifold (t-SNE).}
-Figure~\ref{fig:tsne} projects $300$ pooled \texttt{fuse3} vectors. Color by landslide presence ($>5\%$ mask area) yields visible class structure (centroid separation $0.522$); color by DEM channel std shows topography-aligned texture variation along the same embedding, consistent with continuum-aware routing rather than purely appearance clustering.
-
-\paragraph{Boundary complexity.}
-We report Boundary F-score ($\theta{=}2$\,px) and symmetric Hausdorff distance on validation predictions (Figure~\ref{fig:boundary}). Over the full val set, mean BF-score is $0.821$; restricting to landslide-present images ($n{=}154$) gives BF~$0.394$ and median Hausdorff~$17.3$\,px, isolating anisotropic scar/deposit boundaries from trivial empty-empty zeros.
-
-\paragraph{Perturbation decay.}
-Gaussian noise $\sigma\in\{0,0.05,0.1,0.2,0.3\}$ is added to both RGB and DEM streams. Figure~\ref{fig:robust} compares micro-averaged F1 decay against trained Bijie U-Net and DeepLabV3+ checkpoints from the same baseline harness. At $\sigma{=}0$, DeepLab starts highest ($0.799$) vs.\ PS-GPLNet micro-F1~$0.759$ and U-Net~$0.736$. Under strong noise ($\sigma{=}0.3$), baselines collapse to $\approx0.49$--$0.50$ while PS-GPLNet remains at $0.653$, and at moderate $\sigma\in\{0.05,0.1\}$ PS-GPLNet peaks near $0.827$, evidence that FS/MPEF priors act as a structural anchor rather than a free statistical gate.
+Figure~\ref{fig:diag_panel} summarizes the three probes. Color by landslide presence ($>5\%$ mask area) yields visible class structure in $300$ pooled \texttt{fuse3} vectors (centroid separation $0.522$); color by DEM channel std shows topography-aligned texture variation along the same embedding. Boundary F-score ($\theta{=}2$\,px) averages $0.821$ over the full val set; restricting to landslide-present images ($n{=}154$) gives BF~$0.394$ and median Hausdorff~$17.3$\,px. Under Gaussian noise $\sigma\in\{0,0.05,0.1,0.2,0.3\}$ on RGB and DEM, DeepLab starts highest at $\sigma{=}0$ ($0.799$) vs.\ PS-GPLNet micro-F1~$0.759$ and U-Net~$0.736$, but at $\sigma{=}0.3$ baselines collapse to $\approx0.49$--$0.50$ while PS-GPLNet remains at $0.653$ (and peaks near $0.827$ at moderate $\sigma$), evidence that FS/MPEF priors act as a structural anchor.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_latent_manifold_tsne.png}
-\caption{t-SNE of MAO \texttt{fuse3} latents on Bijie val (hook $C{=}64$). Left: landslide presence; right: DEM texture proxy.}
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_latent_manifold_tsne.png}\\[0.15em]
+\includegraphics[width=\linewidth,height=0.10\textheight,keepaspectratio]{figures/tpami/fig_boundary_metrics.png}\\[0.15em]
+\includegraphics[width=\linewidth,height=0.10\textheight,keepaspectratio]{figures/tpami/fig_robustness_decay.png}
+\caption{Diagnostic probes on Bijie val: t-SNE of MAO \texttt{fuse3}, boundary F-score / Hausdorff, and noise decay vs.\ U-Net / DeepLabV3+.}
+\label{fig:diag_panel}
 \label{fig:tsne}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_boundary_metrics.png}
-\caption{Boundary F-score and Hausdorff histograms on Bijie val predictions (PS-GPLNet).}
 \label{fig:boundary}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tpami/fig_robustness_decay.png}
-\caption{F1/IoU under RGB{+}DEM Gaussian noise. PS-GPLNet decays slower than U-Net and DeepLabV3+.}
 \label{fig:robust}
 \end{figure}
 

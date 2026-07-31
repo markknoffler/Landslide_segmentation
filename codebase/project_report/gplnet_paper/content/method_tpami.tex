@@ -561,8 +561,44 @@ Scalar learned fusion gates that are not \(\mathrm{softmax}(\mathrm{FE})\) are n
 \end{corollary}
 
 \begin{remark}[Empirical probes]
-On GPU we verified Lemma~\ref{lem:compact} numerically (\(c\in[e^{-8},e^{8}]\)), Theorem~\ref{thm:mpef} against \(5000\) random simplex competitors (dominance rate \(1.0\)), and local FS-gate sensitivity (median \(\|\Delta\mathrm{gate}\|/\|\Delta\alpha\|\approx0.28\), \(p_{95}\approx0.68\)). See Figures~\ref{fig:bound}--\ref{fig:mpef}.
+On GPU we verified Lemma~\ref{lem:compact} numerically (\(c\in[e^{-8},e^{8}]\)), Theorem~\ref{thm:mpef} against \(5000\) random simplex competitors (dominance rate \(1.0\)), and local FS-gate sensitivity (median \(\|\Delta\mathrm{gate}\|/\|\Delta\alpha\|\approx0.28\), \(p_{95}\approx0.68\)). See Figure~\ref{fig:theory_panel}.
 \end{remark}
+
+\begin{figure*}[!t]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_bounded_positive_scale.png}
+\caption{Bounded material map}
+\label{fig:bound}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_fs_landscape.png}
+\caption{FS landscape over $(\alpha,h)$}
+\label{fig:fsland}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_mpef_routing.png}
+\caption{MPEF path weights}
+\label{fig:mpef}
+\end{subfigure}\\[0.2em]
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_fs_local_lipschitz_hist.png}
+\caption{FS-gate local sensitivity (GPU-0)}
+\label{fig:theory}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.11\textheight,keepaspectratio]{figures/tpami/fig_tpami_lce_schematic.png}
+\caption{LCE schematic: shared FS currency}
+\label{fig:lce}
+\end{subfigure}
+\caption{Theory probes for Latent Continuum Equivalency and MPEF: bounded materials, FS landscape, routing weights, gate sensitivity, and stage-wise FS currency.}
+\label{fig:theory_panel}
+\end{figure*}
 
 \begin{remark}[On Universal Approximation]
 We do not claim a Universal Approximation Theorem for continuum-in-neuron operators. UAT would establish existence of some network approximating continuous maps; our guarantees are instead local well-posedness and routing identities (Lemmas~\ref{lem:compact}--\ref{lem:lip-gate}, Theorems~\ref{thm:lce}--\ref{thm:mpef}) that make LCE/MPEF drop-in operators under standard training domains. This is the appropriate theory depth for TPAMI-style multimodal dense prediction.
