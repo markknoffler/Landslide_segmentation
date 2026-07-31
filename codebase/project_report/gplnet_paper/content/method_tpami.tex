@@ -1,6 +1,13 @@
 \section{Method}
 \label{sec:method}
-We present a physics-closed multimodal dense predictor whose forward pass is organized by a single reduced-order continuum narrative: the infinite-slope factor of safety (FS). The classical geotechnical FS is \emph{not} wired verbatim into neurons. We first recall the textbook form, then derive a Taylor-stabilized neural operator \(\mathrm{FS}_{\mathrm{nn}}\) that relocates pore pressure into an additive driving term and admits a latent variant without trigonometric angles. That operator family is then realized at every stage of GeoPhysicsLandslideNet (PS-GPLNet): proxy mapping, pixel and latent mechanistic cells, Complementary Modality Bridges (CMB), Manifold-Aligned Orthogonal Geo-EGCA (MAO-GeoEGCA), Tri-Temporal Tri-Stream Bridges (TTEB), dual PhysicsDecoders with Physics-Gated Decoder Injection (PGDI), and Mechanistic Path Equilibrium Fusion (MPEF).
+We present a physics-closed multimodal dense predictor whose forward pass is organized by a single reduced-order continuum narrative: the infinite-slope factor of safety (FS). The classical geotechnical FS is \emph{not} wired verbatim into neurons. We first recall the textbook form, then derive a Taylor-stabilized neural operator $\mathrm{FS}_{\mathrm{nn}}$ that relocates pore pressure into an additive driving term and admits a latent variant without trigonometric angles. That operator family is then realized end-to-end in GeoPhysicsLandslideNet (PS-GPLNet) as four stages:
+\begin{itemize}[leftmargin=1.1em,itemsep=0.2em]
+\item \textbf{Stage~A (inlet):} five parallel encoders + physics proxies + pixel/latent mechanistic cells;
+\item \textbf{Stage~B (hybridization):} Complementary Modality Bridges (CMB) that resonate CNN texture with physics pyramids;
+\item \textbf{Stage~C (tri-stream fusion):} MAO-GeoEGCA at the bottleneck and TTEB multi-scale skips;
+\item \textbf{Stage~D (dual decode + equilibrium):} dual PhysicsDecoders with PGDI, then MPEF instability routing at three supervision heads.
+\end{itemize}
+The remainder of this section follows that order after the FS derivation.
 
 \subsection{Problem and notation}
 \label{sec:problem}
@@ -212,9 +219,9 @@ Softplus keeps \(h>0\); sigmoid keeps \(m\in(0,1)\); the \(\pi/2\) scale maps th
 \paragraph{Foundation stack.}
 A six-band observed stack feeds Prithvi-EO with LoRA~\cite{szink2024prithvi,houlsby2019lora}: on Landslide4Sense, \([R,G,B,\mathrm{NDVI},\mathrm{slope},\mathrm{DEM}]\); on Bijie, \([R,G,B,\mathrm{DEM},\mathrm{Sobel}(d),\mathrm{vegIndex}]\). Intermediate transformer blocks are projected to width \(C\) and resized onto a five-level pyramid \(\{T_{\mathrm{fm}}^{L}\}\).
 
-\subsection{Pentastream encoding and Complementary Modality Bridge}
+\subsection{Stage A--B: Pentastream encoding and Complementary Modality Bridge}
 \label{sec:encode}
-PS-GPLNet runs five encoders in parallel:
+\textbf{Stage~A} runs five encoders in parallel:
 \begin{enumerate}[leftmargin=1.2em,itemsep=0.2em]
 \item \(E_{\mathrm{rgb}}\): EfficientNet~\cite{tan2019efficientnet} on RGB, pyramid \(\{E_{\mathrm{rgb}}^{i}\}_{i=0}^{4}\);
 \item \(P_{\mathrm{rgb}}\): PhysicsEncoder on RGB with \((\alpha_r,h_r,m_r)\);
@@ -242,11 +249,28 @@ B_{\mathrm{mix}}=\mathrm{Conv}_{1\times1}([\tilde{E}\,\|\,\tilde{P}]),
 H=g\odot\tilde{P}+(1-g)\odot\tilde{E}+B_{\mathrm{mix}}.
 \end{equation}
 \end{definition}
-The gate \(g\) opens toward physics when element-wise agreement \(\tilde{E}\odot\tilde{P}\) is strong; otherwise appearance features dominate. The residual mix \(B_{\mathrm{mix}}\) preserves a shared channel pathway so neither stream is hard-gated to zero. Applying CMB at every EffNet index produces hybrid pyramids \(\{H_{\mathrm{rgb}}^{i}\}\) and \(\{H_{\mathrm{dem}}^{i}\}\). Foundation maps are likewise aligned to \(E_{\mathrm{rgb}}^{i}\), yielding \(\{\hat{T}_{\mathrm{fm}}^{i}\}\). Subsequent fusion consumes only these hybrids and foundation maps---not raw EffNet features.
+The gate \(g\) opens toward physics when element-wise agreement \(\tilde{E}\odot\tilde{P}\) is strong; otherwise appearance features dominate. The residual mix \(B_{\mathrm{mix}}\) preserves a shared channel pathway so neither stream is hard-gated to zero. Applying CMB at every EffNet index produces hybrid pyramids \(\{H_{\mathrm{rgb}}^{i}\}\) and \(\{H_{\mathrm{dem}}^{i}\}\). Foundation maps are likewise aligned to \(E_{\mathrm{rgb}}^{i}\), yielding \(\{\hat{T}_{\mathrm{fm}}^{i}\}\). Subsequent fusion consumes only these hybrids and foundation maps---not raw EffNet features. Algorithm~\ref{alg:cmb} states the exact operator used in code.
 
-\subsection{MAO-GeoEGCA}
+\begin{algorithm}[t]
+\caption{Complementary Modality Bridge (CMB)}
+\label{alg:cmb}
+\begin{algorithmic}
+\Require CNN features \(E\), physics \(P\)
+\State \(P\leftarrow\mathrm{match\_spatial}(P,E)\)
+\State \(\tilde{E}\leftarrow\mathrm{GN}(\mathrm{ReLU}(\mathrm{Conv}_{1\times1}(E)))\)
+\State \(\tilde{P}\leftarrow\mathrm{GN}(P)\)
+\State \(g\leftarrow\sigma(\mathrm{Conv}_{1\times1}(\tilde{E}\odot\tilde{P}))\)
+\State \(B\leftarrow\mathrm{Conv}_{1\times1}([\tilde{E};\tilde{P}])\)
+\State \textbf{return} \(g\odot\tilde{P}+(1-g)\odot\tilde{E}+B\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Stage C: MAO-GeoEGCA (bottleneck fusion)}
 \label{sec:mao}
-At neck and bottleneck levels \(i\in\{2,3\}\) (spatial grids \(32\times32\) and \(16\times16\) for B4@\(256\)), Manifold-Aligned Orthogonal Geo-EGCA treats the concatenated RGB/DEM hybrids as a \emph{physics anchor} and Prithvi as environmental context. Restricting MAO to these two levels leaves four \(\times2\) upsampling stages in the decoder, restoring full \(256\times256\) logits; applying MAO at \(8\times8\) would under-resolve the decode chain.
+\textbf{Stage~C} cross-references local geomechanics with planetary-scale context. At neck and bottleneck levels $i\in\{2,3\}$ (spatial grids $32\times32$ and $16\times16$ for B4@$256$), Manifold-Aligned Orthogonal Geo-EGCA (\textbf{MAO} $=$ manifold-aligned orthogonal; \textbf{GeoEGCA} $=$ Geo-Equilibrium Gated Cross-Attention) treats the concatenated RGB/DEM hybrids as a \emph{physics anchor} and Prithvi as environmental context. Restricting MAO to these two levels leaves four $\times2$ upsampling stages in the decoder, restoring full $256\times256$ logits; applying MAO at $8\times8$ would under-resolve the decode chain.
+
+\paragraph{Physical Equilibrium Gate.}
+The gate $G$ is a \emph{pixel-wise} spatial mask at the bottleneck resolution (shape $B\times 1\times H\times W$), not a single patch scalar. After Prithvi tokens are resized to standard 2D maps, $G$ is formed by element-wise resonance $\hat{T}\odot X_p$, a $3\times3$ depthwise-separable neighbourhood filter, and a sigmoid. Low $G$ suppresses planetary context where local physics indicate equilibrium; high $G$ admits foundation context where instability cues are strong. The Value tensors $V$ carry the foundation \emph{content} that attention weights redistribute; without $V$, attention would score relevance but transport no payload.
 
 \begin{definition}[MAO-GeoEGCA]
 \label{def:mao}
@@ -289,9 +313,23 @@ F=\mathrm{Conv}_{3\times3}
 +X_p.
 \end{equation}
 \end{definition}
-When local geomechanics indicate low stress, \(G\to0\) and foundation context is suppressed; when instability cues are strong, \(G\to1\) and Prithvi tokens guide the fused map. Outputs \(F^{2}\) (neck, with a post \(1\times1\)) and \(F^{3}\) (bottleneck) seed the dual decoder.
+When local geomechanics indicate low stress, \(G\to0\) and foundation context is suppressed; when instability cues are strong, \(G\to1\) and Prithvi tokens guide the fused map. Outputs \(F^{2}\) (neck, \(B{\times}64{\times}32{\times}32\)) and \(F^{3}\) (bottleneck, \(B{\times}64{\times}16{\times}16\)) seed the dual decoder. Algorithm~\ref{alg:mao} matches the implemented fusion kernel.
 
-\subsection{TTEB skip lattice}
+\begin{algorithm}[t]
+\caption{MAO-GeoEGCA (neck / bottleneck)}
+\label{alg:mao}
+\begin{algorithmic}
+\Require \(\hat{T},\hat{H}_{\mathrm{rgb}},\hat{H}_{\mathrm{dem}}\)
+\State \(X_p\leftarrow\mathrm{Conv}_{1\times1}([\hat{H}_{\mathrm{rgb}};\hat{H}_{\mathrm{dem}}])\)
+\State \(G\leftarrow\sigma(\mathrm{DWSepConv}_{3\times3}(\hat{T}\odot X_p))\)
+\State \(Q\leftarrow W_q X_p\); \(K\leftarrow W_k\hat{T}\); \(V\leftarrow W_v\hat{T}\)
+\State \(\hat{Q}\leftarrow\mathrm{normalize}(Q)\); \(K'\leftarrow K\odot\hat{Q}\)
+\State \(\mathrm{Ctx}\leftarrow\mathrm{MHAttn}(Q,K',V)\)
+\State \textbf{return} \(\mathrm{Conv}_{3\times3}(\mathrm{reshape}(\mathrm{Ctx})\odot G)+X_p\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Stage C (continued): TTEB skip lattice}
 \label{sec:tteb}
 For each fusion level \(L\in\{0,1,2,3\}\), the Tri-Temporal Tri-Stream Bridge builds a skip tensor from a lattice over RGB, DEM, and foundation streams at neighbouring scales \(\{L-1,L,L+1\}\) (boundary-clamped). Levels are resized to the present spatial size. The present-phase tokens are mixed as
 \begin{equation}
@@ -328,12 +366,31 @@ A
 \bigr).
 \end{split}
 \end{equation}
-Thus TTEB does not invent a new inductive bias: its stability map \(\delta\) is LCE applied to multi-scale, multi-stream skips. The resulting list \(\{S^{0},S^{1},S^{2},S^{3}\}\) lives on \(\{128^{2},64^{2},32^{2},16^{2}\}\).
+Thus TTEB does not invent a new inductive bias: its stability map \(\delta\) is LCE applied to multi-scale, multi-stream skips. The resulting list \(\{S^{0},S^{1},S^{2},S^{3}\}\) lives on \(\{128^{2},64^{2},32^{2},16^{2}\}\). Algorithm~\ref{alg:tteb} states the per-level skip construction.
 
-\subsection{Dual PhysicsDecoder, PGDI, and MPEF}
+\begin{algorithm}[t]
+\caption{TTEB at level \(L\)}
+\label{alg:tteb}
+\begin{algorithmic}
+\Require hybrid/FM pyramids; level \(L\)
+\State gather \(\{L{-}1,L,L{+}1\}\) per stream; align spatially
+\State \(A\leftarrow\mathrm{Conv}_{1\times1}([\mathrm{pres}_{\mathrm{rgb}};\mathrm{pres}_{\mathrm{dem}};\mathrm{pres}_{\mathrm{fm}}])\)
+\State \(H_{\mathrm{ctx}}\leftarrow\mathrm{mix}\)(8 lattice nodes)
+\State \(\delta\leftarrow|\psi-R(A)/(D(A)+\varepsilon)|\)
+\State \(\mathrm{AttnOut}\leftarrow\mathrm{SpatialAttn}(A,H_{\mathrm{ctx}})\); scale by \(\omega(\delta)\)
+\State \textbf{return} \(A+\mathrm{Conv}_{3\times3}(\mathrm{AttnOut}\odot\sigma(\delta))\)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Stage D: Dual Physics Decoder, PGDI, and MPEF}
 \label{sec:decode}
+\textbf{Stage~D} deliberately \emph{re-splits} the fused Stage~C knowledge into two competitive decode paths so spectral and topographic evidence can double-check the mask under commensurable continuum operators.
+
+\paragraph{Shared vs.\ path-specific inputs.}
+Both paths share $\{F^{3},F^{2},S^{L}\}$ from MAO/TTEB. Path~A injects EfficientNet RGB residual $a_5=\mathrm{Proj}(E_{\mathrm{rgb}}^{4})$ with proxies $(\alpha_r,h_r,m_r)$; Path~B injects DEM residual $b_5$ with $(\alpha_d,h_d,m_d)$. The paths do not share hidden states during upsampling; they cooperate only at MPEF.
+
 \paragraph{Dual paths.}
-Bottleneck \(F^{3}\) receives path residuals from EfficientNet stage-5 features: path~A uses \(\mathrm{Proj}(E_{\mathrm{rgb}}^{4})\) with proxies \((\alpha_r,h_r,m_r)\); path~B uses \(\mathrm{Proj}(E_{\mathrm{dem}}^{4})\) with \((\alpha_d,h_d,m_d)\). Both paths share neck \(F^{2}\) and TTEB skips, and both apply the same decode grammar---latent mechanistic cells, PGDI, and a final pixel mechanistic head---so spectral and topographic evidence are decoded under commensurable continuum operators rather than under a single shared statistical decoder.
+Both paths apply the same decode grammar---latent mechanistic cells, PGDI, and a final pixel mechanistic head---so evidence is decoded under one continuum class rather than a single shared statistical decoder.
 
 \paragraph{PGDI.}
 At each upsample stage, Physics-Gated Decoder Injection injects a TTEB skip through a learned gate on a latent mechanistic cell:
@@ -351,10 +408,21 @@ D'&=D+\beta\odot
 \end{aligned}
 \end{equation}
 \end{definition}
-The gate \(\beta\) is content-dependent: skips that disagree with the current decode state are attenuated; skips that carry complementary continuum structure are admitted. After four \(\times2\) stages and a pixel FS head, each path emits deeply supervised logits \((O_{\mathrm{main}},O_{\mathrm{aux2}},O_{\mathrm{aux3}})\).
+The gate \(\beta\) is content-dependent: skips that disagree with the current decode state are attenuated; skips that carry complementary continuum structure are admitted. Concretely, the decode chain widens \(16^{2}\!\to\!32^{2}\!\to\!64^{2}\!\to\!128^{2}\!\to\!256^{2}\). At \(32^{2}\), the upsampled state is first refined by a Latent Mechanistic Cell and then residual-injected with the MAO neck \(F^{2}\); immediately afterward, PGDI admits the aligned TTEB skip. After four \(\times2\) stages and a pixel FS head, each path emits deeply supervised logits \((O_{\mathrm{main}},O_{\mathrm{aux2}},O_{\mathrm{aux3}})\) of shapes \(B{\times}1{\times}256{\times}256\), \(B{\times}1{\times}64{\times}64\), and \(B{\times}1{\times}32{\times}32\). Algorithm~\ref{alg:pgdi} states the skip injection.
+
+\begin{algorithm}[t]
+\caption{Physics-Gated Decoder Injection (PGDI)}
+\label{alg:pgdi}
+\begin{algorithmic}
+\Require decoder state \(D\), skip \(S\)
+\State \(S'\leftarrow\mathrm{match\_spatial}(S,D)\)
+\State \(\beta\leftarrow\sigma(\mathrm{Conv}_{1\times1}([D;S']))\)
+\State \textbf{return} \(D+\beta\odot\mathrm{LatentMechanisticCell}(S')\)
+\end{algorithmic}
+\end{algorithm}
 
 \paragraph{MPEF.}
-Dual-path logits are merged by Mechanistic Path Equilibrium Fusion---softmax failure energy of the same \(\mathrm{FS}_{\mathrm{nn}}\) derived in Sec.~\ref{sec:taylor-derivation}, not a DiGATe-style scalar GateFuse:
+Dual-path logits are merged by Mechanistic Path Equilibrium Fusion---softmax failure energy of the same \(\mathrm{FS}_{\mathrm{nn}}\) derived in Sec.~\ref{sec:taylor-derivation}, not a DiGATe-style scalar GateFuse. Failure energy is computed from image-derived physics proxies \((\alpha,h,m)\), bilinearly resized to each head resolution; it does \emph{not} replace the decoder hidden state, but supplies the routing currency that adjudicates between candidate masks \(O_A\) and \(O_B\):
 \begin{definition}[MPEF]
 \label{def:mpef}
 For path logits \(O_A,O_B\) and proxies \((\alpha_p,h_p,m_p)\),
@@ -393,7 +461,36 @@ w_B\log(w_B+\varepsilon)
 \end{split}
 \end{equation}
 \end{definition}
-Independent MPEF modules fuse main, aux2, and aux3 heads. The entropy regularizer discourages degenerate one-hot routing while preserving the continuum interpretation of \(w\).
+Independent MPEF modules fuse main, aux2, and aux3 heads (three masks during training; inference uses the main head). The entropy regularizer discourages indecisive averaging while preserving the continuum interpretation of \(w\). Algorithm~\ref{alg:mpef} states the merge; Algorithm~\ref{alg:forward} summarizes the full forward pass.
+
+\begin{algorithm}[t]
+\caption{Mechanistic Path Equilibrium Fusion (MPEF)}
+\label{alg:mpef}
+\begin{algorithmic}
+\Require \(O_A,O_B\); path proxies \((\alpha_p,h_p,m_p)\)
+\State align proxies to logit resolution
+\State \(\mathrm{FE}_p\leftarrow\mathrm{ReLU}(1-\mathrm{FS}_{\mathrm{nn}}(\alpha_p,h_p,m_p))\)
+\State \([w_A,w_B]\leftarrow\mathrm{softmax}([\mathrm{FE}_A,\mathrm{FE}_B])\)
+\State \(O\leftarrow w_A O_A+w_B O_B+\mathrm{Conv}_{1\times1}([O_A;O_B])\)
+\State \(R\leftarrow\mathrm{mean}(-(w\log(w+\varepsilon)))\)
+\State \textbf{return} \(O,R\)
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{PS-GPLNet forward}
+\label{alg:forward}
+\begin{algorithmic}
+\Require streams \(x_1\) (RGB), \(x_2\) (topo/aux)
+\State \((s,d,v)\leftarrow\mathrm{physics\_proxies}(x_1,x_2)\); map \((\alpha,h,m)\)
+\State encode \(E_{\mathrm{rgb}},E_{\mathrm{dem}},P_{\mathrm{rgb}},P_{\mathrm{dem}},T_{\mathrm{fm}}\)
+\State \textbf{for} \(i=0..4\): CMB hybrids \(H^{i}\); align \(\hat{T}^{i}\)
+\State \textbf{for} \(L\in\{0..3\}\): \(S^{L}\leftarrow\mathrm{TTEB}(\ldots;L)\)
+\State \(F^{2},F^{3}\leftarrow\mathrm{MAO}\) at levels \(2,3\)
+\State dual \(\mathrm{PhysDec}\) \(\rightarrow(O_A,O_B)\) at three heads
+\State MPEF merge each head; \textbf{return} logits$+$routing reg
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Training objective}
 \label{sec:loss}
@@ -423,94 +520,6 @@ w_h\,\mathcal{L}_{\mathrm{Tv}}^{(h)}\\
 \end{split}
 \end{equation}
 with \((w_{\mathrm{main}},w_{\mathrm{aux2}},w_{\mathrm{aux3}})=(1.0,0.6,0.4)\) and \(\lambda_{\mathrm{reg}}=10^{-3}\). Training uses Adam (\(3\cdot10^{-4}\), weight decay \(10^{-4}\)), up to \(100\) epochs, frozen pretrained EfficientNet towers when available, and frozen Prithvi with LoRA adapters.
-
-\subsection{Algorithms}
-\label{sec:algorithms}
-Algorithms~\ref{alg:forward}--\ref{alg:cmb} summarize the forward operators corresponding to the modules above.
-
-\begin{algorithm}[t]
-\caption{PS-GPLNet forward}
-\label{alg:forward}
-\begin{algorithmic}
-\Require streams \(x_1\) (RGB), \(x_2\) (topo/aux)
-\State \((s,d,v)\leftarrow\mathrm{physics\_proxies}(x_1,x_2)\)
-\State map RGB/DEM proxies \((\alpha,h,m)\)
-\State encode \(E_{\mathrm{rgb}},E_{\mathrm{dem}},P_{\mathrm{rgb}},P_{\mathrm{dem}},T_{\mathrm{fm}}\)
-\State \textbf{for} \(i=0..4\): CMB hybrids \(H^{i}\); align \(\hat{T}^{i}\)
-\State \textbf{for} \(L\in\{0..3\}\): \(S^{L}\leftarrow\mathrm{TTEB}(\ldots;L)\)
-\State \(F^{2},F^{3}\leftarrow\mathrm{MAO}\) at levels \(2,3\)
-\State dual \(\mathrm{PhysDec}\) \(\rightarrow(O_A,O_B)\)
-\State MPEF merge; upsample; \textbf{return} logits$+$reg
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-\caption{MAO-GeoEGCA}
-\label{alg:mao}
-\begin{algorithmic}
-\Require \(\hat{T},\hat{H}_{\mathrm{rgb}},\hat{H}_{\mathrm{dem}}\)
-\State \(X_p\leftarrow\mathrm{Conv}([\hat{H}_{\mathrm{rgb}};\hat{H}_{\mathrm{dem}}])\)
-\State \(G\leftarrow\sigma(\mathrm{DWSep}(\hat{T}\odot X_p))\)
-\State \(Q\leftarrow W_q X_p\); \(K\leftarrow W_k\hat{T}\); \(V\leftarrow W_v\hat{T}\)
-\State \(\hat{Q}\leftarrow\mathrm{normalize}(Q)\); \(K'\leftarrow K\odot\hat{Q}\)
-\State \(\mathrm{Ctx}\leftarrow\mathrm{MHAttn}(Q,K',V)\)
-\State \textbf{return} \(\mathrm{Conv}(\mathrm{reshape}(\mathrm{Ctx})\odot G)+X_p\)
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-\caption{TTEB at level \(L\)}
-\label{alg:tteb}
-\begin{algorithmic}
-\Require hybrid/FM pyramids; level \(L\)
-\State gather \(\{L{-}1,L,L{+}1\}\) per stream; align
-\State \(A\leftarrow\mathrm{Conv}([\mathrm{pres}_{\mathrm{rgb}};\mathrm{pres}_{\mathrm{dem}};\mathrm{pres}_{\mathrm{fm}}])\)
-\State \(H_{\mathrm{ctx}}\leftarrow\mathrm{mix}\)(8 lattice nodes)
-\State \(\delta\leftarrow|\psi-R(A)/(D(A)+\varepsilon)|\)
-\State \(\mathrm{AttnOut}\leftarrow\mathrm{SpatialAttn}(A,H_{\mathrm{ctx}})\)
-\State scale by present-phase \(\omega(\delta)\)
-\State \textbf{return} \(A+\mathrm{Conv}(\mathrm{AttnOut}\odot\sigma(\delta))\)
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-\caption{PGDI}
-\label{alg:pgdi}
-\begin{algorithmic}
-\Require decoder state \(D\), skip \(S\)
-\State \(S'\leftarrow\mathrm{match\_spatial}(S,D)\)
-\State \(\beta\leftarrow\sigma(\mathrm{Conv}([D;S']))\)
-\State \textbf{return} \(D+\beta\odot\mathrm{LatentMech}(S')\)
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-\caption{MPEF}
-\label{alg:mpef}
-\begin{algorithmic}
-\Require \(O_A,O_B\); path proxies
-\State align proxies to logit resolution
-\State \(\mathrm{FE}_p\leftarrow\mathrm{ReLU}(1-\mathrm{FS}_{\mathrm{nn}})\)
-\State \([w_A,w_B]\leftarrow\mathrm{softmax}([\mathrm{FE}_A,\mathrm{FE}_B])\)
-\State \(O\leftarrow w_A O_A+w_B O_B+\mathrm{Conv}([O_A;O_B])\)
-\State \(R\leftarrow\mathrm{mean}(-(w\log w))\)
-\State \textbf{return} \(O,R\)
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[t]
-\caption{CMB}
-\label{alg:cmb}
-\begin{algorithmic}
-\Require CNN features \(E\), physics \(P\)
-\State \(P\leftarrow\mathrm{match\_spatial}(P,E)\)
-\State \(\tilde{E}\leftarrow\mathrm{GN}(\mathrm{ReLU}(\mathrm{Conv}(E)))\)
-\State \(\tilde{P}\leftarrow\mathrm{GN}(P)\)
-\State \(g\leftarrow\sigma(\mathrm{Conv}(\tilde{E}\odot\tilde{P}))\)
-\State \(B\leftarrow\mathrm{Conv}([\tilde{E};\tilde{P}])\)
-\State \textbf{return} \(g\odot\tilde{P}+(1-g)\odot\tilde{E}+B\)
-\end{algorithmic}
-\end{algorithm}
 
 \section{Theoretical Analysis}
 \label{sec:theory}
@@ -573,4 +582,8 @@ Scalar learned fusion gates that are not \(\mathrm{softmax}(\mathrm{FE})\) are n
 
 \begin{remark}[Empirical probes]
 On GPU we verified Lemma~\ref{lem:compact} numerically (\(c\in[e^{-8},e^{8}]\)), Theorem~\ref{thm:mpef} against \(5000\) random simplex competitors (dominance rate \(1.0\)), and local FS-gate sensitivity (median \(\|\Delta\mathrm{gate}\|/\|\Delta\alpha\|\approx0.28\), \(p_{95}\approx0.68\)). See Figures~\ref{fig:bound}--\ref{fig:mpef}.
+\end{remark}
+
+\begin{remark}[On Universal Approximation]
+We do not claim a Universal Approximation Theorem for continuum-in-neuron operators. UAT would establish existence of some network approximating continuous maps; our guarantees are instead local well-posedness and routing identities (Lemmas~\ref{lem:compact}--\ref{lem:lip-gate}, Theorems~\ref{thm:lce}--\ref{thm:mpef}) that make LCE/MPEF drop-in operators under standard training domains. This is the appropriate theory depth for TPAMI-style multimodal dense prediction.
 \end{remark}
